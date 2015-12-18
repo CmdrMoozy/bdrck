@@ -1,0 +1,6 @@
+[submodule "3rdparty/cmu"]
+	path = 3rdparty/cmu
+	url = https://github.com/CmdrMoozy/cmu.git
+[submodule "3rdparty/catch"]
+	path = 3rdparty/catch
+	url = https://github.com/philsquared/Catch.git
