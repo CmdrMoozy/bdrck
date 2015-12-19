@@ -34,7 +34,9 @@ include_directories(3rdparty/include include)
 
 enable_testing()
 
+add_subdirectory(src/algorithm)
 add_subdirectory(src/cwrap)
+add_subdirectory(src/fs)
 add_subdirectory(src/process)
 add_subdirectory(src/util)
 

@@ -4,6 +4,8 @@ set(bdrck-util_SOURCES
 	Error.hpp
 	ScopeExit.cpp
 	ScopeExit.hpp
+	UUID.cpp
+	UUID.hpp
 
 )
 
