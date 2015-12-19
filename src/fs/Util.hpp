@@ -2,6 +2,7 @@
 #define bdrck_fs_Util_HPP
 
 #include <string>
+#include <vector>
 
 namespace bdrck
 {
@@ -9,7 +10,10 @@ namespace fs
 {
 std::string normalizePath(const std::string &p);
 
-std::string combinePaths(const std::string &a, const std::string &b);
+std::string combinePaths(std::string const &a, std::string const &b);
+std::string combinePaths(std::vector<std::string> const &c);
+std::string combinePaths(std::string const &a,
+                         std::vector<std::string> const &c);
 
 bool exists(const std::string &p);
 

@@ -77,7 +77,7 @@ std::string normalizePath(const std::string &p)
 	return ret;
 }
 
-std::string combinePaths(const std::string &a, const std::string &b)
+std::string combinePaths(std::string const &a, std::string const &b)
 {
 	auto aEnd = a.find_last_not_of("\\/");
 	auto bStart = b.find_first_not_of("\\/");
@@ -99,6 +99,29 @@ std::string combinePaths(const std::string &a, const std::string &b)
 		oss << b.substr(bStart);
 
 	return oss.str();
+}
+
+std::string combinePaths(std::vector<std::string> const &c)
+{
+	if(c.empty())
+		return "";
+	if(c.size() == 1)
+		return *c.begin();
+	std::string ret = combinePaths(c[0], c[1]);
+	for(std::size_t i = 2; i < c.size(); ++i)
+		ret = combinePaths(ret, c[i]);
+	return ret;
+}
+
+std::string combinePaths(std::string const &a,
+                         std::vector<std::string> const &c)
+{
+	std::vector<std::string> components;
+	components.reserve(c.size() + 1);
+	components.emplace_back(a);
+	for(auto const &component : c)
+		components.emplace_back(component);
+	return combinePaths(components);
 }
 
 bool exists(const std::string &p)
