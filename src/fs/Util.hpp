@@ -17,6 +17,8 @@ std::string combinePaths(std::string const &a,
 
 std::string dirname(std::string const &p);
 
+std::vector<std::string> glob(std::string const &pattern);
+
 bool exists(const std::string &p);
 
 bool isFile(std::string const &p);

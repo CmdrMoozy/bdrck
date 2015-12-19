@@ -7,6 +7,7 @@
 #include <stdexcept>
 
 #include <ftw.h>
+#include <glob.h>
 #include <unistd.h>
 #include <linux/limits.h>
 #include <sys/stat.h>
@@ -14,6 +15,7 @@
 
 #include "bdrck/algorithm/String.hpp"
 #include "bdrck/cwrap/Unistd.hpp"
+#include "bdrck/util/Error.hpp"
 
 namespace
 {
@@ -53,6 +55,37 @@ int removeDirectoryCallback(char const *p, struct stat const *, int t,
 
 	return FTW_CONTINUE;
 }
+
+struct GlobBuffer
+{
+	glob_t buffer;
+
+	GlobBuffer(char const *pattern, int flags,
+	           int (*errfunc)(char const *, int))
+	        : buffer()
+	{
+		switch(glob(pattern, flags, errfunc, &buffer))
+		{
+		case 0:
+		case GLOB_NOMATCH: // No matches isn't really an error.
+			break;
+
+		case GLOB_NOSPACE:
+			bdrck::util::error::throwErrnoError(ENOMEM);
+
+		case GLOB_ABORTED:
+			bdrck::util::error::throwErrnoError(EIO);
+
+		default:
+			throw std::runtime_error("Unknown error.");
+		}
+	}
+
+	~GlobBuffer()
+	{
+		globfree(&buffer);
+	}
+};
 }
 
 namespace bdrck
@@ -133,6 +166,15 @@ std::string dirname(std::string const &p)
 	if(lastSeparator == std::string::npos)
 		return path;
 	return path.substr(0, lastSeparator);
+}
+
+std::vector<std::string> glob(std::string const &pattern)
+{
+	GlobBuffer buffer(pattern.c_str(), GLOB_ERR | GLOB_NOSORT, nullptr);
+	std::vector<std::string> paths;
+	for(std::size_t i = 0; i < buffer.buffer.gl_pathc; ++i)
+		paths.emplace_back(buffer.buffer.gl_pathv[i]);
+	return paths;
 }
 
 bool exists(const std::string &p)
