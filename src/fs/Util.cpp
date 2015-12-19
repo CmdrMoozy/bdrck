@@ -8,10 +8,12 @@
 
 #include <ftw.h>
 #include <unistd.h>
+#include <linux/limits.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 
 #include "bdrck/algorithm/String.hpp"
+#include "bdrck/cwrap/Unistd.hpp"
 
 namespace
 {
@@ -124,6 +126,15 @@ std::string combinePaths(std::string const &a,
 	return combinePaths(components);
 }
 
+std::string dirname(std::string const &p)
+{
+	std::string path = normalizePath(p);
+	std::string::size_type lastSeparator = path.find_last_of('/');
+	if(lastSeparator == std::string::npos)
+		return path;
+	return path.substr(0, lastSeparator);
+}
+
 bool exists(const std::string &p)
 {
 	struct stat stats;
@@ -213,6 +224,16 @@ void createPath(const std::string &p)
 		if(!exists(currentPath))
 			createDirectory(currentPath);
 	}
+}
+
+std::string getCurrentExecutable()
+{
+	return bdrck::cwrap::unistd::readlink("/proc/self/exe");
+}
+
+std::string getCurrentDirectory()
+{
+	return dirname(getCurrentExecutable());
 }
 
 std::string getTemporaryDirectoryPath()

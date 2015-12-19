@@ -15,6 +15,8 @@ std::string combinePaths(std::vector<std::string> const &c);
 std::string combinePaths(std::string const &a,
                          std::vector<std::string> const &c);
 
+std::string dirname(std::string const &p);
+
 bool exists(const std::string &p);
 
 bool isFile(std::string const &p);
@@ -26,6 +28,9 @@ void createDirectory(std::string const &p);
 void removeDirectory(std::string const &p);
 
 void createPath(const std::string &p);
+
+std::string getCurrentExecutable();
+std::string getCurrentDirectory();
 
 std::string getTemporaryDirectoryPath();
 std::string getConfigurationDirectoryPath();
