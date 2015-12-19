@@ -6,6 +6,13 @@ set(bdrck-test_SOURCES
 
 	fs/TemporaryStorageTest.cpp
 
+	params/CommandTest.cpp
+	params/OptionTest.cpp
+
+	params/detail/ParseArgumentsTest.cpp
+	params/detail/ParseCommandTest.cpp
+	params/detail/ParseOptionsTest.cpp
+
 	util/ScopeExitTest.cpp
 
 )
@@ -15,6 +22,7 @@ target_link_libraries(bdrck-test
 	bdrck-algorithm
 	bdrck-cwrap
 	bdrck-fs
+	bdrck-params
 	bdrck-process
 	bdrck-util
 )
