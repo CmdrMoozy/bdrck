@@ -5,4 +5,4 @@ set(bdrck-util_SOURCES
 
 )
 
-add_library(bdrck-util SHARED ${bdrck-util_SOURCES})
+add_library(bdrck-util STATIC ${bdrck-util_SOURCES})
