@@ -4,11 +4,7 @@ project(bdrck)
 set(CMAKE_COLOR_MAKEFILE ON)
 set(CMAKE_VERBOSE_MAKEFILE OFF)
 
-set(CMAKE_MODULE_PATH
-
-	${PROJECT_SOURCE_DIR}/3rdparty/cmu/cmake/modules
-
-)
+set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/3rdparty/cmu/cmake/modules)
 
 # Note which type of build we're performing.
 
@@ -41,3 +37,5 @@ enable_testing()
 add_subdirectory(src/cwrap)
 add_subdirectory(src/process)
 add_subdirectory(src/util)
+
+add_subdirectory(src/test)
