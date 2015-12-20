@@ -16,6 +16,7 @@ std::string combinePaths(std::string const &a,
                          std::vector<std::string> const &c);
 
 std::string dirname(std::string const &p);
+std::string basename(std::string const &p);
 
 std::vector<std::string> glob(std::string const &pattern);
 

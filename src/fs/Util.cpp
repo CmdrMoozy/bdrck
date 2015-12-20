@@ -168,6 +168,15 @@ std::string dirname(std::string const &p)
 	return path.substr(0, lastSeparator);
 }
 
+std::string basename(std::string const &p)
+{
+	std::string path = normalizePath(p);
+	std::string::size_type lastSeparator = path.find_last_of('/');
+	if(lastSeparator == std::string::npos)
+		return path;
+	return path.substr(lastSeparator + 1);
+}
+
 std::vector<std::string> glob(std::string const &pattern)
 {
 	GlobBuffer buffer(pattern.c_str(), GLOB_ERR | GLOB_NOSORT, nullptr);
