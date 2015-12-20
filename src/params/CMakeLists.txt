@@ -6,11 +6,17 @@ set(bdrck-params_SOURCES
 	Command.hpp
 	Option.cpp
 	Option.hpp
+	parseAndExecute.cpp
+	parseAndExecute.hpp
 	parseAndExecuteCommand.cpp
 	parseAndExecuteCommand.hpp
 	ProgramParameters.cpp
 	ProgramParameters.hpp
 
+	detail/Help.cpp
+	detail/Help.hpp
+	detail/parseAndExecuteImpl.cpp
+	detail/parseAndExecuteImpl.hpp
 	detail/parseArguments.cpp
 	detail/parseArguments.hpp
 	detail/parseCommand.cpp
