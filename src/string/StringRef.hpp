@@ -37,9 +37,9 @@ public:
 	BasicStringRef(std::basic_string<CharT, Traits, Allocator> const &str);
 
 	BasicStringRef(BasicStringRef const &) = default;
-	BasicStringRef(BasicStringRef &&) = delete;
+	BasicStringRef(BasicStringRef &&) = default;
 	BasicStringRef &operator=(BasicStringRef const &) = default;
-	BasicStringRef &operator=(BasicStringRef &&) = delete;
+	BasicStringRef &operator=(BasicStringRef &&) = default;
 
 	~BasicStringRef() = default;
 

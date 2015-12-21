@@ -1,5 +1,7 @@
 set(bdrck-string_SOURCES
 
+	RegEx.cpp
+	RegEx.hpp
 	StringRef.cpp
 	StringRef.hpp
 
