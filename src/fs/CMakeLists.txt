@@ -8,4 +8,11 @@ set(bdrck-fs_SOURCES
 )
 
 add_library(bdrck-fs STATIC ${bdrck-fs_SOURCES})
-target_link_libraries(bdrck-fs bdrck-algorithm bdrck-cwrap bdrck-util)
+target_link_libraries(bdrck-fs
+
+	bdrck-algorithm
+	bdrck-cwrap
+	bdrck-util
+	${bdrck_LIBRARIES}
+
+)

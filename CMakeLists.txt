@@ -4,7 +4,7 @@ project(bdrck)
 set(CMAKE_COLOR_MAKEFILE ON)
 set(CMAKE_VERBOSE_MAKEFILE OFF)
 
-set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/3rdparty/cmu/cmake/modules)
+set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/3rdparty/cmu/cmake)
 
 # Note which type of build we're performing.
 
@@ -17,7 +17,7 @@ string(TOLOWER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE_LOWER)
 
 # Find our dependencies.
 
-
+find_package(RE2 REQUIRED)
 
 # Setup our compile flags.
 
@@ -30,6 +30,14 @@ endif()
 
 include_directories(3rdparty/include include)
 
+# Set the libraries we'll use.
+
+set(bdrck_LIBRARIES
+
+	${RE2_LIBRARIES}
+
+)
+
 # Add our targets.
 
 enable_testing()
@@ -39,6 +47,7 @@ add_subdirectory(src/cwrap)
 add_subdirectory(src/fs)
 add_subdirectory(src/params)
 add_subdirectory(src/process)
+add_subdirectory(src/string)
 add_subdirectory(src/util)
 
 add_subdirectory(src/test)

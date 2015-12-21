@@ -19,11 +19,14 @@ set(bdrck-test_SOURCES
 
 add_executable(bdrck-test ${bdrck-test_SOURCES})
 target_link_libraries(bdrck-test
+
 	bdrck-algorithm
 	bdrck-cwrap
 	bdrck-fs
 	bdrck-params
 	bdrck-process
 	bdrck-util
+	${bdrck_LIBRARIES}
+
 )
 add_test(bdrck-test bdrck-test)

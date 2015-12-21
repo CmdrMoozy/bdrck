@@ -8,4 +8,9 @@ set(bdrck-cwrap_SOURCES
 )
 
 add_library(bdrck-cwrap STATIC ${bdrck-cwrap_SOURCES})
-target_link_libraries(bdrck-cwrap bdrck-util)
+target_link_libraries(bdrck-cwrap
+
+	bdrck-util
+	${bdrck_LIBRARIES}
+
+)

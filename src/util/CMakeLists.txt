@@ -10,3 +10,8 @@ set(bdrck-util_SOURCES
 )
 
 add_library(bdrck-util STATIC ${bdrck-util_SOURCES})
+target_link_libraries(bdrck-util
+
+	${bdrck_LIBRARIES}
+
+)

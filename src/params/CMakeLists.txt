@@ -27,3 +27,8 @@ set(bdrck-params_SOURCES
 )
 
 add_library(bdrck-params STATIC ${bdrck-params_SOURCES})
+target_link_libraries(bdrck-params
+
+	${bdrck_LIBRARIES}
+
+)

@@ -8,4 +8,10 @@ set(bdrck-process_SOURCES
 )
 
 add_library(bdrck-process STATIC ${bdrck-process_SOURCES})
-target_link_libraries(bdrck-process bdrck-cwrap bdrck-util)
+target_link_libraries(bdrck-process
+
+	bdrck-cwrap
+	bdrck-util
+	${bdrck_LIBRARIES}
+
+)
