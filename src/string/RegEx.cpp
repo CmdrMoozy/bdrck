@@ -70,6 +70,10 @@ RegEx &RegEx::operator=(RegEx const &o)
 	return *this;
 }
 
+RegEx::~RegEx()
+{
+}
+
 RegExResult RegEx::match(StringRef const &text) const
 {
 	assert(!!impl);

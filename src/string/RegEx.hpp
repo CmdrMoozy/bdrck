@@ -36,7 +36,7 @@ public:
 	RegEx &operator=(RegEx const &o);
 	RegEx &operator=(RegEx &&) = default;
 
-	~RegEx() = default;
+	~RegEx();
 
 	RegExResult match(StringRef const &text) const;
 
