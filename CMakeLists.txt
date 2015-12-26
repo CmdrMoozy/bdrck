@@ -4,7 +4,7 @@ project(bdrck)
 set(CMAKE_COLOR_MAKEFILE ON)
 set(CMAKE_VERBOSE_MAKEFILE OFF)
 
-set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/3rdparty/cmu/cmake)
+set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/cmu/cmake)
 
 # Note which type of build we're performing.
 
@@ -21,7 +21,7 @@ find_package(RE2 REQUIRED)
 
 # Setup our compile flags.
 
-include(${CMAKE_SOURCE_DIR}/3rdparty/cmu/cmake/SetFlags.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/cmu/cmake/SetFlags.cmake)
 cmuSetCompileFlags()
 
 if(CMAKE_BUILD_TYPE_LOWER MATCHES debug)
