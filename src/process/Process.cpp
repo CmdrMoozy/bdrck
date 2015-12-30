@@ -1,5 +1,6 @@
 #include "Process.hpp"
 
+#include <cassert>
 #include <cerrno>
 #include <cstddef>
 #include <cstdlib>
@@ -172,14 +173,20 @@ Process::Process(std::string const &p, std::vector<std::string> const &a)
 		catch(std::runtime_error const &e)
 		{
 			std::string message = e.what();
-			write(errorPipe.write, message.c_str(),
-			      message.length());
+			ssize_t written =
+			        write(errorPipe.write, message.c_str(),
+			              message.length());
+			assert(written ==
+			       static_cast<ssize_t>(message.length()));
 		}
 		catch(...)
 		{
 			std::string message = "Unknown error.";
-			write(errorPipe.write, message.c_str(),
-			      message.length());
+			ssize_t written =
+			        write(errorPipe.write, message.c_str(),
+			              message.length());
+			assert(written ==
+			       static_cast<ssize_t>(message.length()));
 		}
 		_exit(EXIT_FAILURE);
 	}
@@ -228,6 +235,7 @@ int Process::getPipe(terminal::StdStream stream) const
 	case terminal::StdStream::Err:
 		return pipes.at(stream).read;
 	}
+	return -1;
 }
 
 int Process::wait()

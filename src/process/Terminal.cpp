@@ -23,6 +23,7 @@ int streamFD(StdStream stream)
 	case StdStream::Err:
 		return STDERR_FILENO;
 	}
+	return -1;
 }
 
 bool isInteractiveTerminal(StdStream stream)
