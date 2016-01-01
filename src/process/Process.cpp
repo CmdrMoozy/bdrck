@@ -44,7 +44,7 @@ duplicateArgvStrings(std::string const &path,
 std::vector<char *>
 toArgvPointers(bdrck::process::ProcessArguments::ArgvContainer const &argv)
 {
-	std::vector<char *> pointers(argv.size(), nullptr);
+	std::vector<char *> pointers(argv.size() + 1, nullptr);
 	for(std::size_t i = 0; i < argv.size(); ++i)
 		pointers[i] = argv[i].get();
 	return pointers;
@@ -150,21 +150,23 @@ Process::Process(std::string const &p, std::vector<std::string> const &a)
 	{
 		// In the child process. Try to exec the binary.
 
-		closePipe(errorPipe.read);
-
-		closePipe(pipes[terminal::StdStream::In].write);
-		closePipe(pipes[terminal::StdStream::Out].read);
-		closePipe(pipes[terminal::StdStream::Err].read);
-
-		renamePipe(pipes[terminal::StdStream::In].read,
-		           terminal::streamFD(terminal::StdStream::In));
-		renamePipe(pipes[terminal::StdStream::Out].write,
-		           terminal::streamFD(terminal::StdStream::Out));
-		renamePipe(pipes[terminal::StdStream::Err].write,
-		           terminal::streamFD(terminal::StdStream::Err));
-
 		try
 		{
+			closePipe(errorPipe.read);
+
+			closePipe(pipes[terminal::StdStream::In].write);
+			closePipe(pipes[terminal::StdStream::Out].read);
+			closePipe(pipes[terminal::StdStream::Err].read);
+
+			renamePipe(pipes[terminal::StdStream::In].read,
+			           terminal::streamFD(terminal::StdStream::In));
+			renamePipe(
+			        pipes[terminal::StdStream::Out].write,
+			        terminal::streamFD(terminal::StdStream::Out));
+			renamePipe(
+			        pipes[terminal::StdStream::Err].write,
+			        terminal::streamFD(terminal::StdStream::Err));
+
 			// The POSIX standard guarantees that argv will not be
 			// modified, so this const cast is safe.
 			if(execvp(args.file, args.argv) == -1)
