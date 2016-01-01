@@ -10,6 +10,10 @@ namespace util
 {
 namespace error
 {
+std::string getErrnoError(
+        std::experimental::optional<int> error = std::experimental::nullopt,
+        std::string const &defaultMessage = "Unknown error.") noexcept;
+
 [[noreturn]] void throwErrnoError(
         std::experimental::optional<int> error = std::experimental::nullopt,
         std::string const &defaultMessage = "Unknown error.");
