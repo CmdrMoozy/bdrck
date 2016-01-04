@@ -211,6 +211,12 @@ bool isDirectory(std::string const &p)
 	return S_ISDIR(stats.st_mode);
 }
 
+bool isExecutable(std::string const &p)
+{
+	int ret = access(p.c_str(), X_OK);
+	return ret == 0;
+}
+
 void createFile(std::string const &p)
 {
 	FILE *f = fopen(p.c_str(), "a");
@@ -307,10 +313,10 @@ std::string getConfigurationDirectoryPath()
 	std::string path;
 	std::string suffix;
 
-	char *home = getenv("XDG_CONFIG_HOME");
+	char *home = std::getenv("XDG_CONFIG_HOME");
 	if(home == nullptr)
 	{
-		home = getenv("HOME");
+		home = std::getenv("HOME");
 		if(home == nullptr)
 		{
 			throw std::runtime_error(
@@ -331,6 +337,25 @@ std::string getConfigurationDirectoryPath()
 	}
 
 	return path;
+}
+
+std::experimental::optional<std::string> which(std::string const &command)
+{
+	char const *p = std::getenv("PATH");
+	std::string path;
+	if(p != nullptr)
+		path.assign(p);
+
+	std::vector<std::string> pathComponents =
+	        bdrck::algorithm::string::split(path, ':');
+	for(auto const &directory : pathComponents)
+	{
+		std::string commandPath = combinePaths(directory, command);
+		if(isExecutable(commandPath))
+			return commandPath;
+	}
+
+	return std::experimental::nullopt;
 }
 }
 }

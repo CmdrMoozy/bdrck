@@ -3,6 +3,7 @@
 
 #include <string>
 #include <vector>
+#include <experimental/optional>
 
 namespace bdrck
 {
@@ -24,6 +25,7 @@ bool exists(const std::string &p);
 
 bool isFile(std::string const &p);
 bool isDirectory(std::string const &p);
+bool isExecutable(std::string const &p);
 
 void createFile(std::string const &p);
 void removeFile(std::string const &p);
@@ -37,6 +39,8 @@ std::string getCurrentDirectory();
 
 std::string getTemporaryDirectoryPath();
 std::string getConfigurationDirectoryPath();
+
+std::experimental::optional<std::string> which(std::string const &command);
 }
 }
 
