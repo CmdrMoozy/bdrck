@@ -3,6 +3,8 @@
 
 #include <string>
 
+#include "bdrck/fs/Util.hpp"
+
 namespace bdrck
 {
 namespace fs
@@ -16,7 +18,11 @@ enum class TemporaryStorageType
 class TemporaryStorage
 {
 public:
-	explicit TemporaryStorage(TemporaryStorageType t);
+	TemporaryStorage(TemporaryStorageType t,
+	                 std::string const &tempDir =
+	                         bdrck::fs::getTemporaryDirectoryPath(),
+	                 std::string const &prefix = "",
+	                 std::string const &suffix = "");
 
 	TemporaryStorage(TemporaryStorage const &) = delete;
 	TemporaryStorage(TemporaryStorage &&) = default;

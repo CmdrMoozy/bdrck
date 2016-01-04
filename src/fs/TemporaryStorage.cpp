@@ -9,12 +9,14 @@
 
 namespace
 {
-std::string getTemporaryPath()
+std::string getTemporaryPath(std::string const &tempDir,
+                             std::string const &prefix,
+                             std::string const &suffix)
 {
 	std::ostringstream oss;
-	oss << "bdrck-" << bdrck::util::generateUUID() << ".tmp";
-	return bdrck::fs::combinePaths(bdrck::fs::getTemporaryDirectoryPath(),
-	                               oss.str());
+	oss << prefix << bdrck::util::generateUUID() << suffix;
+	return bdrck::fs::normalizePath(
+	        bdrck::fs::combinePaths(tempDir, oss.str()));
 }
 }
 
@@ -22,11 +24,14 @@ namespace bdrck
 {
 namespace fs
 {
-TemporaryStorage::TemporaryStorage(TemporaryStorageType t)
-        : type(t), path(getTemporaryPath())
+TemporaryStorage::TemporaryStorage(TemporaryStorageType t,
+                                   std::string const &tempDir,
+                                   std::string const &prefix,
+                                   std::string const &suffix)
+        : type(t), path(getTemporaryPath(tempDir, prefix, suffix))
 {
 	while(exists(path))
-		path = getTemporaryPath();
+		path = getTemporaryPath(tempDir, prefix, suffix);
 
 	switch(type)
 	{
