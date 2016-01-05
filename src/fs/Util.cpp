@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <cstdio>
 #include <cstdlib>
+#include <functional>
+#include <memory>
 #include <sstream>
 #include <stdexcept>
 
@@ -110,6 +112,21 @@ std::string normalizePath(const std::string &p)
 		ret.erase(ret.length() - 1);
 
 	return ret;
+}
+
+std::string resolvePath(std::string const &p)
+{
+	char *rp = realpath(p.c_str(), nullptr);
+	std::unique_ptr<char, std::function<void(char *)>> resolved(
+	        rp, [](char *ptr)
+	        {
+		        if(ptr != nullptr)
+			        std::free(ptr);
+		});
+	if(rp == nullptr)
+		bdrck::util::error::throwErrnoError();
+
+	return normalizePath(std::string(rp));
 }
 
 std::string combinePaths(std::string const &a, std::string const &b)
@@ -248,7 +265,7 @@ void createDirectory(std::string const &p)
 		throw std::runtime_error("Creating directory failed.");
 }
 
-void removeDirectory(std::string const &p)
+void removeDirectory(std::string const &p, bool recursive)
 {
 	if(!exists(p))
 		return;
@@ -258,12 +275,22 @@ void removeDirectory(std::string const &p)
 		                         "with this function.");
 	}
 
-	int ret = nftw(p.c_str(), removeDirectoryCallback,
-	               FILE_TREE_WALK_OPEN_FDS,
-	               FTW_ACTIONRETVAL | FTW_DEPTH | FTW_PHYS);
-	if(ret != 0)
+	if(recursive)
 	{
-		throw std::runtime_error("Removing directory contents failed.");
+		int ret = nftw(p.c_str(), removeDirectoryCallback,
+		               FILE_TREE_WALK_OPEN_FDS,
+		               FTW_ACTIONRETVAL | FTW_DEPTH | FTW_PHYS);
+		if(ret != 0)
+		{
+			throw std::runtime_error(
+			        "Removing directory contents failed.");
+		}
+	}
+	else
+	{
+		int ret = rmdir(p.c_str());
+		if(ret != 0)
+			bdrck::util::error::throwErrnoError();
 	}
 }
 
@@ -279,7 +306,16 @@ void createPath(const std::string &p)
 		if(isDirectory(currentPath))
 			continue;
 		if(!exists(currentPath))
+		{
 			createDirectory(currentPath);
+		}
+		else
+		{
+			throw std::runtime_error("Create path failed because "
+			                         "some path component already "
+			                         "exists and is not a "
+			                         "directory.");
+		}
 	}
 }
 

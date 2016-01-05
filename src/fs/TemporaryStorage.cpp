@@ -64,7 +64,7 @@ TemporaryStorage::~TemporaryStorage()
 		break;
 
 	case TemporaryStorageType::DIRECTORY:
-		removeDirectory(path);
+		removeDirectory(path, /*recursive=*/true);
 		break;
 	}
 }
