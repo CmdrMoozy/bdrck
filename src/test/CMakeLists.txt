@@ -4,6 +4,7 @@ set(bdrck-test_SOURCES
 
 	algorithm/StringTest.cpp
 
+	fs/IteratorTest.cpp
 	fs/TemporaryStorageTest.cpp
 
 	params/CommandTest.cpp

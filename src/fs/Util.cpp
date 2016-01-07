@@ -319,6 +319,13 @@ void createPath(const std::string &p)
 	}
 }
 
+void createSymlink(std::string const &target, std::string const &link)
+{
+	int ret = symlink(target.c_str(), link.c_str());
+	if(ret != 0)
+		bdrck::util::error::throwErrnoError();
+}
+
 std::string getCurrentExecutable()
 {
 	return bdrck::cwrap::unistd::readlink("/proc/self/exe");

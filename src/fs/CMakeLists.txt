@@ -1,5 +1,7 @@
 set(bdrck-fs_SOURCES
 
+	Iterator.cpp
+	Iterator.hpp
 	TemporaryStorage.cpp
 	TemporaryStorage.hpp
 	Util.cpp

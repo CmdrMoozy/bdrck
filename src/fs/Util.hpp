@@ -66,6 +66,8 @@ void removeDirectory(std::string const &p, bool recursive);
  */
 void createPath(const std::string &p);
 
+void createSymlink(std::string const &target, std::string const &link);
+
 std::string getCurrentExecutable();
 std::string getCurrentDirectory();
 
