@@ -7,6 +7,8 @@ set(bdrck-test_SOURCES
 	fs/IteratorTest.cpp
 	fs/TemporaryStorageTest.cpp
 
+	git/RepositoryTest.cpp
+
 	params/CommandTest.cpp
 	params/OptionTest.cpp
 
@@ -24,6 +26,7 @@ target_link_libraries(bdrck-test
 	bdrck-algorithm
 	bdrck-cwrap
 	bdrck-fs
+	bdrck-git
 	bdrck-params
 	bdrck-process
 	bdrck-util

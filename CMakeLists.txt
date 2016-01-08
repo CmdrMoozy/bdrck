@@ -18,6 +18,7 @@ string(TOLOWER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE_LOWER)
 # Find our dependencies.
 
 find_package(RE2 REQUIRED)
+find_package(Libgit2 REQUIRED)
 
 # Setup our compile flags.
 
@@ -35,6 +36,7 @@ include_directories(3rdparty/include include)
 set(bdrck_LIBRARIES
 
 	${RE2_LIBRARIES}
+	${LIBGIT2_LIBRARIES}
 
 )
 
@@ -45,6 +47,7 @@ enable_testing()
 add_subdirectory(src/algorithm)
 add_subdirectory(src/cwrap)
 add_subdirectory(src/fs)
+add_subdirectory(src/git)
 add_subdirectory(src/params)
 add_subdirectory(src/process)
 add_subdirectory(src/string)
