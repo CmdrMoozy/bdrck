@@ -1,5 +1,7 @@
 set(bdrck-git_SOURCES
 
+	Buffer.cpp
+	Buffer.hpp
 	checkReturn.cpp
 	checkReturn.hpp
 	Library.cpp
