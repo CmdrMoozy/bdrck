@@ -3,16 +3,17 @@
 #include <stdexcept>
 
 #include "bdrck/fs/Util.hpp"
+#include "bdrck/git/Buffer.hpp"
 #include "bdrck/git/checkReturn.hpp"
 
 namespace
 {
 std::string discover(std::string const &p)
 {
-	git_buf buffer = {nullptr, 0, 0};
+	bdrck::git::Buffer buffer;
 	bdrck::git::checkReturn(
-	        git_repository_discover(&buffer, p.c_str(), 0, nullptr));
-	return std::string(buffer.ptr);
+	        git_repository_discover(buffer.get(), p.c_str(), 0, nullptr));
+	return std::string(buffer.begin(), buffer.end());
 }
 
 std::string getRepositoryConstructPath(std::string const &p,
