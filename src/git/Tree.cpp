@@ -1,5 +1,6 @@
 #include "Tree.hpp"
 
+#include "bdrck/fs/Util.hpp"
 #include "bdrck/git/checkReturn.hpp"
 #include "bdrck/git/Object.hpp"
 
@@ -13,12 +14,15 @@ git_tree *peelToTree(bdrck::git::Object const &object)
 	return reinterpret_cast<git_tree *>(peeled);
 }
 
-int treeWalkCallback(char const * /*root*/, git_tree_entry const *entry,
+int treeWalkCallback(char const *root, git_tree_entry const *entry,
                      void *payload)
 {
 	auto callback = static_cast<std::function<bool(std::string const &)> *>(
 	        payload);
-	return (*callback)(git_tree_entry_name(entry)) ? 0 : -1;
+	return (*callback)(bdrck::fs::combinePaths(root,
+	                                           git_tree_entry_name(entry)))
+	               ? 0
+	               : -1;
 }
 }
 
