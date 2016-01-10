@@ -6,8 +6,12 @@ set(bdrck-git_SOURCES
 	checkReturn.hpp
 	Library.cpp
 	Library.hpp
+	Object.cpp
+	Object.hpp
 	Repository.cpp
 	Repository.hpp
+	Tree.cpp
+	Tree.hpp
 	Wrapper.hpp
 
 )
