@@ -2,6 +2,7 @@
 #define bdrck_git_Repository_HPP
 
 #include <string>
+#include <experimental/optional>
 
 #include <git2.h>
 
@@ -11,6 +12,10 @@ namespace bdrck
 {
 namespace git
 {
+std::experimental::optional<std::string>
+discoverRepository(std::string const &path,
+                   bool acrossFilesystems = false) noexcept;
+
 enum class RepositoryCreateMode
 {
 	NoCreate,

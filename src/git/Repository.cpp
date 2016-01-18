@@ -8,30 +8,23 @@
 
 namespace
 {
-std::string discover(std::string const &p)
-{
-	bdrck::git::Buffer buffer;
-	bdrck::git::checkReturn(
-	        git_repository_discover(buffer.get(), p.c_str(), 0, nullptr));
-	return std::string(buffer.begin(), buffer.end());
-}
-
 std::string getRepositoryConstructPath(std::string const &p,
                                        bdrck::git::RepositoryCreateMode c,
                                        bool ab)
 {
-	try
-	{
-		return discover(p);
-	}
-	catch(...)
-	{
-		if(c == bdrck::git::RepositoryCreateMode::NoCreate)
-			throw;
-		if(!ab && (c == bdrck::git::RepositoryCreateMode::CreateBare))
-			throw;
+	auto path = bdrck::git::discoverRepository(p);
 
-		bdrck::fs::createPath(p);
+	if(!path)
+	{
+		if((c == bdrck::git::RepositoryCreateMode::NoCreate) ||
+		   (!ab && (c == bdrck::git::RepositoryCreateMode::CreateBare)))
+		{
+			throw std::runtime_error("Repository doesn't exist and "
+			                         "will not be created.");
+		}
+
+		path.emplace(p);
+		bdrck::fs::createPath(*path);
 		git_repository *repo;
 		bdrck::git::checkReturn(git_repository_init(
 		        &repo, p.c_str(),
@@ -39,8 +32,9 @@ std::string getRepositoryConstructPath(std::string const &p,
 		                ? 0
 		                : 1));
 		git_repository_free(repo);
-		return p;
 	}
+
+	return *path;
 }
 }
 
@@ -48,6 +42,25 @@ namespace bdrck
 {
 namespace git
 {
+std::experimental::optional<std::string>
+discoverRepository(std::string const &path, bool acrossFilesystems) noexcept
+{
+	try
+	{
+		bdrck::git::Buffer buffer;
+		int ret = git_repository_discover(buffer.get(), path.c_str(),
+		                                  acrossFilesystems ? 1 : 0,
+		                                  nullptr);
+		if(ret == 0)
+			return std::string(buffer.begin(), buffer.end());
+	}
+	catch(...)
+	{
+	}
+
+	return std::experimental::nullopt;
+}
+
 Repository::Repository(std::string const &p, RepositoryCreateMode c, bool ab)
         : base_type(git_repository_open,
                     getRepositoryConstructPath(p, c, ab).c_str())
