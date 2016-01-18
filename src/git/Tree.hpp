@@ -24,7 +24,8 @@ public:
 
 	virtual ~Tree();
 
-	void walk(std::function<bool(std::string const &)> callback) const;
+	void
+	walk(std::function<bool(std::string const &)> const &callback) const;
 };
 }
 }
