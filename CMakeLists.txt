@@ -29,7 +29,13 @@ if(CMAKE_BUILD_TYPE_LOWER MATCHES debug)
 	add_definitions(-DLIBBDRCK_DEBUG)
 endif()
 
-include_directories(3rdparty/include include)
+include_directories(include)
+
+include_directories(SYSTEM
+
+	3rdparty/include
+
+)
 
 # Set the libraries we'll use.
 
