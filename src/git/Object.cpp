@@ -23,9 +23,5 @@ Object::Object(std::string const &revspec, Repository &repository)
         : base_type(parseRevspec(revspec, repository))
 {
 }
-
-Object::~Object()
-{
-}
 }
 }

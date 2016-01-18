@@ -36,7 +36,7 @@ public:
 	Wrapper &operator=(Wrapper const &) = delete;
 	Wrapper &operator=(Wrapper &&) = default;
 
-	virtual ~Wrapper() = default;
+	~Wrapper() = default;
 
 	T *get() const
 	{

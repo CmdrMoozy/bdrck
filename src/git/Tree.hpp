@@ -22,7 +22,7 @@ private:
 public:
 	Tree(Object const &object);
 
-	virtual ~Tree();
+	~Tree() = default;
 
 	void
 	walk(std::function<bool(std::string const &)> const &callback) const;

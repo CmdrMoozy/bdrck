@@ -38,7 +38,7 @@ public:
 	           RepositoryCreateMode c = RepositoryCreateMode::CreateNormal,
 	           bool ab = false);
 
-	virtual ~Repository();
+	~Repository() = default;
 
 	std::string getWorkDirectoryPath() const;
 };

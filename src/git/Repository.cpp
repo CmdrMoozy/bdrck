@@ -67,10 +67,6 @@ Repository::Repository(std::string const &p, RepositoryCreateMode c, bool ab)
 {
 }
 
-Repository::~Repository()
-{
-}
-
 std::string Repository::getWorkDirectoryPath() const
 {
 	char const *path = git_repository_workdir(get());

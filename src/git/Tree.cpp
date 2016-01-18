@@ -56,10 +56,6 @@ Tree::Tree(Object const &object) : base_type(peelToTree(object))
 {
 }
 
-Tree::~Tree()
-{
-}
-
 void Tree::walk(std::function<bool(std::string const &)> const &callback) const
 {
 	TreeWalkContext context(callback);

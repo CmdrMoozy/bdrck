@@ -21,7 +21,7 @@ private:
 public:
 	Object(std::string const &revspec, Repository &repository);
 
-	virtual ~Object();
+	~Object() = default;
 };
 }
 }
