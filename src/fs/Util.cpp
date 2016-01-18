@@ -131,22 +131,27 @@ std::string resolvePath(std::string const &p)
 
 std::string combinePaths(std::string const &a, std::string const &b)
 {
+	if(a.length() == 0)
+		return b;
+
 	auto aEnd = a.find_last_not_of("\\/");
 	auto bStart = b.find_first_not_of("\\/");
 
 	std::ostringstream oss;
 	if(aEnd != std::string::npos)
 	{
+		// If a is not an empty string or the root directory, add it
+		// to the result (excluding the last /, if any).
 		oss << a.substr(0, aEnd + 1);
 	}
-	else
+
+	if(a.length() > 0)
 	{
-		// a must have been "/" (or an empty string). Prepend the root
-		// directory to b to make a valid final path.
+		// If a was nonempty, add a slash to separate a from b.
 		oss << "/";
 	}
-	if((aEnd != std::string::npos) && (bStart != std::string::npos))
-		oss << "/";
+
+	// If b wasn't just a "/", then append it to the result.
 	if(bStart != std::string::npos)
 		oss << b.substr(bStart);
 

@@ -6,6 +6,7 @@ set(bdrck-test_SOURCES
 
 	fs/IteratorTest.cpp
 	fs/TemporaryStorageTest.cpp
+	fs/UtilTest.cpp
 
 	git/RepositoryTest.cpp
 
