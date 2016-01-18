@@ -25,7 +25,7 @@ public:
 	git_buf const *get() const;
 
 	std::size_t size() const;
-	std::size_t capacity() const;
+	std::size_t allocatedSize() const;
 
 	char *begin();
 	char const *begin() const;
