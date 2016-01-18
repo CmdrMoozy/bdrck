@@ -18,8 +18,8 @@ Buffer::Buffer() : buffer({&GIT_BUF_INIT_PTR[0], 0, 0})
 
 Buffer::~Buffer()
 {
-	if(buffer.ptr != nullptr)
-		git_buf_free(&buffer);
+	assert(buffer.ptr != nullptr);
+	git_buf_free(&buffer);
 }
 
 git_buf *Buffer::get()
