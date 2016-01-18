@@ -50,7 +50,10 @@ bool isDirectory(std::string const &p);
 bool isExecutable(std::string const &p);
 
 void createFile(std::string const &p);
+void copyFile(std::string const &src, std::string const &dst);
+std::string readEntireFile(std::string const &p);
 void removeFile(std::string const &p);
+
 void createDirectory(std::string const &p);
 
 /*!

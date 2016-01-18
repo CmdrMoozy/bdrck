@@ -3,7 +3,9 @@
 #include <algorithm>
 #include <cstdio>
 #include <cstdlib>
+#include <fstream>
 #include <functional>
+#include <iterator>
 #include <memory>
 #include <sstream>
 #include <stdexcept>
@@ -241,10 +243,32 @@ bool isExecutable(std::string const &p)
 
 void createFile(std::string const &p)
 {
-	FILE *f = fopen(p.c_str(), "a");
-	if(f == nullptr)
-		throw std::runtime_error("Creating file failed.");
-	fclose(f);
+	std::ofstream out(p, std::ios_base::ate | std::ios_base::out);
+}
+
+void copyFile(std::string const &src, std::string const &dst)
+{
+	std::ofstream out(dst, std::ios_base::out | std::ios_base::binary |
+	                               std::ios_base::trunc);
+	std::ifstream in(src, std::ios_base::in | std::ios_base::binary);
+
+	std::istreambuf_iterator<char> inBegin(in);
+	std::istreambuf_iterator<char> inEnd;
+	std::ostreambuf_iterator<char> outBegin(out);
+	std::copy(inBegin, inEnd, outBegin);
+}
+
+std::string readEntireFile(std::string const &p)
+{
+	std::ostringstream out;
+	std::ifstream in(p, std::ios_base::in | std::ios_base::binary);
+
+	std::istreambuf_iterator<char> inBegin(in);
+	std::istreambuf_iterator<char> inEnd;
+	std::ostreambuf_iterator<char> outBegin(out);
+	std::copy(inBegin, inEnd, outBegin);
+
+	return out.str();
 }
 
 void removeFile(std::string const &p)
