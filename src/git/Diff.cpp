@@ -2,6 +2,7 @@
 
 #include <exception>
 #include <utility>
+#include <experimental/optional>
 
 #include "bdrck/git/checkReturn.hpp"
 #include "bdrck/git/Object.hpp"
@@ -12,24 +13,16 @@ namespace
 {
 struct DiffForeachContext
 {
-	std::experimental::optional<bdrck::git::Diff::file_callback>
-	        fileCallback;
-	std::experimental::optional<bdrck::git::Diff::hunk_callback>
-	        hunkCallback;
-	std::experimental::optional<bdrck::git::Diff::binary_callback>
-	        binaryCallback;
-	std::experimental::optional<bdrck::git::Diff::line_callback>
-	        lineCallback;
+	bdrck::git::Diff::file_callback fileCallback;
+	bdrck::git::Diff::hunk_callback hunkCallback;
+	bdrck::git::Diff::binary_callback binaryCallback;
+	bdrck::git::Diff::line_callback lineCallback;
 	std::experimental::optional<std::exception_ptr> error;
 
-	DiffForeachContext(std::experimental::optional<
-	                           bdrck::git::Diff::file_callback> const &fc,
-	                   std::experimental::optional<
-	                           bdrck::git::Diff::hunk_callback> const &hc,
-	                   std::experimental::optional<
-	                           bdrck::git::Diff::binary_callback> const &bc,
-	                   std::experimental::optional<
-	                           bdrck::git::Diff::line_callback> const &lc)
+	DiffForeachContext(bdrck::git::Diff::file_callback const &fc,
+	                   bdrck::git::Diff::hunk_callback const &hc,
+	                   bdrck::git::Diff::binary_callback const &bc,
+	                   bdrck::git::Diff::line_callback const &lc)
 	        : fileCallback(fc),
 	          hunkCallback(hc),
 	          binaryCallback(bc),
@@ -40,8 +33,7 @@ struct DiffForeachContext
 };
 
 template <typename... Arg>
-int callbackImpl(std::experimental::optional<std::function<bool(Arg...)>> const
-                         &callback,
+int callbackImpl(std::function<bool(Arg...)> const &callback,
                  std::experimental::optional<std::exception_ptr> &error,
                  Arg &&... arg)
 {
@@ -50,7 +42,7 @@ int callbackImpl(std::experimental::optional<std::function<bool(Arg...)>> const
 
 	try
 	{
-		return (*callback)(std::forward<Arg>(arg)...) ? 0 : -1;
+		return callback(std::forward<Arg>(arg)...) ? 0 : -1;
 	}
 	catch(...)
 	{
@@ -139,11 +131,10 @@ Diff::Diff(Repository &repository, std::string const &oldRevspec,
 {
 }
 
-void Diff::foreach(
-        std::experimental::optional<file_callback> const &fileCallback,
-        std::experimental::optional<hunk_callback> const &hunkCallback,
-        std::experimental::optional<binary_callback> const &binaryCallback,
-        std::experimental::optional<line_callback> const &lineCallback)
+void Diff::foreach(file_callback const &fileCallback,
+                   hunk_callback const &hunkCallback,
+                   binary_callback const &binaryCallback,
+                   line_callback const &lineCallback)
 {
 	DiffForeachContext context(fileCallback, hunkCallback, binaryCallback,
 	                           lineCallback);

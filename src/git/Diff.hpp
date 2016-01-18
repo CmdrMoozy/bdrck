@@ -3,7 +3,6 @@
 
 #include <functional>
 #include <string>
-#include <experimental/optional>
 
 #include <git2.h>
 #include <git2/sys/diff.h>
@@ -80,14 +79,10 @@ public:
 
 	~Diff() = default;
 
-	void foreach(
-	        std::experimental::optional<file_callback> const &fileCallback,
-	        std::experimental::optional<hunk_callback> const &hunkCallback =
-	                std::experimental::nullopt,
-	        std::experimental::optional<binary_callback> const
-	                &binaryCallback = std::experimental::nullopt,
-	        std::experimental::optional<line_callback> const &lineCallback =
-	                std::experimental::nullopt);
+	void foreach(file_callback const &fileCallback,
+	             hunk_callback const &hunkCallback = hunk_callback(),
+	             binary_callback const &binaryCallback = binary_callback(),
+	             line_callback const &lineCallback = line_callback());
 };
 
 class DiffStats : public Wrapper<git_diff_stats, git_diff_stats_free>
