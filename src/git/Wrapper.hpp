@@ -11,10 +11,10 @@ namespace bdrck
 namespace git
 {
 template <typename T, typename... Arg>
-T *constructGitObject(int (*f)(T **, Arg...), Arg... arg)
+T *constructGitObject(int (*f)(T **, Arg...), Arg &&... arg)
 {
 	T *o = nullptr;
-	checkReturn(f(&o, std::forward<Arg...>(arg...)));
+	checkReturn(f(&o, std::forward<Arg>(arg)...));
 	return o;
 }
 
@@ -26,8 +26,8 @@ public:
 	}
 
 	template <typename... Arg>
-	Wrapper(int (*f)(T **, Arg...), Arg... arg)
-	        : Wrapper(constructGitObject(f, std::forward<Arg...>(arg...)))
+	Wrapper(int (*f)(T **, Arg...), Arg &&... arg)
+	        : Wrapper(constructGitObject(f, std::forward<Arg>(arg)...))
 	{
 	}
 
