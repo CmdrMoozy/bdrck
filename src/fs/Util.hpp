@@ -11,7 +11,8 @@ namespace bdrck
 {
 namespace fs
 {
-typedef std::chrono::time_point<std::chrono::system_clock> FilesystemTime;
+typedef std::chrono::time_point<std::chrono::high_resolution_clock>
+        FilesystemTime;
 
 /*!
  * Normalize a path by converting to POSIX separators ('/') and removing any

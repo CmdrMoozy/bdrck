@@ -10,18 +10,18 @@
 #include <sstream>
 #include <stdexcept>
 
+#include <fcntl.h>
 #include <ftw.h>
 #include <glob.h>
 #include <unistd.h>
-#include <utime.h>
 #include <linux/limits.h>
 #include <sys/stat.h>
-#include <sys/time.h>
 #include <sys/types.h>
 
 #include "bdrck/algorithm/String.hpp"
 #include "bdrck/cwrap/Unistd.hpp"
 #include "bdrck/util/Error.hpp"
+#include "bdrck/util/ScopeExit.hpp"
 
 namespace
 {
@@ -264,10 +264,12 @@ FilesystemTime lastWriteTime(std::string const &p)
 	if(ret != 0)
 		bdrck::util::error::throwErrnoError();
 
-	auto time = std::chrono::seconds(stats.st_mtim.tv_sec) +
-	            std::chrono::nanoseconds(stats.st_mtim.tv_nsec);
-	return FilesystemTime(
-	        std::chrono::duration_cast<FilesystemTime::duration>(time));
+	auto nanoseconds = std::chrono::duration_cast<std::chrono::nanoseconds>(
+	        std::chrono::seconds(stats.st_mtim.tv_sec));
+	nanoseconds =
+	        nanoseconds + std::chrono::nanoseconds(stats.st_mtim.tv_nsec);
+
+	return FilesystemTime(nanoseconds);
 }
 
 void lastWriteTime(std::string const &p, FilesystemTime const &t)
@@ -275,18 +277,26 @@ void lastWriteTime(std::string const &p, FilesystemTime const &t)
 	auto duration = t.time_since_epoch();
 	auto seconds =
 	        std::chrono::duration_cast<std::chrono::seconds>(duration);
+	auto nanoseconds =
+	        std::chrono::duration_cast<std::chrono::nanoseconds>(duration) -
+	        std::chrono::duration_cast<std::chrono::nanoseconds>(seconds);
 
-	struct timeval times[2] = {
-	        {seconds.count(),
-	         std::chrono::duration_cast<std::chrono::microseconds>(
-	                 duration - seconds)
-	                 .count()},
-	        {seconds.count(),
-	         std::chrono::duration_cast<std::chrono::microseconds>(
-	                 duration - seconds)
-	                 .count()}};
+	const struct timespec times[2] = {
+	        {seconds.count(), nanoseconds.count()},
+	        {seconds.count(), nanoseconds.count()}};
 
-	int ret = utimes(p.c_str(), times);
+	int fd = open(p.c_str(), O_RDWR);
+	if(fd == -1)
+		bdrck::util::error::throwErrnoError();
+	bdrck::util::ScopeExit cleanup(
+	        [fd]()
+	        {
+		        int ret = close(fd);
+		        if(ret != 0)
+			        bdrck::util::error::throwErrnoError();
+		});
+
+	int ret = futimens(fd, times);
 	if(ret != 0)
 		bdrck::util::error::throwErrnoError();
 }
