@@ -13,8 +13,10 @@
 #include <ftw.h>
 #include <glob.h>
 #include <unistd.h>
+#include <utime.h>
 #include <linux/limits.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 #include <sys/types.h>
 
 #include "bdrck/algorithm/String.hpp"
@@ -244,6 +246,49 @@ bool isExecutable(std::string const &p)
 void createFile(std::string const &p)
 {
 	std::ofstream out(p, std::ios_base::ate | std::ios_base::out);
+}
+
+std::uintmax_t fileSize(std::string const &p)
+{
+	struct stat stats;
+	int ret = stat(p.c_str(), &stats);
+	if(ret != 0)
+		bdrck::util::error::throwErrnoError();
+	return static_cast<std::uintmax_t>(stats.st_size);
+}
+
+FilesystemTime lastWriteTime(std::string const &p)
+{
+	struct stat stats;
+	int ret = stat(p.c_str(), &stats);
+	if(ret != 0)
+		bdrck::util::error::throwErrnoError();
+
+	auto time = std::chrono::seconds(stats.st_mtim.tv_sec) +
+	            std::chrono::nanoseconds(stats.st_mtim.tv_nsec);
+	return FilesystemTime(
+	        std::chrono::duration_cast<FilesystemTime::duration>(time));
+}
+
+void lastWriteTime(std::string const &p, FilesystemTime const &t)
+{
+	auto duration = t.time_since_epoch();
+	auto seconds =
+	        std::chrono::duration_cast<std::chrono::seconds>(duration);
+
+	struct timeval times[2] = {
+	        {seconds.count(),
+	         std::chrono::duration_cast<std::chrono::microseconds>(
+	                 duration - seconds)
+	                 .count()},
+	        {seconds.count(),
+	         std::chrono::duration_cast<std::chrono::microseconds>(
+	                 duration - seconds)
+	                 .count()}};
+
+	int ret = utimes(p.c_str(), times);
+	if(ret != 0)
+		bdrck::util::error::throwErrnoError();
 }
 
 void copyFile(std::string const &src, std::string const &dst)

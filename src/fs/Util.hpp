@@ -1,6 +1,8 @@
 #ifndef bdrck_fs_Util_HPP
 #define bdrck_fs_Util_HPP
 
+#include <chrono>
+#include <cstdint>
 #include <string>
 #include <vector>
 #include <experimental/optional>
@@ -9,6 +11,8 @@ namespace bdrck
 {
 namespace fs
 {
+typedef std::chrono::time_point<std::chrono::system_clock> FilesystemTime;
+
 /*!
  * Normalize a path by converting to POSIX separators ('/') and removing any
  * trailing separators.
@@ -50,8 +54,15 @@ bool isDirectory(std::string const &p);
 bool isExecutable(std::string const &p);
 
 void createFile(std::string const &p);
+
+std::uintmax_t fileSize(std::string const &p);
+
+FilesystemTime lastWriteTime(std::string const &p);
+void lastWriteTime(std::string const &p, FilesystemTime const &t);
+
 void copyFile(std::string const &src, std::string const &dst);
 std::string readEntireFile(std::string const &p);
+
 void removeFile(std::string const &p);
 
 void createDirectory(std::string const &p);
