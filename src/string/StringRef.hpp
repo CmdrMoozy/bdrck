@@ -1,6 +1,7 @@
 #ifndef bdrck_string_StringRef_HPP
 #define bdrck_string_StringRef_HPP
 
+#include <algorithm>
 #include <cstddef>
 #include <cstring>
 #include <iterator>
@@ -42,6 +43,15 @@ public:
 	BasicStringRef &operator=(BasicStringRef &&) = default;
 
 	~BasicStringRef() = default;
+
+	int compare(BasicStringRef<CharT, Traits> const &o) const;
+
+	bool operator==(BasicStringRef<CharT, Traits> const &o) const;
+	bool operator!=(BasicStringRef<CharT, Traits> const &o) const;
+	bool operator<(BasicStringRef<CharT, Traits> const &o) const;
+	bool operator<=(BasicStringRef<CharT, Traits> const &o) const;
+	bool operator>(BasicStringRef<CharT, Traits> const &o) const;
+	bool operator>=(BasicStringRef<CharT, Traits> const &o) const;
 
 	size_type size() const;
 	size_type length() const;
@@ -111,6 +121,67 @@ BasicStringRef<CharT, Traits>::BasicStringRef(
 		beginPtr = nullptr;
 		endPtr = nullptr;
 	}
+}
+
+template <typename CharT, typename Traits>
+int BasicStringRef<CharT, Traits>::compare(
+        BasicStringRef<CharT, Traits> const &o) const
+{
+	auto lhsSize = size();
+	auto rhsSize = o.size();
+	int ret = traits_type::compare(data(), o.data(),
+	                               std::min(lhsSize, rhsSize));
+
+	if(ret != 0)
+		return ret;
+	else if(lhsSize < rhsSize)
+		return -1;
+	else if(lhsSize > rhsSize)
+		return 1;
+	else
+		return 0;
+}
+
+template <typename CharT, typename Traits>
+bool BasicStringRef<CharT, Traits>::
+operator==(BasicStringRef<CharT, Traits> const &o) const
+{
+	return compare(o) == 0;
+}
+
+template <typename CharT, typename Traits>
+bool BasicStringRef<CharT, Traits>::
+operator!=(BasicStringRef<CharT, Traits> const &o) const
+{
+	return compare(o) != 0;
+}
+
+template <typename CharT, typename Traits>
+bool BasicStringRef<CharT, Traits>::
+operator<(BasicStringRef<CharT, Traits> const &o) const
+{
+	return compare(o) < 0;
+}
+
+template <typename CharT, typename Traits>
+bool BasicStringRef<CharT, Traits>::
+operator<=(BasicStringRef<CharT, Traits> const &o) const
+{
+	return compare(o) <= 0;
+}
+
+template <typename CharT, typename Traits>
+bool BasicStringRef<CharT, Traits>::
+operator>(BasicStringRef<CharT, Traits> const &o) const
+{
+	return compare(o) > 0;
+}
+
+template <typename CharT, typename Traits>
+bool BasicStringRef<CharT, Traits>::
+operator>=(BasicStringRef<CharT, Traits> const &o) const
+{
+	return compare(o) >= 0;
 }
 
 template <typename CharT, typename Traits>
