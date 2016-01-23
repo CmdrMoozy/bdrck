@@ -5,6 +5,7 @@
 #include <map>
 #include <vector>
 
+#include <boost/variant/get.hpp>
 #include <boost/variant/recursive_variant.hpp>
 #include <boost/variant/recursive_wrapper.hpp>
 #include <boost/variant/variant.hpp>
@@ -46,6 +47,16 @@ typedef boost::make_recursive_variant<
 
 typedef std::map<StringType, JsonValue> MapType;
 typedef std::vector<JsonValue> ArrayType;
+
+template <typename JsonType> JsonType &get(JsonValue &value)
+{
+	return boost::get<JsonType>(value);
+}
+
+template <typename JsonType> JsonType const &get(JsonValue const &value)
+{
+	return boost::get<JsonType>(value);
+}
 
 bdrck::string::StringRef toString(StringType const &s);
 StringType fromString(bdrck::string::StringRef const &s);
