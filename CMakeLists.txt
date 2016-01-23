@@ -17,7 +17,9 @@ string(TOLOWER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE_LOWER)
 
 # Find our dependencies.
 
+find_package(Boost REQUIRED)
 find_package(RE2 REQUIRED)
+find_package(Yajl REQUIRED)
 find_package(Libgit2 REQUIRED)
 
 # Setup our compile flags.
@@ -42,6 +44,7 @@ include_directories(SYSTEM
 set(bdrck_LIBRARIES
 
 	${RE2_LIBRARIES}
+	${YAJL_LIBRARIES}
 	${LIBGIT2_LIBRARIES}
 
 )
@@ -54,6 +57,7 @@ add_subdirectory(src/algorithm)
 add_subdirectory(src/cwrap)
 add_subdirectory(src/fs)
 add_subdirectory(src/git)
+add_subdirectory(src/json)
 add_subdirectory(src/params)
 add_subdirectory(src/process)
 add_subdirectory(src/string)

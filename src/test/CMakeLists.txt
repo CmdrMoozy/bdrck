@@ -10,6 +10,8 @@ set(bdrck-test_SOURCES
 
 	git/RepositoryTest.cpp
 
+	json/parseTest.cpp
+
 	params/CommandTest.cpp
 	params/OptionTest.cpp
 
@@ -28,6 +30,7 @@ target_link_libraries(bdrck-test
 	bdrck-cwrap
 	bdrck-fs
 	bdrck-git
+	bdrck-json
 	bdrck-params
 	bdrck-process
 	bdrck-util
