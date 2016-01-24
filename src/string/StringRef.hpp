@@ -6,6 +6,7 @@
 #include <cstring>
 #include <iterator>
 #include <memory>
+#include <ostream>
 #include <string>
 
 namespace bdrck
@@ -347,6 +348,14 @@ typedef BasicStringRef<char> StringRef;
 typedef BasicStringRef<wchar_t> WStringRef;
 typedef BasicStringRef<char16_t> U16StringRef;
 typedef BasicStringRef<char32_t> U32StringRef;
+
+template <typename CharT, typename Traits>
+std::ostream &operator<<(std::ostream &out,
+                         BasicStringRef<CharT, Traits> const &string)
+{
+	out.write(string.begin(), static_cast<std::streamsize>(string.size()));
+	return out;
+}
 }
 }
 
