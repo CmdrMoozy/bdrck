@@ -15,6 +15,7 @@ namespace algorithm
 namespace string
 {
 std::string toLower(const std::string &s);
+std::string toUpper(const std::string &s);
 
 std::vector<std::string> split(const std::string &s, char d);
 

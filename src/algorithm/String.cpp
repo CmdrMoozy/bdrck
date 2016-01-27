@@ -21,6 +21,17 @@ std::string toLower(const std::string &s)
 	return ret;
 }
 
+std::string toUpper(const std::string &s)
+{
+	std::string ret(s);
+	std::locale locale;
+	std::transform(ret.begin(), ret.end(), ret.begin(), [&locale](char c)
+	               {
+		               return std::toupper(c, locale);
+		       });
+	return ret;
+}
+
 std::vector<std::string> split(const std::string &s, char d)
 {
 	std::vector<std::string> components;
