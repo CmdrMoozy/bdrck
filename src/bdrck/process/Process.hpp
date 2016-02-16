@@ -7,8 +7,6 @@
 #include <string>
 #include <vector>
 
-#include <sys/types.h>
-
 #include "bdrck/process/Terminal.hpp"
 
 namespace bdrck
@@ -17,20 +15,8 @@ namespace process
 {
 namespace detail
 {
-struct Pipe
-{
-	int read;
-	int write;
-
-	explicit Pipe(int flags = 0);
-
-	Pipe(Pipe const &) = default;
-	Pipe(Pipe &&) = default;
-	Pipe &operator=(Pipe const &) = default;
-	Pipe &operator=(Pipe &&) = default;
-
-	~Pipe() = default;
-};
+class Pipe;
+struct Pid;
 }
 
 struct ProcessArguments
@@ -73,8 +59,8 @@ public:
 
 private:
 	ProcessArguments args;
-	pid_t parent;
-	pid_t child;
+	std::unique_ptr<detail::Pid> parent;
+	std::unique_ptr<detail::Pid> child;
 	std::map<terminal::StdStream, detail::Pipe> pipes;
 };
 }
