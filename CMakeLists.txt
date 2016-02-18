@@ -81,3 +81,4 @@ add_subdirectory(src/bdrck/string)
 add_subdirectory(src/bdrck/util)
 
 add_subdirectory(src/test)
+add_subdirectory(src/test-echo)
