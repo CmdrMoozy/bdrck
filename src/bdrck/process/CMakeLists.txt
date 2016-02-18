@@ -1,5 +1,9 @@
 set(bdrck-process_SOURCES
 
+	Pipe.cpp
+	Pipe.hpp
+	PipeCast.cpp
+	PipeCast.hpp
 	Process.cpp
 	Process.hpp
 	Terminal.cpp

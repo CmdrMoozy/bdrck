@@ -2,11 +2,11 @@
 #define bdrck_process_Process_HPP
 
 #include <functional>
-#include <map>
 #include <memory>
 #include <string>
 #include <vector>
 
+#include "bdrck/process/Pipe.hpp"
 #include "bdrck/process/Terminal.hpp"
 
 namespace bdrck
@@ -15,8 +15,7 @@ namespace process
 {
 namespace detail
 {
-class Pipe;
-struct Pid;
+struct ProcessHandle;
 }
 
 struct ProcessArguments
@@ -53,15 +52,15 @@ public:
 
 	~Process();
 
-	int getPipe(terminal::StdStream stream) const;
+	PipeDescriptor getPipe(terminal::StdStream stream) const;
 
 	int wait();
 
 private:
 	ProcessArguments args;
-	std::unique_ptr<detail::Pid> parent;
-	std::unique_ptr<detail::Pid> child;
-	std::map<terminal::StdStream, detail::Pipe> pipes;
+	std::unique_ptr<detail::ProcessHandle> parent;
+	std::unique_ptr<detail::ProcessHandle> child;
+	StandardStreamPipes pipes;
 };
 }
 }
