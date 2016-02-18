@@ -80,4 +80,4 @@ add_subdirectory(src/bdrck/process)
 add_subdirectory(src/bdrck/string)
 add_subdirectory(src/bdrck/util)
 
-add_subdirectory(src/bdrck/test)
+add_subdirectory(src/test)
