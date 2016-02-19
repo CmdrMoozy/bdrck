@@ -24,6 +24,7 @@ set(bdrck-test_SOURCES
 )
 
 add_executable(bdrck-test ${bdrck-test_SOURCES})
+set_target_properties(bdrck-test PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${TESTS_OUTPUT_DIR})
 target_link_libraries(bdrck-test
 
 	bdrck-algorithm
@@ -36,4 +37,4 @@ target_link_libraries(bdrck-test
 	${bdrck_LIBRARIES}
 
 )
-add_test(bdrck-test bdrck-test)
+add_test(NAME bdrck-test COMMAND ${TESTS_OUTPUT_DIR}/bdrck-test)

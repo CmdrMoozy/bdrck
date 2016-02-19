@@ -69,6 +69,7 @@ set(bdrck_LIBRARIES
 
 # Add our targets.
 
+set(TESTS_OUTPUT_DIR ${PROJECT_BINARY_DIR}/tests)
 enable_testing()
 
 add_subdirectory(src/bdrck/algorithm)
