@@ -7,6 +7,12 @@
 
 #include "bdrck/git/checkReturn.hpp"
 
+#ifdef _WIN32
+#pragma comment(lib, "crypt32.lib")
+#pragma comment(lib, "rpcrt4.lib")
+#pragma comment(lib, "winhttp.lib")
+#endif
+
 std::mutex bdrck::git::Library::mutex;
 std::unique_ptr<bdrck::git::Library> bdrck::git::Library::instance;
 

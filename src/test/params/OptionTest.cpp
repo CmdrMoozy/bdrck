@@ -1,12 +1,12 @@
 #include <catch/catch.hpp>
 
-#include <experimental/optional>
+#include <boost/optional/optional.hpp>
 
 #include "bdrck/params/Option.hpp"
 
 TEST_CASE("Test option default value construction", "[Parameters]")
 {
-	std::experimental::optional<bdrck::params::Option> option;
+	boost::optional<bdrck::params::Option> option;
 	CHECK_NOTHROW(option = bdrck::params::Option::required(
 	                      "foobar", "A test option.", 'f', "barbaz"));
 }

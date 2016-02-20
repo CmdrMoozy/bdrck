@@ -128,11 +128,11 @@ PipeDescriptor getStreamPipe(StdStream stream)
 {
 	switch(stream)
 	{
-	case StdStream::IN:
+	case StdStream::STDIN:
 		return 0;
-	case StdStream::OUT:
+	case StdStream::STDOUT:
 		return 1;
-	case StdStream::ERR:
+	case StdStream::STDERR:
 		return 2;
 	}
 	return pipeCastFromNative(INVALID_PIPE_VALUE);
@@ -156,19 +156,36 @@ bool isInteractiveTerminal(PipeDescriptor pipe)
 
 void openPipes(StandardStreamPipes &pipes)
 {
-	pipes.emplace(std::make_pair<StdStream, Pipe>(StdStream::IN, Pipe()));
-	pipes.emplace(std::make_pair<StdStream, Pipe>(StdStream::OUT, Pipe()));
-	pipes.emplace(std::make_pair<StdStream, Pipe>(StdStream::ERR, Pipe()));
+	pipes.emplace(
+	        std::make_pair<StdStream, Pipe>(StdStream::STDIN, Pipe()));
+	pipes.emplace(
+	        std::make_pair<StdStream, Pipe>(StdStream::STDOUT, Pipe()));
+	pipes.emplace(
+	        std::make_pair<StdStream, Pipe>(StdStream::STDERR, Pipe()));
 }
 
 std::string read(PipeDescriptor const &pipe, std::size_t count)
 {
-#ifdef _WIN32
-#else
 	std::vector<char> buffer(READ_BUFFER_SIZE);
 	std::ostringstream oss;
+
 	while(count > 0)
 	{
+#ifdef _WIN32
+
+		DWORD bytesRead = 0;
+		BOOL ret = ReadFile(pipeCastToNative(pipe), buffer.data(),
+		                    static_cast<DWORD>(buffer.size()),
+		                    &bytesRead, nullptr);
+		if(!ret)
+			throw std::runtime_error("Reading from pipe failed.");
+		if(bytesRead == 0)
+			break;
+
+		oss << std::string(buffer.data(),
+		                   static_cast<std::size_t>(bytesRead));
+		count -= static_cast<std::size_t>(bytesRead);
+#else
 		ssize_t readCount =
 		        ::read(pipeCastToNative(pipe), buffer.data(),
 		               std::min(buffer.size(), count));
@@ -180,9 +197,10 @@ std::string read(PipeDescriptor const &pipe, std::size_t count)
 		oss << std::string(buffer.data(),
 		                   static_cast<std::size_t>(readCount));
 		count -= static_cast<std::size_t>(readCount);
-	}
-	return oss.str();
 #endif
+	}
+
+	return oss.str();
 }
 
 std::string read(Pipe const &pipe, PipeSide side, std::size_t count)
@@ -235,6 +253,12 @@ std::size_t write(PipeDescriptor const &pipe, void const *buffer,
                   std::size_t size)
 {
 #ifdef _WIN32
+	DWORD bytesWritten = 0;
+	BOOL ret = WriteFile(pipeCastToNative(pipe), buffer,
+	                     static_cast<DWORD>(size), &bytesWritten, nullptr);
+	if(!ret)
+		throw std::runtime_error("Writing to pipe failed.");
+	return static_cast<std::size_t>(bytesWritten);
 #else
 	ssize_t written = ::write(pipeCastToNative(pipe), buffer, size);
 	if(written == -1)
@@ -273,16 +297,16 @@ void close(Pipe const &pipe, PipeSide side)
 
 void closeParentSide(StandardStreamPipes const &pipes)
 {
-	close(pipes.at(bdrck::process::StdStream::IN), PipeSide::WRITE);
-	close(pipes.at(bdrck::process::StdStream::OUT), PipeSide::READ);
-	close(pipes.at(bdrck::process::StdStream::ERR), PipeSide::READ);
+	close(pipes.at(bdrck::process::StdStream::STDIN), PipeSide::WRITE);
+	close(pipes.at(bdrck::process::StdStream::STDOUT), PipeSide::READ);
+	close(pipes.at(bdrck::process::StdStream::STDERR), PipeSide::READ);
 }
 
 void closeChildSide(StandardStreamPipes const &pipes)
 {
-	close(pipes.at(bdrck::process::StdStream::IN), PipeSide::READ);
-	close(pipes.at(bdrck::process::StdStream::OUT), PipeSide::WRITE);
-	close(pipes.at(bdrck::process::StdStream::ERR), PipeSide::WRITE);
+	close(pipes.at(bdrck::process::StdStream::STDIN), PipeSide::READ);
+	close(pipes.at(bdrck::process::StdStream::STDOUT), PipeSide::WRITE);
+	close(pipes.at(bdrck::process::StdStream::STDERR), PipeSide::WRITE);
 }
 }
 }

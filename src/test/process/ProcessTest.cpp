@@ -23,15 +23,15 @@ TEST_CASE("Verify that process launching works", "[Process]")
 	        {"-1", "-2", "-e", std::to_string(TEST_EXIT_CODE)});
 
 	std::size_t written = bdrck::process::pipe::write(
-	        child.getPipe(bdrck::process::StdStream::IN), TEST_STRING,
+	        child.getPipe(bdrck::process::StdStream::STDIN), TEST_STRING,
 	        std::strlen(TEST_STRING));
 	REQUIRE(written == std::strlen(TEST_STRING));
-	child.closePipe(bdrck::process::StdStream::IN);
+	child.closePipe(bdrck::process::StdStream::STDIN);
 
 	std::string out = bdrck::process::pipe::readAll(
-	        child.getPipe(bdrck::process::StdStream::OUT));
+	        child.getPipe(bdrck::process::StdStream::STDOUT));
 	std::string err = bdrck::process::pipe::readAll(
-	        child.getPipe(bdrck::process::StdStream::ERR));
+	        child.getPipe(bdrck::process::StdStream::STDERR));
 	int ret = child.wait();
 
 	CHECK(out == TEST_STRING);

@@ -40,6 +40,26 @@ find_package(Libgit2 REQUIRED)
 include(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/cmu/cmake/SetFlags.cmake)
 cmuSetCompileFlags()
 
+if(WIN32)
+	# Since we're building static libraries, use the static multithreaded runtime.
+	# Don't bother linking the debug version of the runtime.
+	set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
+	set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MT")
+
+	# Enable various linker optimizations.
+
+	set(COMMON_LINKER_FLAGS "/DYNAMICBASE /NXCOMPAT /LARGEADDRESSAWARE")
+	set(RELEASE_LINKER_FLAGS "/RELEASE /LTCG /INCREMENTAL:NO /OPT:REF /OPT:ICF")
+	set(DEBUG_LINKER_FLAGS "/DEBUG")
+
+	set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${RELEASE_LINKER_FLAGS}")
+	set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${DEBUG_LINKER_FLAGS}")
+
+	set(CMAKE_SHARED_LINKER_FLAGS "${COMMON_LINKER_FLAGS}")
+	set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${RELEASE_LINKER_FLAGS}")
+	set(CMAKE_SHARED_LINKER_FLAGS_DEBUG "${DEBUG_LINKER_FLAGS}")
+endif()
+
 if(CMAKE_BUILD_TYPE_LOWER MATCHES debug)
 	add_definitions(-DLIBBDRCK_DEBUG)
 endif()

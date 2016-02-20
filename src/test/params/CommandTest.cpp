@@ -1,6 +1,6 @@
 #include <catch/catch.hpp>
 
-#include <experimental/optional>
+#include <boost/optional/optional.hpp>
 
 #include "bdrck/params/Argument.hpp"
 #include "bdrck/params/Command.hpp"
@@ -8,7 +8,7 @@
 TEST_CASE("Test command construction with valid defaulted arguments",
           "[Parameters]")
 {
-	std::experimental::optional<bdrck::params::Command> command;
+	boost::optional<bdrck::params::Command> command;
 	REQUIRE_NOTHROW(command.emplace(
 	        "test", "A test command.", bdrck::params::CommandFunction(),
 	        std::initializer_list<bdrck::params::Option>({}),
@@ -22,7 +22,7 @@ TEST_CASE("Test command construction with valid defaulted arguments",
 TEST_CASE("Test command construction with invalid defaulted arguments",
           "[Parameters]")
 {
-	std::experimental::optional<bdrck::params::Command> command;
+	boost::optional<bdrck::params::Command> command;
 	REQUIRE_THROWS(command.emplace(
 	        "test", "A test command.", bdrck::params::CommandFunction(),
 	        std::initializer_list<bdrck::params::Option>({}),

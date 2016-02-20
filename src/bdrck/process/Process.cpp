@@ -166,7 +166,8 @@ toArgvPointers(bdrck::process::ProcessArguments::ArgvContainer const &argv)
 
 #ifdef _WIN32
 bdrck::process::detail::ProcessHandle
-launchProcess(bdrck::process::StandardStreamPipes &)
+launchProcess(bdrck::process::StandardStreamPipes &,
+              bdrck::process::ProcessArguments const &)
 {
 	return INVALID_PROCESS_HANDLE_VALUE;
 }
@@ -184,7 +185,7 @@ void replaceStdStream(bdrck::process::StandardStreamPipes const &pipes,
                       bdrck::process::StdStream stream)
 {
 	bdrck::process::PipeSide side = bdrck::process::PipeSide::WRITE;
-	if(stream == bdrck::process::StdStream::IN)
+	if(stream == bdrck::process::StdStream::STDIN)
 		side = bdrck::process::PipeSide::READ;
 
 	auto src = bdrck::process::pipe::pipeCastToNative(
@@ -224,9 +225,12 @@ launchProcess(bdrck::process::StandardStreamPipes &pipes,
 
 			bdrck::process::pipe::closeParentSide(pipes);
 
-			replaceStdStream(pipes, bdrck::process::StdStream::IN);
-			replaceStdStream(pipes, bdrck::process::StdStream::OUT);
-			replaceStdStream(pipes, bdrck::process::StdStream::ERR);
+			replaceStdStream(pipes,
+			                 bdrck::process::StdStream::STDIN);
+			replaceStdStream(pipes,
+			                 bdrck::process::StdStream::STDOUT);
+			replaceStdStream(pipes,
+			                 bdrck::process::StdStream::STDERR);
 
 			if(execvp(args.file, args.argv) == -1)
 				bdrck::util::error::throwErrnoError();
@@ -234,10 +238,8 @@ launchProcess(bdrck::process::StandardStreamPipes &pipes,
 		catch(std::runtime_error const &e)
 		{
 			std::string message = e.what();
-			ssize_t written = write(
-			        bdrck::process::pipe::pipeCastToNative(
-			                errorPipe.get(bdrck::process::PipeSide::
-			                                      WRITE)),
+			std::size_t written = bdrck::process::pipe::write(
+			        errorPipe.get(bdrck::process::PipeSide::WRITE),
 			        message.c_str(), message.length());
 			assert(written ==
 			       static_cast<ssize_t>(message.length()));
@@ -245,7 +247,7 @@ launchProcess(bdrck::process::StandardStreamPipes &pipes,
 		catch(...)
 		{
 			std::string message = "Unknown error.";
-			ssize_t written = write(
+			std::size_t written = bdrck::process::pipe::write(
 			        errorPipe.get(bdrck::process::PipeSide::WRITE),
 			        message.c_str(), message.length());
 			assert(written ==
@@ -361,11 +363,11 @@ PipeDescriptor Process::getPipe(StdStream stream) const
 {
 	switch(stream)
 	{
-	case StdStream::IN:
+	case StdStream::STDIN:
 		return pipes.at(stream).get(PipeSide::WRITE);
 
-	case StdStream::OUT:
-	case StdStream::ERR:
+	case StdStream::STDOUT:
+	case StdStream::STDERR:
 		return pipes.at(stream).get(PipeSide::READ);
 	}
 	return pipe::pipeCastFromNative(INVALID_PIPE_VALUE);
@@ -376,11 +378,11 @@ void Process::closePipe(StdStream stream)
 	auto &pipe = pipes.at(stream);
 
 	PipeSide side = PipeSide::READ;
-	if(stream == StdStream::IN)
+	if(stream == StdStream::STDIN)
 		side = PipeSide::WRITE;
 
 	pipe::close(pipe, side);
-	pipe.set(side, INVALID_PIPE_VALUE);
+	pipe.set(side, pipe::pipeCastFromNative(INVALID_PIPE_VALUE));
 }
 
 int Process::wait()

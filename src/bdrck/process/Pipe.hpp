@@ -12,9 +12,9 @@ namespace process
 {
 enum class StdStream
 {
-	IN,
-	OUT,
-	ERR
+	STDIN,
+	STDOUT,
+	STDERR
 };
 
 /*!
