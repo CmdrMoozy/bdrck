@@ -6,8 +6,6 @@ set(bdrck-process_SOURCES
 	PipeCast.hpp
 	Process.cpp
 	Process.hpp
-	Terminal.cpp
-	Terminal.hpp
 
 )
 

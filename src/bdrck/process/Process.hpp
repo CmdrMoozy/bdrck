@@ -7,7 +7,6 @@
 #include <vector>
 
 #include "bdrck/process/Pipe.hpp"
-#include "bdrck/process/Terminal.hpp"
 
 namespace bdrck
 {
@@ -52,7 +51,8 @@ public:
 
 	~Process();
 
-	PipeDescriptor getPipe(terminal::StdStream stream) const;
+	PipeDescriptor getPipe(StdStream stream) const;
+	void closePipe(StdStream stream);
 
 	int wait();
 

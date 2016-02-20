@@ -1,6 +1,5 @@
 #include <iostream>
-#include <iterator>
-#include <string>
+#include <sstream>
 
 #include "bdrck/params/Command.hpp"
 #include "bdrck/params/Option.hpp"
@@ -10,15 +9,14 @@ namespace
 {
 void echoStdin(bool out, bool err)
 {
-	std::istream_iterator<char> it(std::cin);
-	std::istream_iterator<char> end;
-	std::string input(it, end);
+	std::ostringstream oss;
+	oss << std::cin.rdbuf();
 
 	if(out)
-		std::cout << input;
+		std::cout << oss.str();
 
 	if(err)
-		std::cerr << input;
+		std::cerr << oss.str();
 }
 
 const std::initializer_list<bdrck::params::Option> TEST_ECHO_COMMAND_OPTIONS{
@@ -45,5 +43,6 @@ int main(int argc, char **argv)
 		                          flags.at("stderr"));
 		        },
 	                TEST_ECHO_COMMAND_OPTIONS));
+
 	return exitCode;
 }

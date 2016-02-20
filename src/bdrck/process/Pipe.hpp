@@ -6,12 +6,17 @@
 #include <memory>
 #include <string>
 
-#include "bdrck/process/Terminal.hpp"
-
 namespace bdrck
 {
 namespace process
 {
+enum class StdStream
+{
+	IN,
+	OUT,
+	ERR
+};
+
 /*!
  * The type used for pipe descriptors on all platforms. Values of this type
  * can be cast to the current platform's pipe descriptor type safely.
@@ -41,6 +46,9 @@ class Pipe
 {
 public:
 	Pipe();
+#ifndef _WIN32
+	explicit Pipe(int flags);
+#endif
 
 	Pipe(Pipe const &o);
 	Pipe &operator=(Pipe const &o);
@@ -51,20 +59,32 @@ public:
 	~Pipe();
 
 	PipeDescriptor get(PipeSide side) const;
+	void set(PipeSide side, PipeDescriptor descriptor);
 
 private:
 	std::unique_ptr<detail::PipeImpl> impl;
 };
 
-typedef std::map<terminal::StdStream, Pipe> StandardStreamPipes;
+typedef std::map<StdStream, Pipe> StandardStreamPipes;
 
 namespace pipe
 {
+PipeDescriptor getStreamPipe(StdStream stream);
+bool isInteractiveTerminal(PipeDescriptor pipe);
+
 void openPipes(StandardStreamPipes &pipes);
 
+std::string read(PipeDescriptor const &pipe, std::size_t count);
+std::string read(Pipe const &pipe, PipeSide side, std::size_t count);
+std::string readAll(PipeDescriptor const &pipe);
 std::string readAll(Pipe const &pipe, PipeSide side);
+std::size_t write(PipeDescriptor const &pipe, void const *buffer,
+                  std::size_t size);
+std::size_t write(Pipe const &pipe, PipeSide side, void const *buffer,
+                  std::size_t size);
 
-void closePipe(Pipe const &pipe, PipeSide side);
+void close(PipeDescriptor const &pipe);
+void close(Pipe const &pipe, PipeSide side);
 void closeParentSide(StandardStreamPipes const &pipes);
 void closeChildSide(StandardStreamPipes const &pipes);
 }

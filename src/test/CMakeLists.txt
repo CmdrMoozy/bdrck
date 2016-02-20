@@ -19,6 +19,8 @@ set(bdrck-test_SOURCES
 	params/detail/ParseCommandTest.cpp
 	params/detail/ParseOptionsTest.cpp
 
+	process/ProcessTest.cpp
+
 	util/ScopeExitTest.cpp
 
 )

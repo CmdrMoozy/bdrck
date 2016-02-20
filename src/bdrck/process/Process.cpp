@@ -180,26 +180,21 @@ launchProcess(bdrck::process::StandardStreamPipes &)
 		throw std::runtime_error("Unrecognized signal.");
 }
 
-void addPipeFlags(bdrck::process::Pipe const &pipe,
-                  bdrck::process::PipeSide side, int flags)
+void replaceStdStream(bdrck::process::StandardStreamPipes const &pipes,
+                      bdrck::process::StdStream stream)
 {
-	auto fd = bdrck::process::pipe::pipeCastToNative(pipe.get(side));
-	int existingFlags = fcntl(fd, F_GETFD);
-	if(existingFlags == -1)
-		bdrck::util::error::throwErrnoError();
+	bdrck::process::PipeSide side = bdrck::process::PipeSide::WRITE;
+	if(stream == bdrck::process::StdStream::IN)
+		side = bdrck::process::PipeSide::READ;
 
-	if(fcntl(fd, F_SETFD, existingFlags | flags) == -1)
-		bdrck::util::error::throwErrnoError();
-}
+	auto src = bdrck::process::pipe::pipeCastToNative(
+	        pipes.at(stream).get(side));
+	auto dst = bdrck::process::pipe::pipeCastToNative(
+	        bdrck::process::pipe::getStreamPipe(stream));
 
-void renamePipe(bdrck::process::Pipe const &pipe, bdrck::process::PipeSide side,
-                bdrck::process::NativePipe dstFd)
-{
-	auto srcFd = bdrck::process::pipe::pipeCastToNative(pipe.get(side));
-	int ret = dup2(srcFd, dstFd);
+	int ret = dup2(src, dst);
 	if(ret == -1)
 		bdrck::util::error::throwErrnoError();
-	bdrck::process::pipe::closePipe(pipe, side);
 }
 
 bdrck::process::detail::ProcessHandle
@@ -207,8 +202,7 @@ launchProcess(bdrck::process::StandardStreamPipes &pipes,
               bdrck::process::ProcessArguments const &args)
 {
 	// Open a pipe, so we can get error messages from our child.
-	bdrck::process::Pipe errorPipe;
-	addPipeFlags(errorPipe, bdrck::process::PipeSide::WRITE, O_CLOEXEC);
+	bdrck::process::Pipe errorPipe(O_CLOEXEC);
 
 	// Open pipes for the child's standard streams.
 	bdrck::process::pipe::openPipes(pipes);
@@ -225,32 +219,15 @@ launchProcess(bdrck::process::StandardStreamPipes &pipes,
 
 		try
 		{
-			bdrck::process::pipe::closePipe(
+			bdrck::process::pipe::close(
 			        errorPipe, bdrck::process::PipeSide::READ);
 
 			bdrck::process::pipe::closeParentSide(pipes);
 
-			renamePipe(
-			        pipes[bdrck::process::terminal::StdStream::In],
-			        bdrck::process::PipeSide::READ,
-			        bdrck::process::terminal::streamFileno(
-			                bdrck::process::terminal::StdStream::
-			                        In));
-			renamePipe(
-			        pipes[bdrck::process::terminal::StdStream::Out],
-			        bdrck::process::PipeSide::WRITE,
-			        bdrck::process::terminal::streamFileno(
-			                bdrck::process::terminal::StdStream::
-			                        Out));
-			renamePipe(
-			        pipes[bdrck::process::terminal::StdStream::Err],
-			        bdrck::process::PipeSide::WRITE,
-			        bdrck::process::terminal::streamFileno(
-			                bdrck::process::terminal::StdStream::
-			                        Err));
+			replaceStdStream(pipes, bdrck::process::StdStream::IN);
+			replaceStdStream(pipes, bdrck::process::StdStream::OUT);
+			replaceStdStream(pipes, bdrck::process::StdStream::ERR);
 
-			// The POSIX standard guarantees that argv will not be
-			// modified, so this const cast is safe.
 			if(execvp(args.file, args.argv) == -1)
 				bdrck::util::error::throwErrnoError();
 		}
@@ -280,15 +257,15 @@ launchProcess(bdrck::process::StandardStreamPipes &pipes,
 	{
 		// Still in the parent process. Check for errors.
 
-		bdrck::process::pipe::closePipe(
-		        errorPipe, bdrck::process::PipeSide::WRITE);
+		bdrck::process::pipe::close(errorPipe,
+		                            bdrck::process::PipeSide::WRITE);
 
 		bdrck::process::pipe::closeChildSide(pipes);
 
 		std::string error = bdrck::process::pipe::readAll(
 		        errorPipe, bdrck::process::PipeSide::READ);
-		bdrck::process::pipe::closePipe(errorPipe,
-		                                bdrck::process::PipeSide::READ);
+		bdrck::process::pipe::close(errorPipe,
+		                            bdrck::process::PipeSide::READ);
 		if(!error.empty())
 			throw std::runtime_error(error);
 
@@ -380,18 +357,30 @@ Process::~Process()
 	}
 }
 
-PipeDescriptor Process::getPipe(terminal::StdStream stream) const
+PipeDescriptor Process::getPipe(StdStream stream) const
 {
 	switch(stream)
 	{
-	case terminal::StdStream::In:
+	case StdStream::IN:
 		return pipes.at(stream).get(PipeSide::WRITE);
 
-	case terminal::StdStream::Out:
-	case terminal::StdStream::Err:
+	case StdStream::OUT:
+	case StdStream::ERR:
 		return pipes.at(stream).get(PipeSide::READ);
 	}
 	return pipe::pipeCastFromNative(INVALID_PIPE_VALUE);
+}
+
+void Process::closePipe(StdStream stream)
+{
+	auto &pipe = pipes.at(stream);
+
+	PipeSide side = PipeSide::READ;
+	if(stream == StdStream::IN)
+		side = PipeSide::WRITE;
+
+	pipe::close(pipe, side);
+	pipe.set(side, INVALID_PIPE_VALUE);
 }
 
 int Process::wait()
