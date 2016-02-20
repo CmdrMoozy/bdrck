@@ -13,3 +13,6 @@ target_link_libraries(bdrck-string
 	${bdrck_LIBRARIES}
 
 )
+
+include(${PROJECT_SOURCE_DIR}/3rdparty/cmu/cmake/IdeSplitSources.cmake)
+cmuIdeSplitSources(bdrck-string)

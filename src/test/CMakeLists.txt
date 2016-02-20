@@ -39,4 +39,8 @@ target_link_libraries(bdrck-test
 	${bdrck_LIBRARIES}
 
 )
+
 add_test(NAME bdrck-test COMMAND ${TESTS_OUTPUT_DIR}/bdrck-test)
+
+include(${PROJECT_SOURCE_DIR}/3rdparty/cmu/cmake/IdeSplitSources.cmake)
+cmuIdeSplitSources(bdrck-test)

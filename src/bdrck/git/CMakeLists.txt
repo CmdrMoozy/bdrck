@@ -25,3 +25,6 @@ target_link_libraries(bdrck-git
 	${bdrck_LIBRARIES}
 
 )
+
+include(${PROJECT_SOURCE_DIR}/3rdparty/cmu/cmake/IdeSplitSources.cmake)
+cmuIdeSplitSources(bdrck-git)
