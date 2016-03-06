@@ -4,8 +4,8 @@
 
 #include <boost/filesystem.hpp>
 
-#include <bdrck/fs/Util.hpp>
-#include <bdrck/util/Error.hpp>
+#include "bdrck/fs/Util.hpp"
+#include "bdrck/util/Error.hpp"
 
 namespace bdrck
 {
@@ -51,7 +51,7 @@ currentOf(bdrck::fs::detail::IteratorImpl const &impl)
 	boost::filesystem::recursive_directory_iterator endIt;
 	if(impl.iterator == endIt)
 		return boost::none;
-	return impl.iterator->path().string();
+	return bdrck::fs::normalizePath(impl.iterator->path().string());
 }
 }
 
@@ -65,7 +65,7 @@ Iterator::Iterator() : impl(nullptr), current(boost::none)
 
 Iterator::Iterator(std::string const &p, bool followSymlinks)
         : impl(std::make_shared<detail::IteratorImpl>(p, followSymlinks)),
-          first(p),
+          first(bdrck::fs::normalizePath(p)),
           current(currentOf(*impl))
 {
 }

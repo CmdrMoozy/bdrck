@@ -220,10 +220,20 @@ std::string readAll(PipeDescriptor const &pipe)
 		ret = ReadFile(pipeCastToNative(pipe), buffer.data(),
 		               static_cast<DWORD>(buffer.size()), &bytesRead,
 		               nullptr);
-		if(ret && bytesRead == 0)
-			break;
 		if(!ret)
-			throw std::runtime_error("Reading from pipe failed.");
+		{
+			DWORD error = GetLastError();
+			// If the error we got was ERROR_BROKEN_PIPE, this means
+			// that the other side of the pipe
+			// has been closed. This is not a real error.
+			if(error != ERROR_BROKEN_PIPE)
+			{
+				throw std::runtime_error(
+				        "Reading from pipe failed.");
+			}
+		}
+		if(bytesRead == 0)
+			break;
 		oss << std::string(buffer.data(),
 		                   static_cast<std::size_t>(bytesRead));
 	}

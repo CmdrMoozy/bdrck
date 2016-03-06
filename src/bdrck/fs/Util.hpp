@@ -90,7 +90,9 @@ std::string getCurrentDirectory();
 std::string getTemporaryDirectoryPath();
 std::string getConfigurationDirectoryPath();
 
-boost::optional<std::string> which(std::string const &command);
+boost::optional<std::string>
+which(std::string const &command,
+      boost::optional<std::string> const &hint = boost::none);
 }
 }
 

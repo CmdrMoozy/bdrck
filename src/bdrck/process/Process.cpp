@@ -1,11 +1,13 @@
 #include "Process.hpp"
 
+#include <algorithm>
 #include <cassert>
 #include <cerrno>
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <iterator>
 #include <sstream>
 #include <stdexcept>
 #include <utility>
@@ -165,11 +167,82 @@ toArgvPointers(bdrck::process::ProcessArguments::ArgvContainer const &argv)
 }
 
 #ifdef _WIN32
-bdrck::process::detail::ProcessHandle
-launchProcess(bdrck::process::StandardStreamPipes &,
-              bdrck::process::ProcessArguments const &)
+void setNotInherited(bdrck::process::Pipe const &pipe,
+                     bdrck::process::PipeSide side)
 {
-	return INVALID_PROCESS_HANDLE_VALUE;
+	auto handle = bdrck::process::pipe::pipeCastToNative(pipe.get(side));
+	if(!SetHandleInformation(handle, HANDLE_FLAG_INHERIT, 0))
+		throw std::runtime_error("Marking pipe not-inherited failed.");
+}
+
+std::vector<TCHAR> getCommandLine(bdrck::process::ProcessArguments const &args)
+{
+	std::ostringstream oss;
+	oss << "\"" << args.path << "\"";
+	for(auto const &argument : args.arguments)
+		oss << " " << argument;
+	std::string commandLine = oss.str();
+
+	std::vector<TCHAR> ret(commandLine.length() + 1);
+	std::transform(commandLine.begin(), commandLine.end(), ret.begin(),
+	               [](char const &c) -> TCHAR
+	               {
+		return static_cast<TCHAR>(c);
+	});
+	return ret;
+}
+
+bdrck::process::detail::ProcessHandle
+launchProcess(bdrck::process::StandardStreamPipes &pipes,
+              bdrck::process::ProcessArguments const &args)
+{
+	// Open standard pipes for the child, and ensure that the parent-side
+	// of the pipes is not inherited by the child.
+
+	bdrck::process::pipe::openPipes(pipes);
+	setNotInherited(pipes[bdrck::process::StdStream::STDIN],
+	                bdrck::process::PipeSide::WRITE);
+	setNotInherited(pipes[bdrck::process::StdStream::STDOUT],
+	                bdrck::process::PipeSide::READ);
+	setNotInherited(pipes[bdrck::process::StdStream::STDERR],
+	                bdrck::process::PipeSide::READ);
+
+	PROCESS_INFORMATION procInfo;
+	ZeroMemory(&procInfo, sizeof(PROCESS_INFORMATION));
+
+	STARTUPINFO startInfo;
+	ZeroMemory(&startInfo, sizeof(STARTUPINFO));
+	startInfo.cb = sizeof(STARTUPINFO);
+	startInfo.hStdInput = bdrck::process::pipe::pipeCastToNative(
+	        pipes[bdrck::process::StdStream::STDIN].get(
+	                bdrck::process::PipeSide::READ));
+	startInfo.hStdOutput = bdrck::process::pipe::pipeCastToNative(
+	        pipes[bdrck::process::StdStream::STDOUT].get(
+	                bdrck::process::PipeSide::WRITE));
+	startInfo.hStdError = bdrck::process::pipe::pipeCastToNative(
+	        pipes[bdrck::process::StdStream::STDERR].get(
+	                bdrck::process::PipeSide::WRITE));
+	startInfo.dwFlags |= STARTF_USESTDHANDLES;
+
+	std::vector<TCHAR> commandLine = getCommandLine(args);
+	BOOL ret =
+	        CreateProcess(nullptr, commandLine.data(), nullptr, nullptr,
+	                      TRUE, 0, nullptr, nullptr, &startInfo, &procInfo);
+	if(!ret)
+		throw std::runtime_error("Launching child process failed.");
+
+	// Close the child's side of the inherited pipes.
+	bdrck::process::pipe::close(pipes[bdrck::process::StdStream::STDIN].get(
+	        bdrck::process::PipeSide::READ));
+	bdrck::process::pipe::close(
+	        pipes[bdrck::process::StdStream::STDOUT].get(
+	                bdrck::process::PipeSide::WRITE));
+	bdrck::process::pipe::close(
+	        pipes[bdrck::process::StdStream::STDERR].get(
+	                bdrck::process::PipeSide::WRITE));
+
+	CloseHandle(procInfo.hThread);
+	return bdrck::process::detail::ProcessHandle(procInfo.hProcess);
 }
 #else
 [[noreturn]] void throwChildSignalError(int sig)

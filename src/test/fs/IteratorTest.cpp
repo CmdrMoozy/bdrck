@@ -8,9 +8,6 @@
 #include "bdrck/fs/TemporaryStorage.hpp"
 #include "bdrck/fs/Util.hpp"
 
-// DEBUG
-#include <iostream>
-
 namespace
 {
 struct TestContext
@@ -27,49 +24,78 @@ struct TestContext
 	          paths(),
 	          pathsWithoutSymlinks()
 	{
-		const std::string subdirPath =
-		        bdrck::fs::combinePaths(directoryA.getPath(), "subdir");
+#ifdef _WIN32
+		// Windows does not support symlinks without extra privileges
+		// our unit tests do not have. So omit symlinks from this test.
+
 		const std::string fileAPath =
 		        bdrck::fs::combinePaths(directoryA.getPath(), "fileA");
+		const std::string lastFilePath =
+		        bdrck::fs::combinePaths(directoryA.getPath(), "zzzzz");
+		const std::string subdirPath =
+		        bdrck::fs::combinePaths(directoryA.getPath(), "subdir");
 		const std::string fileBPath =
 		        bdrck::fs::combinePaths(subdirPath, "fileB");
+
+		bdrck::fs::createFile(fileAPath);
+		bdrck::fs::createFile(lastFilePath);
+		bdrck::fs::createDirectory(subdirPath);
+		bdrck::fs::createFile(fileBPath);
+
+		paths = {directoryA.getPath(), subdirPath, fileAPath, fileBPath,
+		         lastFilePath};
+		std::sort(paths.begin(), paths.end());
+
+		pathsWithoutSymlinks = paths;
+#else
+		const std::string fileAPath =
+		        bdrck::fs::combinePaths(directoryA.getPath(), "fileA");
+		const std::string lastFilePath =
+		        bdrck::fs::combinePaths(directoryA.getPath(), "zzzzz");
+		const std::string subdirPath =
+		        bdrck::fs::combinePaths(directoryA.getPath(), "subdir");
+		const std::string fileBPath =
+		        bdrck::fs::combinePaths(subdirPath, "fileB");
+
 		const std::string fileCPath =
 		        bdrck::fs::combinePaths(directoryB.getPath(), "fileC");
+
 		const std::string symlinkAPath = bdrck::fs::combinePaths(
 		        directoryA.getPath(), "symlinkA");
 		const std::string symlinkBPath =
 		        bdrck::fs::combinePaths(subdirPath, "symlinkB");
 		const std::string symlinkCPath = bdrck::fs::combinePaths(
 		        directoryA.getPath(), "symlinkC");
+
 		const std::string fileCSymlinkPath =
 		        bdrck::fs::combinePaths(symlinkAPath, "fileC");
-		const std::string lastFilePath =
-		        bdrck::fs::combinePaths(directoryA.getPath(), "zzzzz");
 
-		bdrck::fs::createDirectory(subdirPath);
 		bdrck::fs::createFile(fileAPath);
+		bdrck::fs::createFile(lastFilePath);
+		bdrck::fs::createDirectory(subdirPath);
 		bdrck::fs::createFile(fileBPath);
+
 		bdrck::fs::createFile(fileCPath);
+
 		bdrck::fs::createSymlink(directoryB.getPath(), symlinkAPath);
 		bdrck::fs::createSymlink(fileAPath, symlinkBPath);
 		bdrck::fs::createSymlink(
 		        bdrck::fs::combinePaths(directoryA.getPath(),
 		                                "NON_EXISTENT_PATH"),
 		        symlinkCPath);
-		bdrck::fs::createFile(lastFilePath);
 
 		paths = {directoryA.getPath(), subdirPath,       fileAPath,
 		         fileBPath,            fileCSymlinkPath, symlinkAPath,
 		         symlinkBPath,         symlinkCPath,     lastFilePath};
+		std::sort(paths.begin(), paths.end());
 
 		pathsWithoutSymlinks = {directoryA.getPath(), subdirPath,
 		                        fileAPath,            fileBPath,
 		                        symlinkAPath,         symlinkBPath,
 		                        symlinkCPath,         lastFilePath};
-
-		std::sort(paths.begin(), paths.end());
 		std::sort(pathsWithoutSymlinks.begin(),
 		          pathsWithoutSymlinks.end());
+#endif
 	}
 };
 }

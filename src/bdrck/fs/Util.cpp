@@ -6,6 +6,7 @@
 #include <fstream>
 #include <functional>
 #include <iterator>
+#include <locale>
 #include <memory>
 #include <sstream>
 #include <stdexcept>
@@ -559,6 +560,18 @@ std::string getCurrentDirectory()
 
 std::string getTemporaryDirectoryPath()
 {
+#ifdef _WIN32
+	std::vector<TCHAR> buffer(MAX_PATH + 1);
+	DWORD length =
+	        GetTempPath(static_cast<DWORD>(buffer.size()), buffer.data());
+#ifdef UNICODE
+	std::wstring_converter<std::codecvt_utf8<wchar_t>, wchar_t> converter;
+	return resolvePath(converter.to_bytes(
+	        std::wstring(buffer.data(), buffer.data() + length)));
+#else
+	return resolvePath(std::string(buffer.data(), buffer.data() + length));
+#endif
+#else
 	std::string path("/tmp");
 
 	char const *tmpdir = std::getenv("TMPDIR");
@@ -570,6 +583,7 @@ std::string getTemporaryDirectoryPath()
 	}
 
 	return path;
+#endif
 }
 
 std::string getConfigurationDirectoryPath()
@@ -603,18 +617,33 @@ std::string getConfigurationDirectoryPath()
 	return path;
 }
 
-boost::optional<std::string> which(std::string const &command)
+boost::optional<std::string> which(std::string const &command,
+                                   boost::optional<std::string> const &hint)
 {
 	char const *p = std::getenv("PATH");
 	std::string path;
 	if(p != nullptr)
 		path.assign(p);
 
+#ifdef _WIN32
+	constexpr char PATH_DELIMITER = ';';
+#else
+	constexpr char PATH_DELIMITER = ':';
+#endif
 	std::vector<std::string> pathComponents =
-	        bdrck::algorithm::string::split(path, ':');
+	        bdrck::algorithm::string::split(path, PATH_DELIMITER);
+	if(!!hint)
+		pathComponents.insert(pathComponents.begin(), *hint);
+
 	for(auto const &directory : pathComponents)
 	{
 		std::string commandPath = combinePaths(directory, command);
+
+#ifdef _WIN32
+		if(isExecutable(commandPath + ".exe"))
+			return commandPath + ".exe";
+#endif
+
 		if(isExecutable(commandPath))
 			return commandPath;
 	}

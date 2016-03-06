@@ -14,12 +14,12 @@ TEST_CASE("Verify that process launching works", "[Process]")
 	constexpr int TEST_EXIT_CODE = 137;
 	constexpr char const *TEST_STRING = "this is a test";
 
-	const std::string TEST_ECHO_BINARY = bdrck::fs::combinePaths(
-	        bdrck::fs::getCurrentDirectory(), "bdrck-test-echo");
-	REQUIRE(bdrck::fs::isExecutable(TEST_ECHO_BINARY));
+	auto TEST_ECHO_BINARY = bdrck::fs::which(
+	        "bdrck-test-echo", bdrck::fs::getCurrentDirectory());
+	REQUIRE(!!TEST_ECHO_BINARY);
 
 	bdrck::process::Process child(
-	        TEST_ECHO_BINARY,
+	        *TEST_ECHO_BINARY,
 	        {"-1", "-2", "-e", std::to_string(TEST_EXIT_CODE)});
 
 	std::size_t written = bdrck::process::pipe::write(
