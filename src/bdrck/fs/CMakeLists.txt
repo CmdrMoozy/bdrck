@@ -1,5 +1,7 @@
 set(bdrck-fs_SOURCES
 
+	ExclusiveFileLock.cpp
+	ExclusiveFileLock.hpp
 	Iterator.cpp
 	Iterator.hpp
 	TemporaryStorage.cpp
