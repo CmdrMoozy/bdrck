@@ -23,7 +23,7 @@ public:
 	ExclusiveFileLock &operator=(ExclusiveFileLock const &) = delete;
 	ExclusiveFileLock &operator=(ExclusiveFileLock &&) = default;
 
-	~ExclusiveFileLock() = default;
+	~ExclusiveFileLock();
 
 private:
 	std::unique_ptr<detail::ExclusiveFileLockImpl> impl;

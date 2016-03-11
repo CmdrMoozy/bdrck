@@ -109,5 +109,9 @@ ExclusiveFileLock::ExclusiveFileLock(std::string const &path)
         : impl(std::make_unique<detail::ExclusiveFileLockImpl>(path))
 {
 }
+
+ExclusiveFileLock::~ExclusiveFileLock()
+{
+}
 }
 }
