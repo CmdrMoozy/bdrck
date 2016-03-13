@@ -1,13 +1,16 @@
 #include "Util.hpp"
 
 #include <algorithm>
+#include <cstddef>
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
 #include <functional>
 #include <iterator>
+#include <limits>
 #include <locale>
 #include <memory>
+#include <numeric>
 #include <sstream>
 #include <stdexcept>
 
@@ -268,6 +271,44 @@ std::string basename(std::string const &p)
 	if(lastSeparator == std::string::npos)
 		return path;
 	return path.substr(lastSeparator + 1);
+}
+
+std::string commonParentPath(std::vector<std::string> const &paths)
+{
+	if(paths.empty())
+		return std::string();
+
+	std::size_t minimumSize = std::numeric_limits<std::size_t>::max();
+	std::accumulate(paths.begin(), paths.end(), minimumSize,
+	                [](std::size_t minimum, std::string const &str)
+	                {
+		return std::min(minimum, str.length());
+	});
+
+	char const *refStart = paths.back().c_str();
+	char const *refEnd = refStart + minimumSize;
+
+	while(refStart != refEnd)
+	{
+		bool same = true;
+		for(auto it = paths.cbegin(); it != paths.cend() - 1; ++it)
+		{
+			if(!std::equal(refStart, refEnd, it->data()))
+			{
+				same = false;
+				break;
+			}
+		}
+
+		if(same)
+			break;
+
+		--refEnd;
+	}
+
+	if(refStart == refEnd)
+		return std::string();
+	return std::string(refStart, refEnd);
 }
 
 std::vector<std::string> glob(std::string const &pattern)
