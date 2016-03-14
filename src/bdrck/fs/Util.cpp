@@ -627,8 +627,12 @@ std::string getTemporaryDirectoryPath()
 #endif
 }
 
-std::string getConfigurationDirectoryPath()
+std::string
+getConfigurationDirectoryPath(boost::optional<std::string> const &application)
 {
+#ifdef _WIN32
+	static_assert(false, "Not implemented on Windows.");
+#else
 	std::string path;
 	std::string suffix;
 
@@ -655,7 +659,11 @@ std::string getConfigurationDirectoryPath()
 		        "Configuration directory is not a directory.");
 	}
 
+	if(!!application)
+		path = combinePaths(path, *application);
+
 	return path;
+#endif
 }
 
 boost::optional<std::string> which(std::string const &command,

@@ -99,7 +99,16 @@ std::string getCurrentExecutable();
 std::string getCurrentDirectory();
 
 std::string getTemporaryDirectoryPath();
-std::string getConfigurationDirectoryPath();
+
+/*!
+ * Returns the system's default configuration path (optionally an
+ * application-specific one).
+ *
+ * \param application The application, for an application-specific path.
+ * \return The system's configuration path.
+ */
+std::string getConfigurationDirectoryPath(
+        boost::optional<std::string> const &application = boost::none);
 
 boost::optional<std::string>
 which(std::string const &command,
