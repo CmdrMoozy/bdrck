@@ -24,6 +24,9 @@
 #include "bdrck/util/ScopeExit.hpp"
 
 #ifdef _WIN32
+#include <codecvt>
+
+#include <ShlObj.h>
 #include <Windows.h>
 #else
 #include <fcntl.h>
@@ -606,7 +609,7 @@ std::string getTemporaryDirectoryPath()
 	DWORD length =
 	        GetTempPath(static_cast<DWORD>(buffer.size()), buffer.data());
 #ifdef UNICODE
-	std::wstring_converter<std::codecvt_utf8<wchar_t>, wchar_t> converter;
+	std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converter;
 	return resolvePath(converter.to_bytes(
 	        std::wstring(buffer.data(), buffer.data() + length)));
 #else
@@ -631,7 +634,32 @@ std::string
 getConfigurationDirectoryPath(boost::optional<std::string> const &application)
 {
 #ifdef _WIN32
-	static_assert(false, "Not implemented on Windows.");
+	PWSTR directory = nullptr;
+	HRESULT ret = SHGetKnownFolderPath(FOLDERID_LocalAppData,
+	                                   KF_FLAG_CREATE, nullptr, &directory);
+	if(ret != S_OK)
+	{
+		throw std::runtime_error(
+		        "Looking up application data directory failed.");
+	}
+	bdrck::util::ScopeExit cleanup([&directory]()
+	                               {
+		                               CoTaskMemFree(directory);
+		                       });
+
+	std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converter;
+	std::string path = converter.to_bytes(std::wstring(directory));
+
+	if(!isDirectory(path))
+	{
+		throw std::runtime_error(
+		        "Configuration directory is not a directory.");
+	}
+
+	if(!!application)
+		path = combinePaths(path, *application);
+
+	return normalizePath(path);
 #else
 	std::string path;
 	std::string suffix;
@@ -662,7 +690,7 @@ getConfigurationDirectoryPath(boost::optional<std::string> const &application)
 	if(!!application)
 		path = combinePaths(path, *application);
 
-	return path;
+	return normalizePath(path);
 #endif
 }
 

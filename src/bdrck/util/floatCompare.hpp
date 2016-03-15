@@ -48,7 +48,6 @@ template <typename F> int floatCompare(F a, F b)
 	float_type maxVal = std::max(a, b);
 	float_type minVal = std::min(a, b);
 	float_type maxAbs = std::max(absA, absB);
-	float_type minAbs = std::min(absA, absB);
 	float_type epsilon = maxAbs * detail::FloatEpsilon<F>::value;
 
 	// If the signs differ, we can return early if the numbers are not
