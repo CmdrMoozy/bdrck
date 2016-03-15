@@ -2,6 +2,7 @@ set(bdrck-util_SOURCES
 
 	Error.cpp
 	Error.hpp
+	floatCompare.hpp
 	ScopeExit.cpp
 	ScopeExit.hpp
 	UUID.cpp
