@@ -93,6 +93,7 @@ set(TESTS_OUTPUT_DIR ${PROJECT_BINARY_DIR}/tests)
 enable_testing()
 
 add_subdirectory(src/bdrck/algorithm)
+add_subdirectory(src/bdrck/config)
 add_subdirectory(src/bdrck/fs)
 add_subdirectory(src/bdrck/git)
 add_subdirectory(src/bdrck/json)

@@ -4,6 +4,8 @@ set(bdrck-test_SOURCES
 
 	algorithm/StringTest.cpp
 
+	config/ConfigurationTest.cpp
+
 	fs/IteratorTest.cpp
 	fs/TemporaryStorageTest.cpp
 	fs/UtilTest.cpp
@@ -30,6 +32,7 @@ set_target_properties(bdrck-test PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${TESTS_OUT
 target_link_libraries(bdrck-test
 
 	bdrck-algorithm
+	bdrck-config
 	bdrck-fs
 	bdrck-git
 	bdrck-json
