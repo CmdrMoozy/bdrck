@@ -1,5 +1,7 @@
 set(bdrck-json_SOURCES
 
+	generate.cpp
+	generate.hpp
 	parse.cpp
 	parse.hpp
 	Types.cpp
