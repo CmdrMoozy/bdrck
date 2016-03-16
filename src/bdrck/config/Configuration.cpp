@@ -7,6 +7,7 @@
 #include <boost/variant/get.hpp>
 
 #include "bdrck/fs/Util.hpp"
+#include "bdrck/json/generate.hpp"
 #include "bdrck/json/parse.hpp"
 
 namespace
@@ -19,20 +20,16 @@ getConfigurationPath(bdrck::config::ConfigurationIdentifier const &identifier)
 	                               identifier.name + ".json");
 }
 
-bdrck::json::MapType
-parseConfiguration(bdrck::config::ConfigurationIdentifier const &identifier)
+bdrck::json::MapType parseConfiguration(std::string const &path)
 {
-	std::ifstream in(getConfigurationPath(identifier),
-	                 std::ios_base::in | std::ios_base::binary);
+	std::ifstream in(path, std::ios_base::in | std::ios_base::binary);
 	if(!in.is_open())
 		return bdrck::json::MapType();
 
 	boost::optional<bdrck::json::JsonValue> parsed =
 	        bdrck::json::parseAll(in);
 	if(!parsed)
-	{
-		throw std::runtime_error("Parsing configuration file failed.");
-	}
+		return bdrck::json::MapType();
 
 	return bdrck::json::get<bdrck::json::MapType>(*parsed);
 }
@@ -86,7 +83,8 @@ bool ConfigurationIdentifier::operator>=(ConfigurationIdentifier const &o) const
 
 ConfigurationInstance::ConfigurationInstance(
         ConfigurationIdentifier const &id,
-        std::map<std::string, std::string> const &defaultValues)
+        std::map<std::string, std::string> const &defaultValues,
+        boost::optional<std::string> const &customPath)
         : identifier(id)
 {
 	std::lock_guard<std::mutex> lock(Configuration::mutex);
@@ -98,7 +96,7 @@ ConfigurationInstance::ConfigurationInstance(
 	}
 
 	Configuration::instances[identifier].reset(
-	        new Configuration(identifier, defaultValues));
+	        new Configuration(identifier, defaultValues, customPath));
 }
 
 ConfigurationInstance::~ConfigurationInstance()
@@ -124,6 +122,11 @@ Configuration::instance(ConfigurationIdentifier const &identifier)
 
 Configuration::~Configuration()
 {
+	std::ofstream out(path, std::ios_base::out | std::ios_base::binary |
+	                                std::ios_base::trunc);
+	if(out.is_open())
+		bdrck::json::generate(out, bdrck::json::JsonValue(data),
+		                      /*beautify=*/true);
 }
 
 boost::optional<std::string> Configuration::tryGet(std::string const &key) const
@@ -153,6 +156,11 @@ Configuration::get(std::string const &key,
 	return *value;
 }
 
+bool Configuration::empty() const
+{
+	return data.empty();
+}
+
 bool Configuration::contains(std::string const &key) const
 {
 	return !!tryGet(key);
@@ -180,6 +188,11 @@ void Configuration::remove(std::string const &key)
 		data.erase(it);
 }
 
+void Configuration::clear()
+{
+	data.clear();
+}
+
 void Configuration::reset(std::string const &key)
 {
 	auto defaultIt = defaults.find(key);
@@ -201,8 +214,11 @@ void Configuration::resetAll()
 
 Configuration::Configuration(
         ConfigurationIdentifier const &identifier,
-        std::map<std::string, std::string> const &defaultValues)
-        : defaults(defaultValues), data(parseConfiguration(identifier))
+        std::map<std::string, std::string> const &defaultValues,
+        boost::optional<std::string> const &customPath)
+        : defaults(defaultValues),
+          path(!!customPath ? *customPath : getConfigurationPath(identifier)),
+          data(parseConfiguration(path))
 {
 	for(auto const &defaultValue : defaults)
 	{

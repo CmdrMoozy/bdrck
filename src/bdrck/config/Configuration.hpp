@@ -34,9 +34,22 @@ struct ConfigurationIdentifier
 class ConfigurationInstance
 {
 public:
+	/*!
+	 * Construct a new global configuration instance. The actual
+	 * instance is later accessible via Configuration::instance().
+	 *
+	 * If no custom configuration file path is specified, then a proper
+	 * operating-system-dependent path is used. Generally, the default
+	 * (no custom path) is what is desired.
+	 *
+	 * \param id The identifier for this unique configuration instance.
+	 * \param defaultValues The set of default configuration values.
+	 * \param customPath A custom configuration file path, if desired.
+	 */
 	ConfigurationInstance(
 	        ConfigurationIdentifier const &id,
-	        std::map<std::string, std::string> const &defaultValues = {});
+	        std::map<std::string, std::string> const &defaultValues = {},
+	        boost::optional<std::string> const &customPath = boost::none);
 
 	ConfigurationInstance(ConfigurationInstance const &) = delete;
 	ConfigurationInstance(ConfigurationInstance &&) = default;
@@ -69,6 +82,7 @@ public:
 	T getAs(std::string const &key,
 	        boost::optional<T> const &defaultValue = boost::none) const;
 
+	bool empty() const;
 	bool contains(std::string const &key) const;
 
 	void set(std::string const &key, std::string const &value);
@@ -76,6 +90,7 @@ public:
 	void setFrom(std::string const &key, T const &value);
 
 	void remove(std::string const &key);
+	void clear();
 
 	void reset(std::string const &key);
 	void resetAll();
@@ -88,10 +103,12 @@ private:
 	        instances;
 
 	std::map<std::string, std::string> defaults;
+	std::string path;
 	bdrck::json::MapType data;
 
 	Configuration(ConfigurationIdentifier const &identifier,
-	              std::map<std::string, std::string> const &defaultValues);
+	              std::map<std::string, std::string> const &defaultValues,
+	              boost::optional<std::string> const &customPath);
 };
 
 template <typename T>

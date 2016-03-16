@@ -8,6 +8,7 @@
 #include "bdrck/config/Configuration.hpp"
 #include "bdrck/config/deserialize.hpp"
 #include "bdrck/config/serialize.hpp"
+#include "bdrck/fs/TemporaryStorage.hpp"
 #include "bdrck/util/floatCompare.hpp"
 
 namespace
@@ -54,4 +55,76 @@ TEST_CASE("Test boolean round tripping", "[Configuration]")
 		auto pair = performRoundTripTest(v);
 		CHECK(pair.first == pair.second);
 	}
+}
+
+TEST_CASE("Test mutation and retrieval functions", "[Configuration]")
+{
+	bdrck::fs::TemporaryStorage file(bdrck::fs::TemporaryStorageType::FILE);
+	const bdrck::config::ConfigurationIdentifier identifier{
+	        "bdrck", "ConfigurationTest"};
+	bdrck::config::ConfigurationInstance instanceHandle(identifier, {},
+	                                                    file.getPath());
+	bdrck::config::Configuration &instance =
+	        bdrck::config::Configuration::instance(identifier);
+
+	REQUIRE(instance.empty());
+
+	REQUIRE(!instance.contains("some bad key"));
+	CHECK(instance.get("some bad key", std::string("baz")) == "baz");
+
+	REQUIRE(!instance.contains("foo"));
+	instance.set("foo", "bar");
+	REQUIRE(instance.contains("foo"));
+	CHECK(instance.get("foo") == "bar");
+
+	instance.remove("foo");
+	CHECK(!instance.contains("foo"));
+
+	instance.set("oof", "rab");
+	REQUIRE(!instance.empty());
+	instance.clear();
+	CHECK(instance.empty());
+}
+
+TEST_CASE("Test default value functions", "[Configuration]")
+{
+	bdrck::fs::TemporaryStorage file(bdrck::fs::TemporaryStorageType::FILE);
+	const bdrck::config::ConfigurationIdentifier identifier{
+	        "bdrck", "ConfigurationTest"};
+
+	{
+		bdrck::config::ConfigurationInstance instanceHandle(
+		        identifier, {}, file.getPath());
+		bdrck::config::Configuration &instance =
+		        bdrck::config::Configuration::instance(identifier);
+
+		REQUIRE(instance.empty());
+		instance.set("bar", "quux");
+	}
+
+	bdrck::config::ConfigurationInstance instanceHandle(
+	        identifier, {{"foo", "zab"}, {"bar", "rab"}}, file.getPath());
+	bdrck::config::Configuration &instance =
+	        bdrck::config::Configuration::instance(identifier);
+
+	REQUIRE(instance.contains("foo"));
+	CHECK(instance.get("foo") == "zab");
+	REQUIRE(instance.contains("bar"));
+	CHECK(instance.get("bar") == "quux");
+
+	REQUIRE(!instance.contains("baz"));
+	instance.set("baz", "oof");
+	REQUIRE(instance.contains("baz"));
+	CHECK(instance.get("baz") == "oof");
+	instance.reset("baz");
+	CHECK(!instance.contains("baz"));
+
+	REQUIRE(!instance.contains("quux"));
+	instance.set("quux", "xuuq");
+	REQUIRE(instance.contains("quux"));
+	instance.resetAll();
+	CHECK(instance.get("foo") == "zab");
+	CHECK(instance.get("bar") == "rab");
+	CHECK(!instance.contains("baz"));
+	CHECK(!instance.contains("quux"));
 }
