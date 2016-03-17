@@ -1,5 +1,7 @@
 set(bdrck-util_SOURCES
 
+	Base64.cpp
+	Base64.hpp
 	Error.cpp
 	Error.hpp
 	floatCompare.hpp

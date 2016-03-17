@@ -23,6 +23,7 @@ set(bdrck-test_SOURCES
 
 	process/ProcessTest.cpp
 
+	util/Base64Test.cpp
 	util/ScopeExitTest.cpp
 
 )
