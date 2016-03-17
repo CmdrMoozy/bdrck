@@ -331,10 +331,16 @@ void parse(std::istream &in, ParseCallbacks &callbacks)
 	std::streamsize read = 0;
 	bool foundNonWhitespace = false;
 
-	while((read = in.readsome(buffer.data(), BUFFER_SIZE)) > 0)
+	while(true)
 	{
+		in.read(buffer.data(), BUFFER_SIZE);
+		read = in.gcount();
+		if(read <= 0)
+			break;
+
 		char const *begin = buffer.data();
 		char const *end = buffer.data() + read;
+
 		if(!foundNonWhitespace)
 		{
 			std::locale locale;

@@ -100,6 +100,7 @@ TEST_CASE("Test default value functions", "[Configuration]")
 
 		REQUIRE(instance.empty());
 		instance.set("bar", "quux");
+		REQUIRE(instance.get("bar") == "quux");
 	}
 
 	bdrck::config::ConfigurationInstance instanceHandle(
