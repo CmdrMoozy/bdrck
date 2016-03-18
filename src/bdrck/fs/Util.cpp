@@ -22,12 +22,10 @@
 #include "bdrck/algorithm/String.hpp"
 #include "bdrck/util/Error.hpp"
 #include "bdrck/util/ScopeExit.hpp"
+#include "bdrck/util/Windows.hpp"
 
 #ifdef _WIN32
-#include <codecvt>
-
 #include <ShlObj.h>
-#include <Windows.h>
 #else
 #include <fcntl.h>
 #include <glob.h>
@@ -608,13 +606,8 @@ std::string getTemporaryDirectoryPath()
 	std::vector<TCHAR> buffer(MAX_PATH + 1);
 	DWORD length =
 	        GetTempPath(static_cast<DWORD>(buffer.size()), buffer.data());
-#ifdef UNICODE
-	std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converter;
-	return resolvePath(converter.to_bytes(
-	        std::wstring(buffer.data(), buffer.data() + length)));
-#else
-	return resolvePath(std::string(buffer.data(), buffer.data() + length));
-#endif
+	return resolvePath(bdrck::util::tstrToStdString(
+	        buffer.data(), static_cast<std::size_t>(length)));
 #else
 	std::string path("/tmp");
 
@@ -647,9 +640,7 @@ getConfigurationDirectoryPath(boost::optional<std::string> const &application)
 		                               CoTaskMemFree(directory);
 		                       });
 
-	std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converter;
-	std::string path = converter.to_bytes(std::wstring(directory));
-
+	std::string path = bdrck::util::wstrToStdString(directory);
 	if(!isDirectory(path))
 	{
 		throw std::runtime_error(

@@ -4,9 +4,8 @@
 #include <stdexcept>
 #include <system_error>
 
-#ifdef _WIN32
-#include <Windows.h>
-#endif
+#include "bdrck/util/ScopeExit.hpp"
+#include "bdrck/util/Windows.hpp"
 
 namespace bdrck
 {
@@ -40,14 +39,15 @@ std::string getLastWindowsError()
 	LPTSTR buffer;
 	DWORD ret =
 	        FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER, nullptr, error, 0,
-	                      static_cast<LPTSTR>(&buffer), 0, nullptr);
-
+	                      reinterpret_cast<LPTSTR>(&buffer), 0, nullptr);
 	if(ret == 0)
 		return std::string("Unknown error.");
+	bdrck::util::ScopeExit cleanup([buffer]()
+	                               {
+		                               LocalFree(buffer);
+		                       });
 
-	std::string errorMessage = lptstrToString(buffer);
-	LocalFree(buffer);
-	return errorMessage);
+	return tstrToStdString(buffer);
 }
 
 [[noreturn]] void throwLastWindowsError()

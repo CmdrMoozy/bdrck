@@ -9,6 +9,8 @@ set(bdrck-util_SOURCES
 	ScopeExit.hpp
 	UUID.cpp
 	UUID.hpp
+	Windows.cpp
+	Windows.hpp
 
 )
 
