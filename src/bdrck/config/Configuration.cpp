@@ -129,6 +129,25 @@ Configuration::~Configuration()
 		                      /*beautify=*/true);
 }
 
+boost::signals2::scoped_connection Configuration::handleConfigurationChanged(
+        std::function<void(std::string const &)> const &slot)
+{
+	return boost::signals2::scoped_connection(
+	        configurationChangedSignal.connect(slot));
+}
+
+std::vector<std::string> Configuration::getKeys() const
+{
+	std::vector<std::string> keys;
+	keys.reserve(data.size());
+	for(auto const &pair : data)
+	{
+		auto key = bdrck::json::toString(pair.first);
+		keys.emplace_back(key.begin(), key.end());
+	}
+	return keys;
+}
+
 boost::optional<std::string> Configuration::tryGet(std::string const &key) const
 {
 	auto it = data.find(bdrck::json::fromString(key));
@@ -179,6 +198,8 @@ void Configuration::set(std::string const &key, std::string const &value)
 	{
 		it->second = bdrck::json::fromString(value);
 	}
+
+	configurationChangedSignal(key);
 }
 
 void Configuration::remove(std::string const &key)
@@ -186,11 +207,17 @@ void Configuration::remove(std::string const &key)
 	auto it = data.find(bdrck::json::fromString(key));
 	if(it != data.end())
 		data.erase(it);
+
+	configurationChangedSignal(key);
 }
 
 void Configuration::clear()
 {
+	std::vector<std::string> keys = getKeys();
 	data.clear();
+
+	for(auto const &key : keys)
+		configurationChangedSignal(key);
 }
 
 void Configuration::reset(std::string const &key)
@@ -204,19 +231,25 @@ void Configuration::reset(std::string const &key)
 
 void Configuration::resetAll()
 {
+	std::vector<std::string> keys = getKeys();
+
 	data.clear();
 	for(auto const &defaultValue : defaults)
 	{
 		data.emplace(bdrck::json::fromString(defaultValue.first),
 		             bdrck::json::fromString(defaultValue.second));
 	}
+
+	for(auto const &key : keys)
+		configurationChangedSignal(key);
 }
 
 Configuration::Configuration(
         ConfigurationIdentifier const &identifier,
         std::map<std::string, std::string> const &defaultValues,
         boost::optional<std::string> const &customPath)
-        : defaults(defaultValues),
+        : configurationChangedSignal(),
+          defaults(defaultValues),
           path(!!customPath ? *customPath : getConfigurationPath(identifier)),
           data(parseConfiguration(path))
 {

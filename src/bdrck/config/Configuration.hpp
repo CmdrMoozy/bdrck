@@ -1,13 +1,17 @@
 #ifndef bdrck_config_Configuration_HPP
 #define bdrck_config_Configuration_HPP
 
+#include <functional>
 #include <map>
 #include <memory>
 #include <mutex>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 #include <boost/optional/optional.hpp>
+#include <boost/signals2/connection.hpp>
+#include <boost/signals2/signal.hpp>
 
 #include "bdrck/config/deserialize.hpp"
 #include "bdrck/config/serialize.hpp"
@@ -71,6 +75,11 @@ public:
 
 	~Configuration();
 
+	boost::signals2::scoped_connection handleConfigurationChanged(
+	        std::function<void(std::string const &)> const &slot);
+
+	std::vector<std::string> getKeys() const;
+
 	boost::optional<std::string> tryGet(std::string const &key) const;
 	std::string get(std::string const &key,
 	                boost::optional<std::string> const &defaultValue =
@@ -101,6 +110,9 @@ private:
 	static std::mutex mutex;
 	static std::map<ConfigurationIdentifier, std::unique_ptr<Configuration>>
 	        instances;
+
+	boost::signals2::signal<void(std::string const &)>
+	        configurationChangedSignal;
 
 	std::map<std::string, std::string> defaults;
 	std::string path;

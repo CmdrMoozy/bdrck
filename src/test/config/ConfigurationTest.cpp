@@ -3,6 +3,8 @@
 #include <cstdint>
 #include <initializer_list>
 #include <limits>
+#include <set>
+#include <string>
 #include <utility>
 
 #include "bdrck/config/Configuration.hpp"
@@ -128,4 +130,48 @@ TEST_CASE("Test default value functions", "[Configuration]")
 	CHECK(instance.get("bar") == "rab");
 	CHECK(!instance.contains("baz"));
 	CHECK(!instance.contains("quux"));
+}
+
+TEST_CASE("Test configuration modification signal", "[Configuration]")
+{
+	bdrck::fs::TemporaryStorage file(bdrck::fs::TemporaryStorageType::FILE);
+	const bdrck::config::ConfigurationIdentifier identifier{
+	        "bdrck", "ConfigurationTest"};
+	bdrck::config::ConfigurationInstance instanceHandle(
+	        identifier, {{"foo", "quux"}, {"bar", "false"}},
+	        file.getPath());
+	bdrck::config::Configuration &instance =
+	        bdrck::config::Configuration::instance(identifier);
+
+	std::set<std::string> changedCalls;
+	auto connection = instance.handleConfigurationChanged(
+	        [&changedCalls](std::string const &key)
+	        {
+		        changedCalls.insert(key);
+		});
+
+	instance.set("foo", "foo");
+	instance.setFrom("bar", true);
+	instance.set("baz", "baz");
+	instance.set("quux", "quux");
+	instance.set("oof", "oof");
+	CHECK(changedCalls ==
+	      std::set<std::string>({"foo", "bar", "baz", "quux", "oof"}));
+	changedCalls.clear();
+
+	instance.remove("quux");
+	CHECK(changedCalls == std::set<std::string>({"quux"}));
+	changedCalls.clear();
+
+	instance.reset("oof");
+	CHECK(changedCalls == std::set<std::string>({"oof"}));
+	changedCalls.clear();
+
+	instance.resetAll();
+	CHECK(changedCalls == std::set<std::string>({"foo", "bar", "baz"}));
+	changedCalls.clear();
+
+	instance.clear();
+	CHECK(changedCalls == std::set<std::string>({"foo", "bar"}));
+	changedCalls.clear();
 }
