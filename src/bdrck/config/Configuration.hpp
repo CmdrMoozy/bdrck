@@ -85,18 +85,38 @@ public:
 	                boost::optional<std::string> const &defaultValue =
 	                        boost::none) const;
 
+	boost::optional<std::vector<std::string>>
+	tryGetAll(std::string const &key) const;
+	std::vector<std::string>
+	getAll(std::string const &key,
+	       boost::optional<std::vector<std::string>> const &defaultValues =
+	               boost::none) const;
+
 	template <typename T>
 	boost::optional<T> tryGetAs(std::string const &key) const;
 	template <typename T>
 	T getAs(std::string const &key,
 	        boost::optional<T> const &defaultValue = boost::none) const;
+	template <typename T>
+	boost::optional<std::vector<T>>
+	tryGetAllAs(std::string const &key) const;
+	template <typename T>
+	std::vector<T>
+	getAllAs(std::string const &key,
+	         boost::optional<std::vector<T>> const &defaultValues =
+	                 boost::none) const;
 
 	bool empty() const;
 	bool contains(std::string const &key) const;
 
 	void set(std::string const &key, std::string const &value);
+	void setAll(std::string const &key,
+	            std::vector<std::string> const &values);
+
 	template <typename T>
 	void setFrom(std::string const &key, T const &value);
+	template <typename T>
+	void setAllFrom(std::string const &key, std::vector<T> const &values);
 
 	void remove(std::string const &key);
 	void clear();
@@ -148,9 +168,52 @@ T Configuration::getAs(std::string const &key,
 }
 
 template <typename T>
+boost::optional<std::vector<T>>
+Configuration::tryGetAllAs(std::string const &key) const
+{
+	boost::optional<std::vector<std::string>> serialized = tryGetAll(key);
+	if(!serialized)
+		return boost::none;
+
+	std::vector<T> values;
+	values.reserve((*serialized).size());
+	for(auto const &value : *serialized)
+		values.emplace_back(deserialize<T>(value));
+	return values;
+}
+
+template <typename T>
+std::vector<T> Configuration::getAllAs(
+        std::string const &key,
+        boost::optional<std::vector<T>> const &defaultValues) const
+{
+	boost::optional<std::vector<T>> values = tryGetAllAs<T>(key);
+	if(!values)
+		values = defaultValues;
+	if(!values)
+	{
+		throw std::runtime_error(
+		        "Configuration key not found or deserializing failed.");
+	}
+	return *values;
+}
+
+template <typename T>
 void Configuration::setFrom(std::string const &key, T const &value)
 {
 	set(key, serialize(value));
+}
+
+template <typename T>
+void Configuration::setAllFrom(std::string const &key,
+                               std::vector<T> const &values)
+{
+	std::vector<std::string> serializedValues;
+	serializedValues.reserve(values.size());
+	for(auto const &value : values)
+		serializedValues.emplace_back(serialize(value));
+
+	setAll(key, serializedValues);
 }
 }
 }

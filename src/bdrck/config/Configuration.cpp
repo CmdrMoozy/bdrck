@@ -175,6 +175,44 @@ Configuration::get(std::string const &key,
 	return *value;
 }
 
+boost::optional<std::vector<std::string>>
+Configuration::tryGetAll(std::string const &key) const
+{
+	auto it = data.find(bdrck::json::fromString(key));
+	if(it == data.end())
+		return boost::none;
+	bdrck::json::ArrayType const *values =
+	        boost::get<bdrck::json::ArrayType>(&(it->second));
+	if(values == nullptr)
+		return boost::none;
+
+	std::vector<std::string> stringValues;
+	for(auto const &value : *values)
+	{
+		bdrck::json::StringType const *stringValue =
+		        boost::get<bdrck::json::StringType>(&value);
+		if(stringValue == nullptr)
+			continue;
+		auto stringRef = bdrck::json::toString(*stringValue);
+
+		stringValues.emplace_back(stringRef.data(),
+		                          stringRef.data() + stringRef.size());
+	}
+	return stringValues;
+}
+
+std::vector<std::string> Configuration::getAll(
+        std::string const &key,
+        boost::optional<std::vector<std::string>> const &defaultValues) const
+{
+	boost::optional<std::vector<std::string>> values = tryGetAll(key);
+	if(!values)
+		values = defaultValues;
+	if(!values)
+		throw std::runtime_error("Configuration key not found.");
+	return *values;
+}
+
 bool Configuration::empty() const
 {
 	return data.empty();
@@ -200,6 +238,21 @@ void Configuration::set(std::string const &key, std::string const &value)
 	}
 
 	configurationChangedSignal(key);
+}
+
+void Configuration::setAll(std::string const &key,
+                           std::vector<std::string> const &values)
+{
+	bdrck::json::ArrayType jsonValues;
+	for(auto const &value : values)
+		jsonValues.emplace_back(bdrck::json::fromString(value));
+
+	auto jsonKey = bdrck::json::fromString(key);
+	auto it = data.find(jsonKey);
+	if(it == data.end())
+		data.insert(std::make_pair(jsonKey, jsonValues));
+	else
+		it->second = jsonValues;
 }
 
 void Configuration::remove(std::string const &key)

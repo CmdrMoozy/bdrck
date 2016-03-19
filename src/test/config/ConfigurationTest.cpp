@@ -175,3 +175,20 @@ TEST_CASE("Test configuration modification signal", "[Configuration]")
 	CHECK(changedCalls == std::set<std::string>({"foo", "bar"}));
 	changedCalls.clear();
 }
+
+TEST_CASE("Test configuration vector handling", "[Configuration]")
+{
+	bdrck::fs::TemporaryStorage file(bdrck::fs::TemporaryStorageType::FILE);
+	const bdrck::config::ConfigurationIdentifier identifier{
+	        "bdrck", "ConfigurationTest"};
+	bdrck::config::ConfigurationInstance instanceHandle(identifier, {},
+	                                                    file.getPath());
+	bdrck::config::Configuration &instance =
+	        bdrck::config::Configuration::instance(identifier);
+
+	const std::vector<bool> TEST_CASE{false, true,  false, false,
+	                                  true,  false, true};
+	instance.setAllFrom("foo", TEST_CASE);
+	auto result = instance.getAllAs<bool>("foo");
+	CHECK(TEST_CASE == result);
+}
