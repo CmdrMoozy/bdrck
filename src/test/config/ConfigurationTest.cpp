@@ -106,7 +106,9 @@ TEST_CASE("Test default value functions", "[Configuration]")
 	}
 
 	bdrck::config::ConfigurationInstance instanceHandle(
-	        identifier, {{"foo", "zab"}, {"bar", "rab"}}, file.getPath());
+	        identifier, {bdrck::config::makeDefault("foo", "zab"),
+	                     bdrck::config::makeDefault("bar", "rab")},
+	        file.getPath());
 	bdrck::config::Configuration &instance =
 	        bdrck::config::Configuration::instance(identifier);
 
@@ -138,7 +140,8 @@ TEST_CASE("Test configuration modification signal", "[Configuration]")
 	const bdrck::config::ConfigurationIdentifier identifier{
 	        "bdrck", "ConfigurationTest"};
 	bdrck::config::ConfigurationInstance instanceHandle(
-	        identifier, {{"foo", "quux"}, {"bar", "false"}},
+	        identifier, {bdrck::config::makeDefault("foo", "quux"),
+	                     bdrck::config::makeDefault("bar", false)},
 	        file.getPath());
 	bdrck::config::Configuration &instance =
 	        bdrck::config::Configuration::instance(identifier);

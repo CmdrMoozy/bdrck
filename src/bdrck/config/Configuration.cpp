@@ -83,7 +83,7 @@ bool ConfigurationIdentifier::operator>=(ConfigurationIdentifier const &o) const
 
 ConfigurationInstance::ConfigurationInstance(
         ConfigurationIdentifier const &id,
-        std::map<std::string, std::string> const &defaultValues,
+        ConfigurationDefaults const &defaultValues,
         boost::optional<std::string> const &customPath)
         : identifier(id)
 {
@@ -279,7 +279,7 @@ void Configuration::reset(std::string const &key)
 	if(defaultIt == defaults.end())
 		remove(key);
 	else
-		set(key, defaultIt->second);
+		setFromDefaultValue(*this, *defaultIt);
 }
 
 void Configuration::resetAll()
@@ -288,19 +288,15 @@ void Configuration::resetAll()
 
 	data.clear();
 	for(auto const &defaultValue : defaults)
-	{
-		data.emplace(bdrck::json::fromString(defaultValue.first),
-		             bdrck::json::fromString(defaultValue.second));
-	}
+		setFromDefaultValue(*this, defaultValue);
 
 	for(auto const &key : keys)
 		configurationChangedSignal(key);
 }
 
-Configuration::Configuration(
-        ConfigurationIdentifier const &identifier,
-        std::map<std::string, std::string> const &defaultValues,
-        boost::optional<std::string> const &customPath)
+Configuration::Configuration(ConfigurationIdentifier const &identifier,
+                             ConfigurationDefaults const &defaultValues,
+                             boost::optional<std::string> const &customPath)
         : configurationChangedSignal(),
           defaults(defaultValues),
           path(!!customPath ? *customPath : getConfigurationPath(identifier)),
@@ -308,11 +304,10 @@ Configuration::Configuration(
 {
 	for(auto const &defaultValue : defaults)
 	{
-		auto key = bdrck::json::fromString(defaultValue.first);
-		if(data.find(key) == data.end())
+		if(data.find(bdrck::json::fromString(defaultValue.first)) ==
+		   data.end())
 		{
-			data.emplace(key, bdrck::json::fromString(
-			                          defaultValue.second));
+			setFromDefaultValue(*this, defaultValue);
 		}
 	}
 }

@@ -2,6 +2,8 @@ set(bdrck-config_SOURCES
 
 	Configuration.cpp
 	Configuration.hpp
+	ConfigurationDefaults.cpp
+	ConfigurationDefaults.hpp
 	deserialize.cpp
 	deserialize.hpp
 	serialize.cpp

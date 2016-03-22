@@ -13,6 +13,7 @@
 #include <boost/signals2/connection.hpp>
 #include <boost/signals2/signal.hpp>
 
+#include "bdrck/config/ConfigurationDefaults.hpp"
 #include "bdrck/config/deserialize.hpp"
 #include "bdrck/config/serialize.hpp"
 #include "bdrck/json/Types.hpp"
@@ -52,7 +53,7 @@ public:
 	 */
 	ConfigurationInstance(
 	        ConfigurationIdentifier const &id,
-	        std::map<std::string, std::string> const &defaultValues = {},
+	        ConfigurationDefaults const &defaultValues = {},
 	        boost::optional<std::string> const &customPath = boost::none);
 
 	ConfigurationInstance(ConfigurationInstance const &) = delete;
@@ -134,12 +135,12 @@ private:
 	boost::signals2::signal<void(std::string const &)>
 	        configurationChangedSignal;
 
-	std::map<std::string, std::string> defaults;
+	ConfigurationDefaults defaults;
 	std::string path;
 	bdrck::json::MapType data;
 
 	Configuration(ConfigurationIdentifier const &identifier,
-	              std::map<std::string, std::string> const &defaultValues,
+	              ConfigurationDefaults const &defaultValues,
 	              boost::optional<std::string> const &customPath);
 };
 
