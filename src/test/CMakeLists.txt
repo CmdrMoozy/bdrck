@@ -23,6 +23,8 @@ set(bdrck-test_SOURCES
 
 	process/ProcessTest.cpp
 
+	timer/TimerServiceTest.cpp
+
 	util/Base64Test.cpp
 	util/ScopeExitTest.cpp
 
@@ -39,6 +41,7 @@ target_link_libraries(bdrck-test
 	bdrck-json
 	bdrck-params
 	bdrck-process
+	bdrck-timer
 	bdrck-util
 	${bdrck_LIBRARIES}
 

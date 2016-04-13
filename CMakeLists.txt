@@ -100,6 +100,7 @@ add_subdirectory(src/bdrck/json)
 add_subdirectory(src/bdrck/params)
 add_subdirectory(src/bdrck/process)
 add_subdirectory(src/bdrck/string)
+add_subdirectory(src/bdrck/timer)
 add_subdirectory(src/bdrck/util)
 
 add_subdirectory(src/test)
