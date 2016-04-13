@@ -9,6 +9,40 @@
 namespace
 {
 typedef boost::asio::basic_waitable_timer<std::chrono::steady_clock> Timer;
+
+void runPeriodically(std::weak_ptr<boost::asio::io_service> weakService,
+                     std::weak_ptr<void> cancellationHandle,
+                     std::function<void()> const &function,
+                     std::chrono::nanoseconds const &interval, bool repeat)
+{
+	auto service = weakService.lock();
+	if(!service)
+		return;
+
+	auto timer = std::make_shared<Timer>(
+	        *service, Timer::clock_type::now() + interval);
+	auto handler =
+	        [timer, weakService, cancellationHandle, function, interval,
+	         repeat](boost::system::error_code const &error)
+	{
+		auto lock = cancellationHandle.lock();
+		if(!lock)
+			return;
+
+		// If the timer didn't actually expire, just return.
+		if(error)
+			return;
+
+		function();
+
+		if(repeat)
+		{
+			runPeriodically(weakService, cancellationHandle,
+			                function, interval, repeat);
+		}
+	};
+	timer->async_wait(handler);
+}
 }
 
 namespace bdrck
@@ -22,7 +56,7 @@ namespace detail
 {
 struct TimerServiceImpl
 {
-	boost::asio::io_service service;
+	std::shared_ptr<boost::asio::io_service> service;
 	boost::optional<boost::asio::io_service::work> work;
 	std::thread thread;
 
@@ -37,15 +71,15 @@ struct TimerServiceImpl
 };
 
 TimerServiceImpl::TimerServiceImpl()
-        : service(),
-          work(service),
+        : service(std::make_shared<boost::asio::io_service>()),
+          work(*service),
           thread([this]()
                  {
 	                 for(;;)
 	                 {
 		                 try
 		                 {
-			                 service.run();
+			                 service->run();
 			                 break;
 		                 }
 		                 catch(std::exception const &)
@@ -59,7 +93,7 @@ TimerServiceImpl::TimerServiceImpl()
 TimerServiceImpl::~TimerServiceImpl()
 {
 	work = boost::none;
-	service.stop();
+	service->stop();
 
 	try
 	{
@@ -114,23 +148,15 @@ TimerToken TimerService::runOnceInImpl(std::function<void()> const &function,
                                        std::chrono::nanoseconds const &delay)
 {
 	TimerToken token;
-	auto handle = token.handle;
-	auto timer = std::make_shared<Timer>(impl->service,
-	                                     Timer::clock_type::now() + delay);
-	auto handler = [timer, handle, function](
-	        boost::system::error_code const &error)
-	{
-		auto lock = handle.lock();
-		if(!lock)
-			return;
+	runPeriodically(impl->service, token.handle, function, delay, false);
+	return token;
+}
 
-		// If the timer didn't actually expire, just return.
-		if(error)
-			return;
-
-		function();
-	};
-	timer->async_wait(handler);
+TimerToken TimerService::runEveryImpl(std::function<void()> const &function,
+                                      std::chrono::nanoseconds const &interval)
+{
+	TimerToken token;
+	runPeriodically(impl->service, token.handle, function, interval, true);
 	return token;
 }
 }

@@ -74,6 +74,10 @@ public:
 	runOnceAt(std::function<void()> const &function,
 	          std::chrono::time_point<Clock, Duration> const &time);
 
+	template <typename Rep, typename Period>
+	TimerToken runEvery(std::function<void()> const &function,
+	                    std::chrono::duration<Rep, Period> const &interval);
+
 private:
 	friend class TimerServiceInstance;
 
@@ -86,6 +90,8 @@ private:
 
 	TimerToken runOnceInImpl(std::function<void()> const &function,
 	                         std::chrono::nanoseconds const &delay);
+	TimerToken runEveryImpl(std::function<void()> const &function,
+	                        std::chrono::nanoseconds const &interval);
 };
 
 template <typename Rep, typename Period>
@@ -104,6 +110,16 @@ TimerService::runOnceAt(std::function<void()> const &function,
                         std::chrono::time_point<Clock, Duration> const &time)
 {
 	return runOnceIn(function, time - Clock::now());
+}
+
+template <typename Rep, typename Period>
+TimerToken
+TimerService::runEvery(std::function<void()> const &function,
+                       std::chrono::duration<Rep, Period> const &interval)
+{
+	return runEveryImpl(
+	        function,
+	        std::chrono::duration_cast<std::chrono::nanoseconds>(interval));
 }
 }
 }
