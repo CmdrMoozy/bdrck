@@ -5,6 +5,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <functional>
+#include <initializer_list>
 #include <iterator>
 #include <memory>
 #include <stdexcept>
@@ -25,6 +26,7 @@ private:
 
 public:
 	template <typename Iterator> StrArray(Iterator begin, Iterator end);
+	StrArray(std::initializer_list<std::string> const &s);
 
 	StrArray(StrArray const &) = default;
 	StrArray(StrArray &&) = default;

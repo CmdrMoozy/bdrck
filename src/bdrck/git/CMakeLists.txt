@@ -6,6 +6,8 @@ set(bdrck-git_SOURCES
 	checkReturn.hpp
 	Diff.cpp
 	Diff.hpp
+	Index.cpp
+	Index.hpp
 	Library.cpp
 	Library.hpp
 	Object.cpp

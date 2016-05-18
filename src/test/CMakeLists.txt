@@ -10,6 +10,7 @@ set(bdrck-test_SOURCES
 	fs/TemporaryStorageTest.cpp
 	fs/UtilTest.cpp
 
+	git/IndexTest.cpp
 	git/RepositoryTest.cpp
 	git/StrArrayTest.cpp
 
