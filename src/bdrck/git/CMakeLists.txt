@@ -14,6 +14,8 @@ set(bdrck-git_SOURCES
 	Repository.hpp
 	Signature.cpp
 	Signature.hpp
+	StrArray.cpp
+	StrArray.hpp
 	Tree.cpp
 	Tree.hpp
 	Util.hpp
