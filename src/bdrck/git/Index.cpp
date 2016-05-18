@@ -18,7 +18,7 @@ namespace bdrck
 {
 namespace git
 {
-Index::Index(Repository &repository) : Wrapper(getRepositoryIndex(repository))
+Index::Index(Repository &repository) : base_type(getRepositoryIndex(repository))
 {
 }
 

@@ -17,7 +17,7 @@ class StrArray;
 class Index : public Wrapper<git_index, git_index_free>
 {
 private:
-	typedef Wrapper<git_repository, git_repository_free> base_type;
+	typedef Wrapper<git_index, git_index_free> base_type;
 
 public:
 	Index(Repository &repository);
