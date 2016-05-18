@@ -1,0 +1,52 @@
+#include "Reference.hpp"
+
+#include <stdexcept>
+
+#include "bdrck/git/checkReturn.hpp"
+#include "bdrck/git/Repository.hpp"
+
+namespace
+{
+git_reference *lookupReference(bdrck::git::Repository &repository,
+                               std::string const &name)
+{
+	git_reference *reference = nullptr;
+	bdrck::git::checkReturn(git_reference_lookup(
+	        &reference, repository.get(), name.c_str()));
+	return reference;
+}
+}
+
+namespace bdrck
+{
+namespace git
+{
+Reference::Reference(Repository &repository, std::string const &name)
+        : base_type(lookupReference(repository, name))
+{
+}
+
+git_oid Reference::getTarget() const
+{
+	git_oid const *oid = git_reference_target(get());
+	if(oid == nullptr)
+	{
+		throw new std::runtime_error("Can't get target of symbolic "
+		                             "references. Call resolve() "
+		                             "first.");
+	}
+	return *oid;
+}
+
+Reference Reference::resolve() const
+{
+	git_reference *reference = nullptr;
+	checkReturn(git_reference_resolve(&reference, get()));
+	return Reference(reference);
+}
+
+Reference::Reference(git_reference *reference) : base_type(reference)
+{
+}
+}
+}
