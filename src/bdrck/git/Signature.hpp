@@ -19,6 +19,13 @@ public:
 	Signature(std::string const &n, std::string const &e,
 	          std::chrono::time_point<Clock, Duration> const &when);
 
+	Signature(Signature const &) = default;
+	Signature(Signature &&) = default;
+	Signature &operator=(Signature const &) = default;
+	Signature &operator=(Signature &&) = default;
+
+	~Signature() = default;
+
 	git_signature &get();
 	git_signature const &get() const;
 
