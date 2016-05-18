@@ -13,6 +13,7 @@ namespace bdrck
 namespace git
 {
 class Object;
+class Repository;
 
 class Tree : public Wrapper<git_tree, git_tree_free>
 {
@@ -21,6 +22,7 @@ private:
 
 public:
 	Tree(Object const &object);
+	Tree(Repository &repository, git_oid const &id);
 
 	~Tree() = default;
 

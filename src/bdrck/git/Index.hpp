@@ -25,6 +25,15 @@ public:
 	std::size_t getEntryCount() const;
 
 	void addAll(StrArray const &pathspec);
+
+	/**
+	 * Write the current index to disk as a tree, and return the OID of
+	 * this tree. This is the OID that can be used, for example, to create
+	 * a commit.
+	 *
+	 * \return The OID of the newly writtent ree.
+	 */
+	git_oid writeTree();
 };
 }
 }

@@ -29,8 +29,15 @@ std::size_t Index::getEntryCount() const
 
 void Index::addAll(StrArray const &pathspec)
 {
-	bdrck::git::checkReturn(
+	checkReturn(
 	        git_index_add_all(get(), &pathspec.get(), 0, nullptr, nullptr));
+}
+
+git_oid Index::writeTree()
+{
+	git_oid id;
+	checkReturn(git_index_write_tree(&id, get()));
+	return id;
 }
 }
 }

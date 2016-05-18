@@ -7,6 +7,7 @@
 #include "bdrck/fs/Util.hpp"
 #include "bdrck/git/checkReturn.hpp"
 #include "bdrck/git/Object.hpp"
+#include "bdrck/git/Repository.hpp"
 
 namespace
 {
@@ -16,6 +17,13 @@ git_tree *peelToTree(bdrck::git::Object const &object)
 	bdrck::git::checkReturn(
 	        git_object_peel(&peeled, object.get(), GIT_OBJ_TREE));
 	return reinterpret_cast<git_tree *>(peeled);
+}
+
+git_tree *lookupTree(bdrck::git::Repository &repository, git_oid const &id)
+{
+	git_tree *tree = nullptr;
+	bdrck::git::checkReturn(git_tree_lookup(&tree, repository.get(), &id));
+	return tree;
 }
 
 struct TreeWalkContext
@@ -54,6 +62,11 @@ namespace bdrck
 namespace git
 {
 Tree::Tree(Object const &object) : base_type(peelToTree(object))
+{
+}
+
+Tree::Tree(Repository &repository, git_oid const &id)
+        : base_type(lookupTree(repository, id))
 {
 }
 
