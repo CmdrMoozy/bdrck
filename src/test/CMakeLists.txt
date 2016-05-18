@@ -11,6 +11,7 @@ set(bdrck-test_SOURCES
 	fs/UtilTest.cpp
 
 	git/RepositoryTest.cpp
+	git/StrArrayTest.cpp
 
 	json/parseTest.cpp
 
