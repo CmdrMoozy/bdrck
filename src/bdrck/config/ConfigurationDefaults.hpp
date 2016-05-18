@@ -36,8 +36,7 @@ typedef std::map<std::string, detail::ConfigurationDefaultValue>
 /*!
  * \brief A particular item in a ConfigurationDetaults structure.
  */
-typedef std::pair<std::string, detail::ConfigurationDefaultValue>
-        ConfigurationDefaultsItem;
+typedef ConfigurationDefaults::value_type ConfigurationDefaultsItem;
 
 template <typename T>
 ConfigurationDefaultsItem makeDefault(std::string const &key, T const &value)
