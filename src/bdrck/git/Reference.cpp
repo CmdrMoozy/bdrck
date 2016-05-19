@@ -26,16 +26,13 @@ Reference::Reference(Repository &repository, std::string const &name)
 {
 }
 
-git_oid Reference::getTarget() const
+boost::optional<git_oid> Reference::getTarget() const
 {
 	git_oid const *oid = git_reference_target(get());
 	if(oid == nullptr)
-	{
-		throw new std::runtime_error("Can't get target of symbolic "
-		                             "references. Call resolve() "
-		                             "first.");
-	}
-	return *oid;
+		return boost::none;
+	else
+		return *oid;
 }
 
 Reference Reference::resolve() const

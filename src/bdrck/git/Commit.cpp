@@ -27,17 +27,24 @@ git_oid commitIndex(Repository &repository, std::string const &message,
                     Signature const &author, Signature const &committer,
                     std::string const &messageEncoding)
 {
-	Commit head(repository);
-	git_commit const *parents[] = {head.get()};
+	git_commit const *parents[] = {nullptr};
+	Reference headRef(repository);
+	auto headId = headRef.getTarget();
+	boost::optional<Commit> head;
+	if(!!headId)
+	{
+		head.emplace(repository, *headId);
+		parents[0] = head->get();
+	}
 
 	Index index(repository);
 	Tree tree(repository, index.writeTree());
 
 	git_oid id;
-	checkReturn(git_commit_create(&id, repository.get(), "HEAD",
-	                              &author.get(), &committer.get(),
-	                              messageEncoding.c_str(), message.c_str(),
-	                              tree.get(), 1, parents));
+	checkReturn(git_commit_create(
+	        &id, repository.get(), "HEAD", &author.get(), &committer.get(),
+	        messageEncoding.c_str(), message.c_str(), tree.get(),
+	        parents[0] == nullptr ? 0 : 1, parents));
 	return id;
 }
 
@@ -57,7 +64,7 @@ Commit::Commit(Repository &repository, git_oid const &id)
 }
 
 Commit::Commit(Repository &repository)
-        : Commit(repository, Reference(repository).getTarget())
+        : Commit(repository, *Reference(repository).getTarget())
 {
 }
 }

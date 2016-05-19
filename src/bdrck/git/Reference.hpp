@@ -3,6 +3,8 @@
 
 #include <string>
 
+#include <boost/optional/optional.hpp>
+
 #include <git2.h>
 
 #include "bdrck/git/Wrapper.hpp"
@@ -21,7 +23,7 @@ private:
 public:
 	Reference(Repository &repository, std::string const &name = "HEAD");
 
-	git_oid getTarget() const;
+	boost::optional<git_oid> getTarget() const;
 	Reference resolve() const;
 
 private:
