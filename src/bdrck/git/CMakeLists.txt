@@ -6,6 +6,8 @@ set(bdrck-git_SOURCES
 	checkReturn.hpp
 	Commit.cpp
 	Commit.hpp
+	Config.cpp
+	Config.hpp
 	Diff.cpp
 	Diff.hpp
 	Index.cpp
