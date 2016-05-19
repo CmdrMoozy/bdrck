@@ -5,6 +5,7 @@
 
 #include <git2.h>
 
+#include "bdrck/git/Signature.hpp"
 #include "bdrck/git/Wrapper.hpp"
 
 namespace bdrck
@@ -12,7 +13,6 @@ namespace bdrck
 namespace git
 {
 class Repository;
-class Signature;
 
 constexpr char const *DEFAULT_MESSAGE_ENCODING = "UTF-8";
 
@@ -21,8 +21,9 @@ constexpr char const *DEFAULT_MESSAGE_ENCODING = "UTF-8";
  * any files already in the index when this function is called.
  */
 git_oid
-commitIndex(Repository &repository, Signature const &author,
-            Signature const &committer, std::string const &message,
+commitIndex(Repository &repository, std::string const &message,
+            Signature const &author = Signature(),
+            Signature const &committer = Signature(),
             std::string const &messageEncoding = DEFAULT_MESSAGE_ENCODING);
 
 /**
@@ -31,8 +32,9 @@ commitIndex(Repository &repository, Signature const &author,
  * essentially the same as "git add . && git commit").
  */
 git_oid
-commitAll(Repository &repository, Signature const &author,
-          Signature const &committer, std::string const &message,
+commitAll(Repository &repository, std::string const &message,
+          Signature const &author = Signature(),
+          Signature const &committer = Signature(),
           std::string const &messageEncoding = DEFAULT_MESSAGE_ENCODING);
 
 class Commit : public Wrapper<git_commit, git_commit_free>

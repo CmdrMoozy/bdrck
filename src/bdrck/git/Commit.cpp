@@ -23,8 +23,8 @@ namespace bdrck
 {
 namespace git
 {
-git_oid commitIndex(Repository &repository, Signature const &author,
-                    Signature const &committer, std::string const &message,
+git_oid commitIndex(Repository &repository, std::string const &message,
+                    Signature const &author, Signature const &committer,
                     std::string const &messageEncoding)
 {
 	Commit head(repository);
@@ -41,13 +41,13 @@ git_oid commitIndex(Repository &repository, Signature const &author,
 	return id;
 }
 
-git_oid commitAll(Repository &repository, Signature const &author,
-                  Signature const &committer, std::string const &message,
+git_oid commitAll(Repository &repository, std::string const &message,
+                  Signature const &author, Signature const &committer,
                   std::string const &messageEncoding)
 {
 	Index index(repository);
 	index.addAll({"."});
-	return commitIndex(repository, author, committer, message,
+	return commitIndex(repository, message, author, committer,
 	                   messageEncoding);
 }
 
