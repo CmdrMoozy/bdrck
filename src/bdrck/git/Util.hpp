@@ -3,6 +3,7 @@
 
 #include <chrono>
 #include <stdexcept>
+#include <string>
 
 #include <boost/date_time/c_local_time_adjustor.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
@@ -45,6 +46,8 @@ git_time toGitTime(std::chrono::time_point<Clock, Duration> const &when)
 
 	return {toGitTimestamp(when), static_cast<int>(offset.total_seconds())};
 }
+
+std::string oidToString(git_oid const &oid);
 }
 }
 

@@ -26,6 +26,7 @@ set(bdrck-git_SOURCES
 	StrArray.hpp
 	Tree.cpp
 	Tree.hpp
+	Util.cpp
 	Util.hpp
 	Wrapper.hpp
 
