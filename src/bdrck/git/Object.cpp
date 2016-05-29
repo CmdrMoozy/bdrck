@@ -23,5 +23,10 @@ Object::Object(std::string const &revspec, Repository &repository)
         : base_type(parseRevspec(revspec, repository))
 {
 }
+
+git_oid Object::getId() const
+{
+	return *git_object_id(get());
+}
 }
 }

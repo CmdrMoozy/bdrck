@@ -22,6 +22,8 @@ public:
 	Object(std::string const &revspec, Repository &repository);
 
 	~Object() = default;
+
+	git_oid getId() const;
 };
 }
 }
