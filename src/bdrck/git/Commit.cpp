@@ -2,6 +2,7 @@
 
 #include "bdrck/git/checkReturn.hpp"
 #include "bdrck/git/Index.hpp"
+#include "bdrck/git/Object.hpp"
 #include "bdrck/git/Reference.hpp"
 #include "bdrck/git/Repository.hpp"
 #include "bdrck/git/Signature.hpp"
@@ -23,9 +24,10 @@ namespace bdrck
 {
 namespace git
 {
-git_oid commitIndex(Repository &repository, std::string const &message,
-                    Signature const &author, Signature const &committer,
-                    std::string const &messageEncoding)
+git_oid commitTree(Repository &repository, std::string const &message,
+                   Tree const &tree, Signature const &author,
+                   Signature const &committer,
+                   std::string const &messageEncoding)
 {
 	git_commit const *parents[] = {nullptr};
 	Reference headRef(repository);
@@ -37,15 +39,27 @@ git_oid commitIndex(Repository &repository, std::string const &message,
 		parents[0] = head->get();
 	}
 
-	Index index(repository);
-	Tree tree(repository, index.writeTree());
-
 	git_oid id;
 	checkReturn(git_commit_create(
 	        &id, repository.get(), "HEAD", &author.get(), &committer.get(),
 	        messageEncoding.c_str(), message.c_str(), tree.get(),
 	        parents[0] == nullptr ? 0 : 1, parents));
+
+	Object headObj("HEAD", repository);
+	checkReturn(git_reset(repository.get(), headObj.get(), GIT_RESET_MIXED,
+	                      nullptr));
+
 	return id;
+}
+
+git_oid commitIndex(Repository &repository, std::string const &message,
+                    Signature const &author, Signature const &committer,
+                    std::string const &messageEncoding)
+{
+	Index index(repository);
+	Tree tree(repository, index.writeTree());
+	return commitTree(repository, message, tree, author, committer,
+	                  messageEncoding);
 }
 
 git_oid commitAll(Repository &repository, std::string const &message,

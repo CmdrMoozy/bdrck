@@ -13,8 +13,15 @@ namespace bdrck
 namespace git
 {
 class Repository;
+class Tree;
 
 constexpr char const *DEFAULT_MESSAGE_ENCODING = "UTF-8";
+
+git_oid
+commitTree(Repository &repository, std::string const &message, Tree const &tree,
+           Signature const &author = Signature(),
+           Signature const &committer = Signature(),
+           std::string const &messageEncoding = DEFAULT_MESSAGE_ENCODING);
 
 /**
  * This is a convenience function which will create a new commit containing
