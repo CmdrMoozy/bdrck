@@ -5,10 +5,10 @@
 
 #include <boost/optional/optional.hpp>
 
-#include "bdrck/git/checkReturn.hpp"
 #include "bdrck/git/Object.hpp"
 #include "bdrck/git/Repository.hpp"
 #include "bdrck/git/Tree.hpp"
+#include "bdrck/git/checkReturn.hpp"
 
 namespace
 {

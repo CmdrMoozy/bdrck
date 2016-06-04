@@ -35,9 +35,10 @@ struct GenericSerializeImpl
 
 template <typename T> std::string serialize(T const &value)
 {
-	using ImplType = typename std::conditional<
-	        std::is_floating_point<T>::value, detail::FloatSerializeImpl,
-	        detail::GenericSerializeImpl>::type;
+	using ImplType =
+	        typename std::conditional<std::is_floating_point<T>::value,
+	                                  detail::FloatSerializeImpl,
+	                                  detail::GenericSerializeImpl>::type;
 	ImplType impl;
 	return impl(value);
 }

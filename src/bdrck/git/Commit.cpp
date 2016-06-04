@@ -1,6 +1,5 @@
 #include "Commit.hpp"
 
-#include "bdrck/git/checkReturn.hpp"
 #include "bdrck/git/Index.hpp"
 #include "bdrck/git/Object.hpp"
 #include "bdrck/git/Reference.hpp"
@@ -8,6 +7,7 @@
 #include "bdrck/git/Signature.hpp"
 #include "bdrck/git/StrArray.hpp"
 #include "bdrck/git/Tree.hpp"
+#include "bdrck/git/checkReturn.hpp"
 
 namespace
 {

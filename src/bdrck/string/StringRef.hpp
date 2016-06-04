@@ -270,8 +270,7 @@ BasicStringRef<CharT, Traits>::crend() const
 
 template <typename CharT, typename Traits>
 typename BasicStringRef<CharT, Traits>::const_reference
-        BasicStringRef<CharT, Traits>::
-        operator[](size_type pos) const
+        BasicStringRef<CharT, Traits>::operator[](size_type pos) const
 {
 	return *(beginPtr + pos);
 }

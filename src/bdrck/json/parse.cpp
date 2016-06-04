@@ -3,11 +3,11 @@
 #include <algorithm>
 #include <cstddef>
 #include <locale>
-#include <stack>
 #include <sstream>
+#include <stack>
 #include <stdexcept>
-#include <utility>
 #include <type_traits>
+#include <utility>
 
 #include <yajl/yajl_parse.h>
 
@@ -322,10 +322,7 @@ void parse(std::istream &in, ParseCallbacks &callbacks)
 	yajl_handle parser = yajl_alloc(&CALLBACKS, nullptr, &callbacks);
 	if(parser == nullptr)
 		throw std::runtime_error("Constructing JSON parser failed.");
-	bdrck::util::ScopeExit cleanup([&parser]()
-	                               {
-		                               yajl_free(parser);
-		                       });
+	bdrck::util::ScopeExit cleanup([&parser]() { yajl_free(parser); });
 
 	std::vector<char> buffer(BUFFER_SIZE, '\0');
 	std::streamsize read = 0;
@@ -344,11 +341,10 @@ void parse(std::istream &in, ParseCallbacks &callbacks)
 		if(!foundNonWhitespace)
 		{
 			std::locale locale;
-			auto it = std::find_if(begin, end,
-			                       [&locale](char const &c) -> bool
-			                       {
-				return !std::isspace(c, locale);
-			});
+			auto it = std::find_if(
+			        begin, end, [&locale](char const &c) -> bool {
+				        return !std::isspace(c, locale);
+				});
 			if(it != end)
 			{
 				begin = it;
@@ -374,62 +370,52 @@ boost::optional<JsonValue> parseAll(std::istream &in)
 	ParseAllContext context;
 	ParseCallbacks callbacks;
 
-	callbacks.nullCallback = [&context]() -> bool
-	{
+	callbacks.nullCallback = [&context]() -> bool {
 		emplaceCurrentValue(context, NullType());
 		return true;
 	};
 
-	callbacks.booleanCallback = [&context](BooleanType value) -> bool
-	{
+	callbacks.booleanCallback = [&context](BooleanType value) -> bool {
 		emplaceCurrentValue(context, value);
 		return true;
 	};
 
-	callbacks.integerCallback = [&context](IntegerType value) -> bool
-	{
+	callbacks.integerCallback = [&context](IntegerType value) -> bool {
 		emplaceCurrentValue(context, value);
 		return true;
 	};
 
-	callbacks.doubleCallback = [&context](DoubleType value) -> bool
-	{
+	callbacks.doubleCallback = [&context](DoubleType value) -> bool {
 		emplaceCurrentValue(context, value);
 		return true;
 	};
 
-	callbacks.stringCallback = [&context](StringType const &value) -> bool
-	{
+	callbacks.stringCallback = [&context](StringType const &value) -> bool {
 		emplaceCurrentValue(context, value);
 		return true;
 	};
 
-	callbacks.startMapCallback = [&context]() -> bool
-	{
+	callbacks.startMapCallback = [&context]() -> bool {
 		emplaceCurrentValue(context, MapType());
 		return true;
 	};
 
-	callbacks.mapKeyCallback = [&context](StringType const &key) -> bool
-	{
+	callbacks.mapKeyCallback = [&context](StringType const &key) -> bool {
 		emplaceCurrentKey(context, key);
 		return true;
 	};
 
-	callbacks.endMapCallback = [&context]() -> bool
-	{
+	callbacks.endMapCallback = [&context]() -> bool {
 		popCurrentValue(context);
 		return true;
 	};
 
-	callbacks.startArrayCallback = [&context]() -> bool
-	{
+	callbacks.startArrayCallback = [&context]() -> bool {
 		emplaceCurrentValue(context, ArrayType());
 		return true;
 	};
 
-	callbacks.endArrayCallback = [&context]() -> bool
-	{
+	callbacks.endArrayCallback = [&context]() -> bool {
 		popCurrentValue(context);
 		return true;
 	};

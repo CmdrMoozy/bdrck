@@ -36,8 +36,7 @@ int main(int argc, char **argv)
 	                "test-echo", "Echo stdin to stdout and/or stderr",
 	                [&exitCode](bdrck::params::OptionsMap const &options,
 	                            bdrck::params::FlagsMap const &flags,
-	                            bdrck::params::ArgumentsMap const &)
-	                {
+	                            bdrck::params::ArgumentsMap const &) {
 		                exitCode = std::stoi(options.at("exitcode"));
 		                echoStdin(flags.at("stdout"),
 		                          flags.at("stderr"));

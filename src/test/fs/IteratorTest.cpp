@@ -84,15 +84,25 @@ struct TestContext
 		                                "NON_EXISTENT_PATH"),
 		        symlinkCPath);
 
-		paths = {directoryA.getPath(), subdirPath,       fileAPath,
-		         fileBPath,            fileCSymlinkPath, symlinkAPath,
-		         symlinkBPath,         symlinkCPath,     lastFilePath};
+		paths = {directoryA.getPath(),
+		         subdirPath,
+		         fileAPath,
+		         fileBPath,
+		         fileCSymlinkPath,
+		         symlinkAPath,
+		         symlinkBPath,
+		         symlinkCPath,
+		         lastFilePath};
 		std::sort(paths.begin(), paths.end());
 
-		pathsWithoutSymlinks = {directoryA.getPath(), subdirPath,
-		                        fileAPath,            fileBPath,
-		                        symlinkAPath,         symlinkBPath,
-		                        symlinkCPath,         lastFilePath};
+		pathsWithoutSymlinks = {directoryA.getPath(),
+		                        subdirPath,
+		                        fileAPath,
+		                        fileBPath,
+		                        symlinkAPath,
+		                        symlinkBPath,
+		                        symlinkCPath,
+		                        lastFilePath};
 		std::sort(pathsWithoutSymlinks.begin(),
 		          pathsWithoutSymlinks.end());
 #endif

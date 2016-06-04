@@ -42,10 +42,7 @@ std::string getLastWindowsError()
 	                      reinterpret_cast<LPTSTR>(&buffer), 0, nullptr);
 	if(ret == 0)
 		return std::string("Unknown error.");
-	bdrck::util::ScopeExit cleanup([buffer]()
-	                               {
-		                               LocalFree(buffer);
-		                       });
+	bdrck::util::ScopeExit cleanup([buffer]() { LocalFree(buffer); });
 
 	return tstrToStdString(buffer);
 }

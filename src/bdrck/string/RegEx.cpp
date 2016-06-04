@@ -93,11 +93,11 @@ RegExResult RegEx::match(StringRef const &text) const
 	result.matches.reserve(matches.size());
 	std::transform(matches.begin(), matches.end(),
 	               std::back_inserter(result.matches),
-	               [](re2::StringPiece const &piece)
-	               {
-		return StringRef(piece.data(),
-		                 static_cast<std::size_t>(piece.size()));
-	});
+	               [](re2::StringPiece const &piece) {
+		               return StringRef(
+		                       piece.data(),
+		                       static_cast<std::size_t>(piece.size()));
+		       });
 	return result;
 }
 }

@@ -26,7 +26,8 @@ git_time_t toGitTimestamp(std::chrono::time_point<Clock, Duration> const &when)
 {
 	return static_cast<git_time_t>(
 	        std::chrono::duration_cast<std::chrono::seconds>(
-	                when.time_since_epoch()).count());
+	                when.time_since_epoch())
+	                .count());
 }
 
 /**

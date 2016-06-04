@@ -120,10 +120,8 @@ void generate(std::ostream &out, boost::optional<JsonValue> const &contents,
 	{
 		throw std::runtime_error("Initializing JSON generator failed.");
 	}
-	bdrck::util::ScopeExit cleanup([&generator]()
-	                               {
-		                               yajl_gen_free(generator);
-		                       });
+	bdrck::util::ScopeExit cleanup(
+	        [&generator]() { yajl_gen_free(generator); });
 
 	configureGenerator(generator, yajl_gen_beautify, beautify ? 1 : 0);
 	configureGenerator(generator, yajl_gen_indent_string, "\t");

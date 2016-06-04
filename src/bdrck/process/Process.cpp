@@ -19,9 +19,9 @@
 #include <Windows.h>
 #else
 #include <fcntl.h>
-#include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <unistd.h>
 #endif
 
 namespace
@@ -184,11 +184,9 @@ std::vector<TCHAR> getCommandLine(bdrck::process::ProcessArguments const &args)
 	std::string commandLine = oss.str();
 
 	std::vector<TCHAR> ret(commandLine.length() + 1);
-	std::transform(commandLine.begin(), commandLine.end(), ret.begin(),
-	               [](char const &c) -> TCHAR
-	               {
-		return static_cast<TCHAR>(c);
-	});
+	std::transform(
+	        commandLine.begin(), commandLine.end(), ret.begin(),
+	        [](char const &c) -> TCHAR { return static_cast<TCHAR>(c); });
 	return ret;
 }
 

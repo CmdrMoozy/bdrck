@@ -14,10 +14,8 @@ std::string toLower(const std::string &s)
 {
 	std::string ret(s);
 	std::locale locale;
-	std::transform(ret.begin(), ret.end(), ret.begin(), [&locale](char c)
-	               {
-		return std::tolower(c, locale);
-	});
+	std::transform(ret.begin(), ret.end(), ret.begin(),
+	               [&locale](char c) { return std::tolower(c, locale); });
 	return ret;
 }
 
@@ -25,10 +23,8 @@ std::string toUpper(const std::string &s)
 {
 	std::string ret(s);
 	std::locale locale;
-	std::transform(ret.begin(), ret.end(), ret.begin(), [&locale](char c)
-	               {
-		return std::toupper(c, locale);
-	});
+	std::transform(ret.begin(), ret.end(), ret.begin(),
+	               [&locale](char c) { return std::toupper(c, locale); });
 	return ret;
 }
 
@@ -57,21 +53,20 @@ std::string &removeRepeatedCharacters(std::string &str, char character)
 	bool repeatState = false;
 	std::vector<char> copied;
 	std::copy_if(str.begin(), str.end(), std::back_inserter(copied),
-	             [&repeatState, character](char const &c) -> bool
-	             {
-		if(c == character)
-		{
-			if(repeatState)
-				return false;
-			repeatState = true;
-		}
-		else
-		{
-			repeatState = false;
-		}
+	             [&repeatState, character](char const &c) -> bool {
+		             if(c == character)
+		             {
+			             if(repeatState)
+				             return false;
+			             repeatState = true;
+		             }
+		             else
+		             {
+			             repeatState = false;
+		             }
 
-		return true;
-	});
+		             return true;
+		     });
 	str.assign(copied.data(), copied.size());
 	return str;
 }

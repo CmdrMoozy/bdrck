@@ -21,10 +21,9 @@ void runPeriodically(std::weak_ptr<boost::asio::io_service> weakService,
 
 	auto timer = std::make_shared<Timer>(
 	        *service, Timer::clock_type::now() + interval);
-	auto handler =
-	        [timer, weakService, cancellationHandle, function, interval,
-	         repeat](boost::system::error_code const &error)
-	{
+	auto handler = [timer, weakService, cancellationHandle, function,
+	                interval,
+	                repeat](boost::system::error_code const &error) {
 		auto lock = cancellationHandle.lock();
 		if(!lock)
 			return;
@@ -73,20 +72,19 @@ struct TimerServiceImpl
 TimerServiceImpl::TimerServiceImpl()
         : service(std::make_shared<boost::asio::io_service>()),
           work(*service),
-          thread([this]()
-                 {
-	                 for(;;)
-	                 {
-		                 try
-		                 {
-			                 service->run();
-			                 break;
-		                 }
-		                 catch(std::exception const &)
-		                 {
-		                 }
-	                 }
-	         })
+          thread([this]() {
+	          for(;;)
+	          {
+		          try
+		          {
+			          service->run();
+			          break;
+		          }
+		          catch(std::exception const &)
+		          {
+		          }
+	          }
+	  })
 {
 }
 

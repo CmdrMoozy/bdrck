@@ -1,7 +1,7 @@
 #include "Config.hpp"
 
-#include "bdrck/git/checkReturn.hpp"
 #include "bdrck/git/Repository.hpp"
+#include "bdrck/git/checkReturn.hpp"
 
 namespace
 {

@@ -21,16 +21,15 @@ Command::Command(std::string const &n, std::string const &h,
 	// After the first argument with a default value, all other arguments
 	// must also have default values (just like in C++).
 	auto firstDefault = std::find_if(arguments.begin(), arguments.end(),
-	                                 [](Argument const &argument) -> bool
-	                                 {
-		return !!argument.defaultValue;
-	});
+	                                 [](Argument const &argument) -> bool {
+		                                 return !!argument.defaultValue;
+		                         });
 	auto lastNonDefault =
 	        std::find_if(arguments.rbegin(), arguments.rend(),
-	                     [](Argument const &argument) -> bool
-	                     {
+	                     [](Argument const &argument) -> bool {
 		                     return !argument.defaultValue;
-		             }).base();
+		             })
+	                .base();
 	if(lastNonDefault != arguments.end())
 		--lastNonDefault;
 

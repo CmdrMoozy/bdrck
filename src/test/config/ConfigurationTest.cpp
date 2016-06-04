@@ -147,11 +147,8 @@ TEST_CASE("Test configuration modification signal", "[Configuration]")
 	        bdrck::config::Configuration::instance(identifier);
 
 	std::set<std::string> changedCalls;
-	auto connection = instance.handleConfigurationChanged(
-	        [&changedCalls](std::string const &key)
-	        {
-		        changedCalls.insert(key);
-		});
+	auto connection = instance.handleConfigurationChanged([&changedCalls](
+	        std::string const &key) { changedCalls.insert(key); });
 
 	instance.set("foo", "foo");
 	instance.setFrom("bar", true);

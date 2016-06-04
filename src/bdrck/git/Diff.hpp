@@ -44,12 +44,15 @@ public:
 	typedef std::function<bool(git_diff_delta const &, float)>
 	        file_callback;
 	typedef std::function<bool(git_diff_delta const &,
-	                           git_diff_hunk const &)> hunk_callback;
+	                           git_diff_hunk const &)>
+	        hunk_callback;
 	typedef std::function<bool(git_diff_delta const &,
-	                           git_diff_binary const &)> binary_callback;
+	                           git_diff_binary const &)>
+	        binary_callback;
 	typedef std::function<bool(git_diff_delta const &,
 	                           git_diff_hunk const &,
-	                           git_diff_line const &)> line_callback;
+	                           git_diff_line const &)>
+	        line_callback;
 
 	/*!
 	 * Compute a diff between two arbitrary trees.

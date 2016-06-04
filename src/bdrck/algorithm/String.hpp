@@ -37,45 +37,38 @@ std::string join(Iterator begin, Iterator end, const std::string &delimiter)
 
 template <typename UnaryPredicate = std::function<bool(char const &)>>
 std::string &leftTrim(std::string &s,
-                      UnaryPredicate predicate = [](char const &c) -> bool
-                                                 {
-	std::locale locale;
-	return std::isspace(c, locale);
-})
+                      UnaryPredicate predicate = [](char const &c) -> bool {
+	                      std::locale locale;
+	                      return std::isspace(c, locale);
+	              })
 {
-	auto it = std::find_if(s.begin(), s.end(),
-	                       [&predicate](char const &c) -> bool
-	                       {
-		return !predicate(c);
-	});
+	auto it = std::find_if(
+	        s.begin(), s.end(),
+	        [&predicate](char const &c) -> bool { return !predicate(c); });
 	s.erase(s.begin(), it);
 	return s;
 }
 
 template <typename UnaryPredicate = std::function<bool(char const &)>>
 std::string &rightTrim(std::string &s,
-                       UnaryPredicate predicate = [](char const &c) -> bool
-                                                  {
-	std::locale locale;
-	return std::isspace(c, locale);
-})
+                       UnaryPredicate predicate = [](char const &c) -> bool {
+	                       std::locale locale;
+	                       return std::isspace(c, locale);
+	               })
 {
-	auto it = std::find_if(s.rbegin(), s.rend(),
-	                       [&predicate](char const &c) -> bool
-	                       {
-		return !predicate(c);
-	});
+	auto it = std::find_if(
+	        s.rbegin(), s.rend(),
+	        [&predicate](char const &c) -> bool { return !predicate(c); });
 	s.erase(it.base(), s.end());
 	return s;
 }
 
 template <typename UnaryPredicate = std::function<bool(char const &)>>
 std::string &trim(std::string &s,
-                  UnaryPredicate predicate = [](char const &c) -> bool
-                                             {
-	std::locale locale;
-	return std::isspace(c, locale);
-})
+                  UnaryPredicate predicate = [](char const &c) -> bool {
+	                  std::locale locale;
+	                  return std::isspace(c, locale);
+	          })
 {
 	return rightTrim(leftTrim(s, predicate), predicate);
 }

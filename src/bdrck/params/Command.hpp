@@ -1,8 +1,8 @@
 #ifndef bdrck_params_Command_HPP
 #define bdrck_params_Command_HPP
 
-#include <initializer_list>
 #include <functional>
+#include <initializer_list>
 #include <map>
 #include <set>
 #include <string>
@@ -20,7 +20,8 @@ typedef std::map<std::string, bool> FlagsMap;
 typedef std::map<std::string, std::vector<std::string>> ArgumentsMap;
 
 typedef std::function<void(OptionsMap const &, FlagsMap const &,
-                           ArgumentsMap const &)> CommandFunction;
+                           ArgumentsMap const &)>
+        CommandFunction;
 
 /*!
  * A command is a "subcommand" for the overall executable. Examples of

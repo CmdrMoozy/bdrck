@@ -4,11 +4,7 @@ namespace bdrck
 {
 namespace timer
 {
-TimerToken::TimerToken()
-        : token(this, [](void *)
-                {
-	  }),
-          handle(token)
+TimerToken::TimerToken() : token(this, [](void *) {}), handle(token)
 {
 }
 }

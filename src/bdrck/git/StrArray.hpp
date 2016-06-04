@@ -53,18 +53,12 @@ StrArray::StrArray(Iterator begin, Iterator end)
 		char *str = strdup(it->c_str());
 		if(str == nullptr)
 			bdrck::util::error::throwErrnoError();
-		strings.emplace_back(str, [](char *s)
-		                     {
-			std::free(s);
-		});
+		strings.emplace_back(str, [](char *s) { std::free(s); });
 	}
 
 	std::transform(strings.begin(), strings.end(),
 	               std::back_inserter(unwrappedStrings),
-	               [](CStringPtr & s) -> char *
-	               {
-		return s.get();
-	});
+	               [](CStringPtr &s) -> char * { return s.get(); });
 
 	strarray.strings = unwrappedStrings.data(),
 	strarray.count = unwrappedStrings.size();

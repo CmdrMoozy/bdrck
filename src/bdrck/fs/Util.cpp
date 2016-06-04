@@ -29,10 +29,10 @@
 #else
 #include <fcntl.h>
 #include <glob.h>
-#include <unistd.h>
 #include <linux/limits.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <unistd.h>
 #endif
 
 namespace
@@ -180,12 +180,11 @@ std::string normalizePath(const std::string &p)
 
 	// Convert Windows-style separators to POSIX separators.
 	std::transform(ret.begin(), ret.end(), ret.begin(),
-	               [](const char &c) -> char
-	               {
-		if(c == '\\')
-			return '/';
-		return c;
-	});
+	               [](const char &c) -> char {
+		               if(c == '\\')
+			               return '/';
+		               return c;
+		       });
 
 	// Remove any trailing separators.
 	while(!ret.empty() && (*ret.rbegin() == '/'))
@@ -281,10 +280,9 @@ std::string commonParentPath(std::vector<std::string> const &paths)
 
 	std::size_t minimumSize = std::numeric_limits<std::size_t>::max();
 	std::accumulate(paths.begin(), paths.end(), minimumSize,
-	                [](std::size_t minimum, std::string const &str)
-	                {
-		return std::min(minimum, str.length());
-	});
+	                [](std::size_t minimum, std::string const &str) {
+		                return std::min(minimum, str.length());
+		        });
 
 	char const *refStart = paths.back().c_str();
 	char const *refEnd = refStart + minimumSize;
@@ -316,10 +314,9 @@ std::vector<std::string> glob(std::string const &pattern)
 {
 	GlobState state(pattern);
 	std::vector<std::string> paths;
-	state.forEachPath([&paths](std::string const &path)
-	                  {
-		                  paths.emplace_back(path);
-		          });
+	state.forEachPath([&paths](std::string const &path) {
+		paths.emplace_back(path);
+	});
 	return paths;
 }
 
@@ -395,10 +392,7 @@ FilesystemTime lastWriteTime(std::string const &p)
 	                   OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
 	if(file == INVALID_HANDLE_VALUE)
 		throw std::runtime_error("Opening file handle failed.");
-	bdrck::util::ScopeExit cleanup([&file]()
-	                               {
-		                               CloseHandle(file);
-		                       });
+	bdrck::util::ScopeExit cleanup([&file]() { CloseHandle(file); });
 
 	FILETIME writeTime;
 	BOOL ret = GetFileTime(file, nullptr, nullptr, &writeTime);
@@ -435,10 +429,7 @@ void lastWriteTime(std::string const &p, FilesystemTime const &t)
 	                         FILE_ATTRIBUTE_NORMAL, nullptr);
 	if(file == INVALID_HANDLE_VALUE)
 		throw std::runtime_error("Opening file handle failed.");
-	bdrck::util::ScopeExit cleanup([&file]()
-	                               {
-		                               CloseHandle(file);
-		                       });
+	bdrck::util::ScopeExit cleanup([&file]() { CloseHandle(file); });
 
 	FILETIME writeTime;
 	auto windowsTimestamp =
@@ -468,13 +459,11 @@ void lastWriteTime(std::string const &p, FilesystemTime const &t)
 	int fd = open(p.c_str(), O_RDWR);
 	if(fd == -1)
 		bdrck::util::error::throwErrnoError();
-	bdrck::util::ScopeExit cleanup(
-	        [fd]()
-	        {
-		        int ret = close(fd);
-		        if(ret != 0)
-			        bdrck::util::error::throwErrnoError();
-		});
+	bdrck::util::ScopeExit cleanup([fd]() {
+		int ret = close(fd);
+		if(ret != 0)
+			bdrck::util::error::throwErrnoError();
+	});
 
 	int ret = futimens(fd, times);
 	if(ret != 0)
@@ -635,10 +624,8 @@ getConfigurationDirectoryPath(boost::optional<std::string> const &application)
 		throw std::runtime_error(
 		        "Looking up application data directory failed.");
 	}
-	bdrck::util::ScopeExit cleanup([&directory]()
-	                               {
-		                               CoTaskMemFree(directory);
-		                       });
+	bdrck::util::ScopeExit cleanup(
+	        [&directory]() { CoTaskMemFree(directory); });
 
 	std::string path = bdrck::util::wstrToStdString(directory);
 	if(!isDirectory(path))
