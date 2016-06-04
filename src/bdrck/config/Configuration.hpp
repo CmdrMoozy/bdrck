@@ -211,8 +211,8 @@ void Configuration::setAllFrom(std::string const &key,
 {
 	std::vector<std::string> serializedValues;
 	serializedValues.reserve(values.size());
-	for(auto const &value : values)
-		serializedValues.emplace_back(serialize(value));
+	for(auto it = values.begin(); it != values.end(); ++it)
+		serializedValues.emplace_back(serialize(*it));
 
 	setAll(key, serializedValues);
 }

@@ -23,7 +23,7 @@ template <typename F> struct FloatEpsilon
 
 	static constexpr type value =
 	        std::is_same<float, type>::value
-	                ? FLT_EPSILON
+	                ? type(FLT_EPSILON)
 	                : std::is_same<double, type>::value ? DBL_EPSILON : 0.0;
 };
 }
