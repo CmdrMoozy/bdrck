@@ -2,12 +2,8 @@ set(bdrck-config_SOURCES
 
 	Configuration.cpp
 	Configuration.hpp
-	ConfigurationDefaults.cpp
-	ConfigurationDefaults.hpp
-	deserialize.cpp
-	deserialize.hpp
-	serialize.cpp
-	serialize.hpp
+	GenericConfiguration.cpp
+	GenericConfiguration.hpp
 
 )
 
@@ -15,7 +11,6 @@ add_library(bdrck-config STATIC ${bdrck-config_SOURCES})
 target_link_libraries(bdrck-config
 
 	bdrck-fs
-	bdrck-json
 	${bdrck_LIBRARIES}
 
 )

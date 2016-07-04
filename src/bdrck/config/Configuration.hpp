@@ -1,22 +1,23 @@
 #ifndef bdrck_config_Configuration_HPP
 #define bdrck_config_Configuration_HPP
 
+#include <cassert>
+#include <fstream>
 #include <functional>
 #include <map>
 #include <memory>
 #include <mutex>
 #include <stdexcept>
 #include <string>
-#include <vector>
+#include <utility>
 
 #include <boost/optional/optional.hpp>
 #include <boost/signals2/connection.hpp>
 #include <boost/signals2/signal.hpp>
 
-#include "bdrck/config/ConfigurationDefaults.hpp"
-#include "bdrck/config/deserialize.hpp"
-#include "bdrck/config/serialize.hpp"
-#include "bdrck/json/Types.hpp"
+#include <google/protobuf/message.h>
+
+#include "bdrck/config/GenericConfiguration.hpp"
 
 namespace bdrck
 {
@@ -36,7 +37,7 @@ struct ConfigurationIdentifier
 	bool operator>=(ConfigurationIdentifier const &o) const;
 };
 
-class ConfigurationInstance
+template <typename MessageType> class ConfigurationInstance
 {
 public:
 	/*!
@@ -48,12 +49,12 @@ public:
 	 * (no custom path) is what is desired.
 	 *
 	 * \param id The identifier for this unique configuration instance.
-	 * \param defaultValues The set of default configuration values.
+	 * \param defaults The default configuration values.
 	 * \param customPath A custom configuration file path, if desired.
 	 */
 	ConfigurationInstance(
 	        ConfigurationIdentifier const &id,
-	        ConfigurationDefaults const &defaultValues = {},
+	        MessageType const &defaults = MessageType(),
 	        boost::optional<std::string> const &customPath = boost::none);
 
 	ConfigurationInstance(ConfigurationInstance const &) = delete;
@@ -68,153 +69,133 @@ private:
 	const ConfigurationIdentifier identifier;
 };
 
-class Configuration
+template <typename MessageType> class Configuration
 {
 public:
 	static Configuration &
 	instance(ConfigurationIdentifier const &identifier);
 
-	~Configuration();
+	~Configuration() = default;
 
-	boost::signals2::scoped_connection handleConfigurationChanged(
+	MessageType const &get() const;
+	void set(MessageType const &message);
+
+	boost::signals2::scoped_connection handleConfigurationFieldChanged(
 	        std::function<void(std::string const &)> const &slot);
 
-	std::vector<std::string> getKeys() const;
-
-	boost::optional<std::string> tryGet(std::string const &key) const;
-	std::string get(std::string const &key,
-	                boost::optional<std::string> const &defaultValue =
-	                        boost::none) const;
-
-	boost::optional<std::vector<std::string>>
-	tryGetAll(std::string const &key) const;
-	std::vector<std::string>
-	getAll(std::string const &key,
-	       boost::optional<std::vector<std::string>> const &defaultValues =
-	               boost::none) const;
-
-	template <typename T>
-	boost::optional<T> tryGetAs(std::string const &key) const;
-	template <typename T>
-	T getAs(std::string const &key,
-	        boost::optional<T> const &defaultValue = boost::none) const;
-	template <typename T>
-	boost::optional<std::vector<T>>
-	tryGetAllAs(std::string const &key) const;
-	template <typename T>
-	std::vector<T>
-	getAllAs(std::string const &key,
-	         boost::optional<std::vector<T>> const &defaultValues =
-	                 boost::none) const;
-
-	bool empty() const;
-	bool contains(std::string const &key) const;
-
-	void set(std::string const &key, std::string const &value);
-	void setAll(std::string const &key,
-	            std::vector<std::string> const &values);
-
-	template <typename T>
-	void setFrom(std::string const &key, T const &value);
-	template <typename T>
-	void setAllFrom(std::string const &key, std::vector<T> const &values);
-
-	void remove(std::string const &key);
-	void clear();
-
-	void reset(std::string const &key);
 	void resetAll();
 
 private:
-	friend class ConfigurationInstance;
+	friend class ConfigurationInstance<MessageType>;
 
 	static std::mutex mutex;
 	static std::map<ConfigurationIdentifier, std::unique_ptr<Configuration>>
 	        instances;
 
-	boost::signals2::signal<void(std::string const &)>
-	        configurationChangedSignal;
+	GenericConfiguration configuration;
 
-	ConfigurationDefaults defaults;
-	std::string path;
-	bdrck::json::MapType data;
-
-	Configuration(ConfigurationIdentifier const &identifier,
-	              ConfigurationDefaults const &defaultValues,
-	              boost::optional<std::string> const &customPath);
+	Configuration(std::string const &p,
+	              MessageType const &d = MessageType());
 };
 
-template <typename T>
-boost::optional<T> Configuration::tryGetAs(std::string const &key) const
+namespace detail
 {
-	boost::optional<std::string> serialized = tryGet(key);
-	if(!serialized)
-		return boost::none;
-	return deserialize<T>(*serialized);
+std::string
+getConfigurationPath(bdrck::config::ConfigurationIdentifier const &identifier);
+
+template <typename MessageType>
+std::unique_ptr<google::protobuf::Message>
+parseConfiguration(std::string const &path)
+{
+	std::unique_ptr<google::protobuf::Message> message =
+	        std::make_unique<MessageType>();
+	std::ifstream in(path, std::ios_base::in | std::ios_base::binary);
+	if(in.is_open())
+		message->ParseFromIstream(&in);
+	return message;
+}
 }
 
-template <typename T>
-T Configuration::getAs(std::string const &key,
-                       boost::optional<T> const &defaultValue) const
+template <typename MessageType>
+ConfigurationInstance<MessageType>::ConfigurationInstance(
+        ConfigurationIdentifier const &id, MessageType const &defaults,
+        boost::optional<std::string> const &customPath)
+        : identifier(id)
 {
-	boost::optional<T> value = tryGetAs<T>(key);
-	if(!value)
-		value = defaultValue;
-	if(!value)
+	std::lock_guard<std::mutex> lock(Configuration<MessageType>::mutex);
+	if(Configuration<MessageType>::instances.find(identifier) !=
+	   Configuration<MessageType>::instances.end())
 	{
-		throw std::runtime_error(
-		        "Configuration key not found or deserializing failed.");
+		throw std::runtime_error("Can't initialize two Configuration "
+		                         "instances with the same name.");
 	}
-	return *value;
+
+	std::string path = !!customPath
+	                           ? *customPath
+	                           : detail::getConfigurationPath(identifier);
+	Configuration<MessageType>::instances[identifier].reset(
+	        new Configuration<MessageType>(path, defaults));
 }
 
-template <typename T>
-boost::optional<std::vector<T>>
-Configuration::tryGetAllAs(std::string const &key) const
+template <typename MessageType>
+ConfigurationInstance<MessageType>::~ConfigurationInstance()
 {
-	boost::optional<std::vector<std::string>> serialized = tryGetAll(key);
-	if(!serialized)
-		return boost::none;
-
-	std::vector<T> values;
-	values.reserve((*serialized).size());
-	for(auto const &value : *serialized)
-		values.emplace_back(deserialize<T>(value));
-	return values;
+	std::lock_guard<std::mutex> lock(Configuration<MessageType>::mutex);
+	auto it = Configuration<MessageType>::instances.find(identifier);
+	assert(it != Configuration<MessageType>::instances.end());
+	Configuration<MessageType>::instances.erase(it);
 }
 
-template <typename T>
-std::vector<T> Configuration::getAllAs(
-        std::string const &key,
-        boost::optional<std::vector<T>> const &defaultValues) const
+template <typename MessageType> std::mutex Configuration<MessageType>::mutex;
+
+template <typename MessageType>
+std::map<ConfigurationIdentifier, std::unique_ptr<Configuration<MessageType>>>
+        Configuration<MessageType>::instances;
+
+template <typename MessageType>
+Configuration<MessageType> &
+Configuration<MessageType>::instance(ConfigurationIdentifier const &identifier)
 {
-	boost::optional<std::vector<T>> values = tryGetAllAs<T>(key);
-	if(!values)
-		values = defaultValues;
-	if(!values)
+	std::lock_guard<std::mutex> lock(Configuration::mutex);
+	auto it = instances.find(identifier);
+	if(it == instances.end())
 	{
-		throw std::runtime_error(
-		        "Configuration key not found or deserializing failed.");
+		throw std::runtime_error("Can't access Configuration instances "
+		                         "before construction.");
 	}
-	return *values;
+	return *(it->second);
 }
 
-template <typename T>
-void Configuration::setFrom(std::string const &key, T const &value)
+template <typename MessageType>
+MessageType const &Configuration<MessageType>::get() const
 {
-	set(key, serialize(value));
+	return dynamic_cast<MessageType const &>(configuration.getMessage());
 }
 
-template <typename T>
-void Configuration::setAllFrom(std::string const &key,
-                               std::vector<T> const &values)
+template <typename MessageType>
+void Configuration<MessageType>::set(MessageType const &message)
 {
-	std::vector<std::string> serializedValues;
-	serializedValues.reserve(values.size());
-	for(auto it = values.begin(); it != values.end(); ++it)
-		serializedValues.emplace_back(serialize(*it));
+	configuration.setMessage(message);
+}
 
-	setAll(key, serializedValues);
+template <typename MessageType>
+boost::signals2::scoped_connection
+Configuration<MessageType>::handleConfigurationFieldChanged(
+        std::function<void(std::string const &)> const &slot)
+{
+	return configuration.handleConfigurationFieldChanged(slot);
+}
+
+template <typename MessageType> void Configuration<MessageType>::resetAll()
+{
+	configuration.resetAll();
+}
+
+template <typename MessageType>
+Configuration<MessageType>::Configuration(std::string const &p,
+                                          MessageType const &d)
+        : configuration(p, d, detail::parseConfiguration<MessageType>(p))
+{
 }
 }
 }

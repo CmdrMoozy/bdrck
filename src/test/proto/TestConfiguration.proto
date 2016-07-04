@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package bdrck.test.messages;
+
+message SubConfig {
+	string foobar = 1;
+	string barbaz = 2;
+}
+
+message TestConfiguration {
+	string foo = 1;
+	string bar = 2;
+	string baz = 3;
+	string quux = 4;
+	SubConfig sub = 5;
+}

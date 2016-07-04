@@ -31,6 +31,7 @@ find_package(Boost REQUIRED
 		filesystem
 		system
 	)
+find_package(Protobuf REQUIRED)
 find_package(RE2 REQUIRED)
 find_package(Yajl REQUIRED)
 find_package(Libgit2 REQUIRED)
@@ -70,6 +71,7 @@ include_directories(SYSTEM
 
 	3rdparty/include
 	${Boost_INCLUDE_DIRS}
+	${PROTOBUF_INCLUDE_DIRS}
 	${RE2_INCLUDE_DIRS}
 	${YAJL_INCLUDE_DIRS}
 	${LIBGIT2_INCLUDE_DIRS}
@@ -81,6 +83,7 @@ include_directories(SYSTEM
 set(bdrck_LIBRARIES
 
 	${Boost_LIBRARIES}
+	${PROTOBUF_LIBRARIES}
 	${RE2_LIBRARIES}
 	${YAJL_LIBRARIES}
 	${LIBGIT2_LIBRARIES}
