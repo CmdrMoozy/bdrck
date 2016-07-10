@@ -57,3 +57,15 @@ TEST_CASE("Test copyFile", "[Util]")
 	bdrck::fs::copyFile(aPath, bPath);
 	CHECK(bdrck::fs::readEntireFile(bPath) == std::string(TEST_CONTENTS));
 }
+
+TEST_CASE("Test createPath", "[Util]")
+{
+	bdrck::fs::TemporaryStorage directory(
+	        bdrck::fs::TemporaryStorageType::DIRECTORY);
+	std::string path =
+	        bdrck::fs::combinePaths({directory.getPath(), "a", "b", "c"});
+
+	REQUIRE(!bdrck::fs::isDirectory(path));
+	bdrck::fs::createPath(path);
+	CHECK(bdrck::fs::isDirectory(path));
+}

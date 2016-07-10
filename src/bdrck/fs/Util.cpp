@@ -540,7 +540,7 @@ void createPath(const std::string &p)
 {
 	std::vector<std::string> components =
 	        bdrck::algorithm::string::split(normalizePath(p), '/');
-	std::string currentPath = "";
+	std::string currentPath = "/";
 
 	for(const auto &component : components)
 	{
