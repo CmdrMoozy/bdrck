@@ -3,7 +3,9 @@
 #include <mutex>
 
 #include "bdrck/config/Configuration.hpp"
+#include "bdrck/config/Util.hpp"
 #include "bdrck/fs/TemporaryStorage.hpp"
+#include "bdrck/fs/Util.hpp"
 
 #include "TestConfiguration.pb.h"
 
@@ -104,4 +106,52 @@ TEST_CASE("Test configuration modification signal", "[Configuration]")
 	context.instance.resetAll();
 	CHECK(changedCalls == std::vector<std::string>({"foo", "bar", "sub"}));
 	changedCalls.clear();
+}
+
+TEST_CASE("Test configuration persistence", "[Configuration]")
+{
+	typedef bdrck::config::ConfigurationInstance<
+	        bdrck::test::messages::TestConfiguration>
+	        ConfigurationInstance;
+	typedef bdrck::config::Configuration<
+	        bdrck::test::messages::TestConfiguration>
+	        Configuration;
+
+	bdrck::fs::TemporaryStorage directory(
+	        bdrck::fs::TemporaryStorageType::DIRECTORY);
+	const bdrck::test::messages::TestConfiguration defaults;
+
+	const bdrck::config::ConfigurationIdentifier aIdentifier{"bdrck", "a"};
+	const std::string aPath =
+	        bdrck::fs::combinePaths(directory.getPath(), "a.pb");
+
+	const bdrck::config::ConfigurationIdentifier bIdentifier{"bdrck", "b"};
+	const std::string bPath =
+	        bdrck::fs::combinePaths({directory.getPath(), "foo", "b.pb"});
+
+	bdrck::test::messages::TestConfiguration testMessage;
+	testMessage.set_foo("quux");
+	testMessage.set_baz("xuuq");
+
+	// Initialize configuration instances containing this message.
+
+	{
+		// Create an instance which writes to a file in the directory.
+		ConfigurationInstance aHandle(aIdentifier, defaults, aPath);
+		Configuration::instance(aIdentifier).set(testMessage);
+
+		// Create an instance which writes to a nonexistent directory.
+		ConfigurationInstance bHandle(bIdentifier, defaults, bPath);
+		Configuration::instance(bIdentifier).set(testMessage);
+	}
+
+	// Recreate the instances, and verify the data was persisted.
+
+	ConfigurationInstance aHandle(aIdentifier, defaults, aPath);
+	CHECK(bdrck::config::messagesAreEqual(
+	        Configuration::instance(aIdentifier).get(), testMessage));
+
+	ConfigurationInstance bHandle(bIdentifier, defaults, bPath);
+	CHECK(bdrck::config::messagesAreEqual(
+	        Configuration::instance(bIdentifier).get(), testMessage));
 }

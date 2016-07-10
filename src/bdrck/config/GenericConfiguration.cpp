@@ -1,10 +1,13 @@
 #include "GenericConfiguration.hpp"
 
 #include <fstream>
+#include <stdexcept>
 #include <utility>
 #include <vector>
 
 #include <google/protobuf/util/message_differencer.h>
+
+#include "bdrck/fs/Util.hpp"
 
 namespace
 {
@@ -94,6 +97,14 @@ GenericConfiguration::GenericConfiguration(
 
 GenericConfiguration::~GenericConfiguration()
 {
+	try
+	{
+		bdrck::fs::createPath(bdrck::fs::dirname(path));
+	}
+	catch(std::exception const &)
+	{
+	}
+
 	std::ofstream out(path, std::ios_base::out | std::ios_base::binary |
 	                                std::ios_base::trunc);
 	if(out.is_open())
