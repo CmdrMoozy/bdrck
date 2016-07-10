@@ -15,7 +15,7 @@ getConfigurationPath(bdrck::config::ConfigurationIdentifier const &identifier)
 {
 	return bdrck::fs::combinePaths(bdrck::fs::getConfigurationDirectoryPath(
 	                                       identifier.application),
-	                               identifier.name + ".json");
+	                               identifier.name + ".pb");
 }
 }
 
