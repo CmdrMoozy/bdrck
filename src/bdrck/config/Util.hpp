@@ -11,6 +11,9 @@ namespace bdrck
 {
 namespace config
 {
+bool messagesAreEqual(google::protobuf::Message const &a,
+                      google::protobuf::Message const &b);
+
 typedef std::pair<google::protobuf::Message const *,
                   google::protobuf::FieldDescriptor const *>
         SpecificFieldDescriptor;

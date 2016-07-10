@@ -5,12 +5,20 @@
 #include <stdexcept>
 #include <vector>
 
+#include <google/protobuf/util/message_differencer.h>
+
 #include "bdrck/algorithm/String.hpp"
 
 namespace bdrck
 {
 namespace config
 {
+bool messagesAreEqual(google::protobuf::Message const &a,
+                      google::protobuf::Message const &b)
+{
+	return google::protobuf::util::MessageDifferencer::Equals(a, b);
+}
+
 SpecificFieldDescriptor
 pathToDescriptor(std::string const &path,
                  google::protobuf::Message const &message)
