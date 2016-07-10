@@ -4,12 +4,15 @@ set(bdrck-config_SOURCES
 	Configuration.hpp
 	GenericConfiguration.cpp
 	GenericConfiguration.hpp
+	Util.cpp
+	Util.hpp
 
 )
 
 add_library(bdrck-config STATIC ${bdrck-config_SOURCES})
 target_link_libraries(bdrck-config
 
+	bdrck-algorithm
 	bdrck-fs
 	${bdrck_LIBRARIES}
 

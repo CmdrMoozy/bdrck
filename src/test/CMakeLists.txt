@@ -5,6 +5,7 @@ set(bdrck-test_SOURCES
 	algorithm/StringTest.cpp
 
 	config/ConfigurationTest.cpp
+	config/UtilTest.cpp
 
 	fs/IteratorTest.cpp
 	fs/TemporaryStorageTest.cpp
