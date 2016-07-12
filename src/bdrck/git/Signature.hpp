@@ -88,13 +88,13 @@ Signature::Signature(std::string const &n, std::string const &e,
 template <typename Clock, typename Duration>
 Signature::Signature(std::chrono::time_point<Clock, Duration> const &when,
                      Repository &repository)
-        : Signature(when, Config(repository))
+        : Signature(when, Config(repository).snapshot())
 {
 }
 
 template <typename Clock, typename Duration>
 Signature::Signature(std::chrono::time_point<Clock, Duration> const &when)
-        : Signature(when, Config())
+        : Signature(when, Config().snapshot())
 {
 }
 
