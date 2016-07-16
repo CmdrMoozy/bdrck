@@ -16,6 +16,8 @@ set(bdrck-git_SOURCES
 	Library.hpp
 	Object.cpp
 	Object.hpp
+	Oid.cpp
+	Oid.hpp
 	Reference.cpp
 	Reference.hpp
 	Repository.cpp
