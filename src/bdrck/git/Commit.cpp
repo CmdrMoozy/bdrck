@@ -7,15 +7,17 @@
 #include "bdrck/git/Signature.hpp"
 #include "bdrck/git/StrArray.hpp"
 #include "bdrck/git/Tree.hpp"
+#include "bdrck/git/Util.hpp"
 #include "bdrck/git/checkReturn.hpp"
 
 namespace
 {
-git_commit *lookupCommit(bdrck::git::Repository &repository, git_oid const &id)
+git_commit *lookupCommit(bdrck::git::Repository &repository,
+                         bdrck::git::Oid const &id)
 {
 	git_commit *commit = nullptr;
 	bdrck::git::checkReturn(
-	        git_commit_lookup(&commit, repository.get(), &id));
+	        git_commit_lookup(&commit, repository.get(), &id.get()));
 	return commit;
 }
 }
@@ -24,18 +26,28 @@ namespace bdrck
 {
 namespace git
 {
-git_oid commitTree(Repository &repository, std::string const &message,
-                   Tree const &tree, Signature const &author,
-                   Signature const &committer,
-                   std::string const &messageEncoding)
+boost::optional<Oid> commitTree(Repository &repository,
+                                std::string const &message, Tree const &tree,
+                                Signature const &author,
+                                Signature const &committer,
+                                std::string const &messageEncoding)
 {
+	// If the given tree is the empty tree, stop without committing.
+	if(tree.getId() == getEmptyTreeOid())
+		return boost::none;
+
 	git_commit const *parents[] = {nullptr};
-	Reference headRef(repository);
-	auto headId = headRef.getTarget();
+	boost::optional<Oid> headOid = revspecToOid("HEAD", repository);
 	boost::optional<Commit> head;
-	if(!!headId)
+	if(!!headOid)
 	{
-		head.emplace(repository, *headId);
+		head.emplace(repository, *headOid);
+		Tree parentTree(*head);
+		if(parentTree.getId() == tree.getId())
+		{
+			// This would be an empty commit; stop here.
+			return boost::none;
+		}
 		parents[0] = head->get();
 	}
 
@@ -49,12 +61,14 @@ git_oid commitTree(Repository &repository, std::string const &message,
 	checkReturn(git_reset(repository.get(), headObj.get(), GIT_RESET_MIXED,
 	                      nullptr));
 
-	return id;
+	return Oid(id);
 }
 
-git_oid commitIndex(Repository &repository, std::string const &message,
-                    Signature const &author, Signature const &committer,
-                    std::string const &messageEncoding)
+boost::optional<Oid> commitIndex(Repository &repository,
+                                 std::string const &message,
+                                 Signature const &author,
+                                 Signature const &committer,
+                                 std::string const &messageEncoding)
 {
 	Index index(repository);
 	Tree tree(repository, index.writeTree());
@@ -62,9 +76,11 @@ git_oid commitIndex(Repository &repository, std::string const &message,
 	                  messageEncoding);
 }
 
-git_oid commitAll(Repository &repository, std::string const &message,
-                  Signature const &author, Signature const &committer,
-                  std::string const &messageEncoding)
+boost::optional<Oid> commitAll(Repository &repository,
+                               std::string const &message,
+                               Signature const &author,
+                               Signature const &committer,
+                               std::string const &messageEncoding)
 {
 	Index index(repository);
 	index.addAll({"."});
@@ -72,7 +88,7 @@ git_oid commitAll(Repository &repository, std::string const &message,
 	                   messageEncoding);
 }
 
-Commit::Commit(Repository &repository, git_oid const &id)
+Commit::Commit(Repository &repository, Oid const &id)
         : base_type(lookupCommit(repository, id))
 {
 }
