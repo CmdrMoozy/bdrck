@@ -22,8 +22,11 @@ void mergeDefaults(google::protobuf::Message &current,
 	                                          &defaultFields);
 	for(auto field : defaultFields)
 	{
-		current.GetReflection()->SwapFields(
-		        &current, defaultsCopy.get(), {field});
+		if(!current.GetReflection()->HasField(current, field))
+		{
+			current.GetReflection()->SwapFields(
+			        &current, defaultsCopy.get(), {field});
+		}
 	}
 }
 

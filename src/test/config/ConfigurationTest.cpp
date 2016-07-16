@@ -2,6 +2,8 @@
 
 #include <mutex>
 
+#include <boost/optional/optional.hpp>
+
 #include "bdrck/config/Configuration.hpp"
 #include "bdrck/config/Util.hpp"
 #include "bdrck/fs/TemporaryStorage.hpp"
@@ -82,6 +84,44 @@ TEST_CASE("Test default values", "[Configuration]")
 	context.instance.resetAll();
 	CHECK(context.instance.get().foo() == "ABC");
 	CHECK(context.instance.get().bar() == "DEF");
+}
+
+TEST_CASE("Verify default values don't override saved values",
+          "[Configuration]")
+{
+	bdrck::fs::TemporaryStorage file(bdrck::fs::TemporaryStorageType::FILE);
+	const bdrck::config::ConfigurationIdentifier identifier{
+	        "bdrck", "ConfigurationTest"};
+
+	boost::optional<bdrck::test::messages::TestConfiguration> message;
+
+	{
+		bdrck::config::ConfigurationInstance<
+		        bdrck::test::messages::TestConfiguration>
+		        instanceHandle(identifier, getDefaults(),
+		                       file.getPath());
+		bdrck::config::Configuration<
+		        bdrck::test::messages::TestConfiguration> &instance =
+		        bdrck::config::Configuration<
+		                bdrck::test::messages::TestConfiguration>::
+		                instance(identifier);
+
+		message = instance.get();
+		message->set_foo("xyz");
+		message->set_bar("zyx");
+		instance.set(*message);
+	}
+
+	bdrck::config::ConfigurationInstance<
+	        bdrck::test::messages::TestConfiguration>
+	        instanceHandle(identifier, getDefaults(), file.getPath());
+	bdrck::config::Configuration<bdrck::test::messages::TestConfiguration>
+	        &instance = bdrck::config::Configuration<
+	                bdrck::test::messages::TestConfiguration>::
+	                instance(identifier);
+	bdrck::test::messages::TestConfiguration loadedMessage = instance.get();
+	CHECK(message->foo() == loadedMessage.foo());
+	CHECK(message->bar() == loadedMessage.bar());
 }
 
 TEST_CASE("Test configuration modification signal", "[Configuration]")
