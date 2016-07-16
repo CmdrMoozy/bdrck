@@ -6,12 +6,14 @@
 
 #include <git2.h>
 
+#include "bdrck/git/Oid.hpp"
 #include "bdrck/git/Wrapper.hpp"
 
 namespace bdrck
 {
 namespace git
 {
+class Commit;
 class Object;
 class Repository;
 
@@ -21,10 +23,13 @@ private:
 	typedef Wrapper<git_tree, git_tree_free> base_type;
 
 public:
-	Tree(Object const &object);
+	explicit Tree(Object const &object);
+	explicit Tree(Commit const &commit);
 	Tree(Repository &repository, git_oid const &id);
 
 	~Tree() = default;
+
+	Oid getId() const;
 
 	void
 	walk(std::function<bool(std::string const &)> const &callback) const;

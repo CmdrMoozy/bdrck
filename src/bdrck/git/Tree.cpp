@@ -5,6 +5,7 @@
 #include <boost/optional/optional.hpp>
 
 #include "bdrck/fs/Util.hpp"
+#include "bdrck/git/Commit.hpp"
 #include "bdrck/git/Object.hpp"
 #include "bdrck/git/Repository.hpp"
 #include "bdrck/git/checkReturn.hpp"
@@ -17,6 +18,13 @@ git_tree *peelToTree(bdrck::git::Object const &object)
 	bdrck::git::checkReturn(
 	        git_object_peel(&peeled, object.get(), GIT_OBJ_TREE));
 	return reinterpret_cast<git_tree *>(peeled);
+}
+
+git_tree *commitToTree(bdrck::git::Commit const &commit)
+{
+	git_tree *tree;
+	bdrck::git::checkReturn(git_commit_tree(&tree, commit.get()));
+	return tree;
 }
 
 git_tree *lookupTree(bdrck::git::Repository &repository, git_oid const &id)
@@ -65,9 +73,18 @@ Tree::Tree(Object const &object) : base_type(peelToTree(object))
 {
 }
 
+Tree::Tree(Commit const &commit) : base_type(commitToTree(commit))
+{
+}
+
 Tree::Tree(Repository &repository, git_oid const &id)
         : base_type(lookupTree(repository, id))
 {
+}
+
+Oid Tree::getId() const
+{
+	return Oid(*git_tree_id(get()));
 }
 
 void Tree::walk(std::function<bool(std::string const &)> const &callback) const
