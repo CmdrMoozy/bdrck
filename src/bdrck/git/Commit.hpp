@@ -69,6 +69,11 @@ private:
 public:
 	Commit(Repository &repository, Oid const &id);
 
+	Commit(Commit const &) = delete;
+	Commit(Commit &&) = default;
+	Commit &operator=(Commit const &) = delete;
+	Commit &operator=(Commit &&) = default;
+
 	/**
 	 * Construct a new Commit referring to the given repository's current
 	 * HEAD commit.

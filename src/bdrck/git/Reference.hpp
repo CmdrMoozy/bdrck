@@ -24,6 +24,13 @@ private:
 public:
 	Reference(Repository &repository, std::string const &name = "HEAD");
 
+	Reference(Reference const &) = delete;
+	Reference(Reference &&) = default;
+	Reference &operator=(Reference const &) = delete;
+	Reference &operator=(Reference &&) = default;
+
+	~Reference() = default;
+
 	boost::optional<Oid> getTarget() const;
 	Reference resolve() const;
 

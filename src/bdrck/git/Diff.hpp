@@ -80,6 +80,11 @@ public:
 	Diff(Repository &repository, std::string const &oldRevspec,
 	     bool withIndex = true, DiffOptions const &options = DiffOptions());
 
+	Diff(Diff const &) = delete;
+	Diff(Diff &&) = default;
+	Diff &operator=(Diff const &) = delete;
+	Diff &operator=(Diff &&) = default;
+
 	~Diff() = default;
 
 	void foreach(file_callback const &fileCallback,
@@ -95,6 +100,11 @@ private:
 
 public:
 	DiffStats(Diff &diff);
+
+	DiffStats(DiffStats const &) = delete;
+	DiffStats(DiffStats &&) = default;
+	DiffStats &operator=(DiffStats const &) = delete;
+	DiffStats &operator=(DiffStats &&) = default;
 
 	~DiffStats() = default;
 };

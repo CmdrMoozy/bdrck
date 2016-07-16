@@ -39,6 +39,11 @@ public:
 	           RepositoryCreateMode c = RepositoryCreateMode::CreateNormal,
 	           bool ab = false);
 
+	Repository(Repository const &) = delete;
+	Repository(Repository &&) = default;
+	Repository &operator=(Repository const &) = delete;
+	Repository &operator=(Repository &&) = default;
+
 	~Repository() = default;
 
 	std::string getWorkDirectoryPath() const;

@@ -27,6 +27,11 @@ public:
 	explicit Tree(Commit const &commit);
 	Tree(Repository &repository, Oid const &id);
 
+	Tree(Tree const &) = delete;
+	Tree(Tree &&) = default;
+	Tree &operator=(Tree const &) = delete;
+	Tree &operator=(Tree &&) = default;
+
 	~Tree() = default;
 
 	Oid getId() const;

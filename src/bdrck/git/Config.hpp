@@ -22,6 +22,11 @@ public:
 	Config();
 	Config(Repository &repository);
 
+	Config(Config const &) = delete;
+	Config(Config &&) = default;
+	Config &operator=(Config const &) = delete;
+	Config &operator=(Config &&) = default;
+
 	/**
 	 * Creates a snapshot of the current state of this configuration
 	 * object, which allows for looking up complex values.

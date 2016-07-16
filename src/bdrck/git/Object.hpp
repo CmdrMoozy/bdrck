@@ -21,6 +21,11 @@ private:
 public:
 	Object(std::string const &revspec, Repository &repository);
 
+	Object(Object const &) = delete;
+	Object(Object &&) = default;
+	Object &operator=(Object const &) = delete;
+	Object &operator=(Object &&) = default;
+
 	~Object() = default;
 
 	git_oid getId() const;

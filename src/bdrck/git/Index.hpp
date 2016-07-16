@@ -22,6 +22,11 @@ private:
 public:
 	Index(Repository &repository);
 
+	Index(Index const &) = delete;
+	Index(Index &&) = default;
+	Index &operator=(Index const &) = delete;
+	Index &operator=(Index &&) = default;
+
 	std::size_t getEntryCount() const;
 
 	void addAll(StrArray const &pathspec);
