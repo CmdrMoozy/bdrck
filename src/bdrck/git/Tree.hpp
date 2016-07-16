@@ -36,8 +36,22 @@ public:
 
 	Oid getId() const;
 
-	void
-	walk(std::function<bool(std::string const &)> const &callback) const;
+	/**
+	 * Iterate over all entries in this tree, calling the given callback on
+	 * each one.
+	 *
+	 * The callback should return false if the traversal should stop.
+	 * Otherwise, it should return true and the traversal will continue.
+	 * The path passed to the callback will be the path of the current tree
+	 * entry, relative to the repository's working directory.
+	 *
+	 * The filemode filter is a series of git_filemode_t entries OR'ed
+	 * together. The callback will only be called on tree entries whose
+	 * filemode matches one of the flags set in this filter. By default,
+	 * all tree entries are included.
+	 */
+	void walk(std::function<bool(std::string const &)> const &callback,
+	          int filemodeFilter = ~git_filemode_t(0)) const;
 };
 }
 }

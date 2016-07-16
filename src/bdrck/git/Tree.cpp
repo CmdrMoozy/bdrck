@@ -37,10 +37,12 @@ git_tree *lookupTree(bdrck::git::Repository &repository, git_oid const &id)
 struct TreeWalkContext
 {
 	std::function<bool(std::string const &)> callback;
+	int filemodeFilter;
 	boost::optional<std::exception_ptr> error;
 
-	TreeWalkContext(std::function<bool(std::string const &)> const &c)
-	        : callback(c), error(boost::none)
+	TreeWalkContext(std::function<bool(std::string const &)> const &c,
+	                int f)
+	        : callback(c), filemodeFilter(f), error(boost::none)
 	{
 	}
 };
@@ -49,6 +51,10 @@ int treeWalkCallback(char const *root, git_tree_entry const *entry,
                      void *payload)
 {
 	auto context = static_cast<TreeWalkContext *>(payload);
+
+	git_filemode_t mode = git_tree_entry_filemode(entry);
+	if((mode & context->filemodeFilter) == 0)
+		return 0;
 
 	try
 	{
@@ -87,9 +93,10 @@ Oid Tree::getId() const
 	return Oid(*git_tree_id(get()));
 }
 
-void Tree::walk(std::function<bool(std::string const &)> const &callback) const
+void Tree::walk(std::function<bool(std::string const &)> const &callback,
+                int filemodeFilter) const
 {
-	TreeWalkContext context(callback);
+	TreeWalkContext context(callback, filemodeFilter);
 	git_tree_walk(get(), GIT_TREEWALK_PRE, treeWalkCallback, &context);
 	if(!!context.error)
 		std::rethrow_exception(context.error.value());
