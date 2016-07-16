@@ -7,6 +7,7 @@
 
 #include <git2.h>
 
+#include "bdrck/git/Oid.hpp"
 #include "bdrck/git/Wrapper.hpp"
 
 namespace bdrck
@@ -23,7 +24,7 @@ private:
 public:
 	Reference(Repository &repository, std::string const &name = "HEAD");
 
-	boost::optional<git_oid> getTarget() const;
+	boost::optional<Oid> getTarget() const;
 	Reference resolve() const;
 
 private:
