@@ -13,9 +13,6 @@ namespace bdrck
 {
 namespace git
 {
-constexpr char const *GIT_EMPTY_TREE_OID =
-        "4b825dc642cb6eb9a060e54bf8d69288fbee4904";
-
 boost::optional<std::string>
 discoverRepository(std::string const &path,
                    bool acrossFilesystems = false) noexcept;

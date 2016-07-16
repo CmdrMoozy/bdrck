@@ -13,6 +13,7 @@ class Oid
 {
 public:
 	Oid(git_oid const &o);
+	explicit Oid(std::string const &o);
 
 	Oid(Oid const &) = default;
 	Oid(Oid &&) = default;
@@ -36,6 +37,8 @@ public:
 private:
 	git_oid oid;
 };
+
+Oid getEmptyTreeOid();
 
 std::ostream &operator<<(std::ostream &out, Oid const &oid);
 }
