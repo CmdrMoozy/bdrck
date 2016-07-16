@@ -25,7 +25,7 @@ private:
 public:
 	explicit Tree(Object const &object);
 	explicit Tree(Commit const &commit);
-	Tree(Repository &repository, git_oid const &id);
+	Tree(Repository &repository, Oid const &id);
 
 	~Tree() = default;
 

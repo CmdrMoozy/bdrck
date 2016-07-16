@@ -77,8 +77,8 @@ Tree::Tree(Commit const &commit) : base_type(commitToTree(commit))
 {
 }
 
-Tree::Tree(Repository &repository, git_oid const &id)
-        : base_type(lookupTree(repository, id))
+Tree::Tree(Repository &repository, Oid const &id)
+        : base_type(lookupTree(repository, id.get()))
 {
 }
 
