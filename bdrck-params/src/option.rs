@@ -61,3 +61,23 @@ impl Option {
         };
     }
 }
+
+/// Given an iterator over a collection of Options, locate the option with the
+/// given name (which can be either a short name or a long name). If no such
+/// Option is found, returns None instead.
+pub fn find_option<'a, I>(options: I, name: &str) -> Optional<&'a Option>
+    where I: Iterator<Item = &'a Option>
+{
+    let mut result: Optional<&'a Option> = None;
+    for o in options {
+        if o.name == name {
+            result = Some(o);
+            break;
+        } else if let Some(sn) = o.short_name {
+            if result.is_none() && name.starts_with(sn) {
+                result = Some(o);
+            }
+        }
+    }
+    return result;
+}
