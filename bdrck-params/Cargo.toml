@@ -1,0 +1,6 @@
+[package]
+name = "bdrck-params"
+version = "0.1.0"
+authors = ["Axel Rasmussen <axel.rasmussen1@gmail.com>"]
+
+[dependencies]
