@@ -35,7 +35,8 @@ pub fn parse_command<'a, 'b, PI, CI>(mut parameters: PI, mut commands: CI) -> Op
 // Constructs maps for options and flags which contain the default values (if
 // any) for each of the given command's options. Note that all flags have a
 // default value of false.
-fn build_default_options(command: &Command) -> (HashMap<&String, &String>, HashMap<&String, bool>) {
+pub fn build_default_options(command: &Command)
+                             -> (HashMap<&String, &String>, HashMap<&String, bool>) {
     let mut options: HashMap<&String, &String> = HashMap::new();
     let mut flags: HashMap<&String, bool> = HashMap::new();
 

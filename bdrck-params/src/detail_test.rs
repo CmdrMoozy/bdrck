@@ -2,7 +2,9 @@ use std::string::String;
 use std::vec::Vec;
 
 use super::command::Command;
+use super::detail::build_default_options;
 use super::detail::parse_command;
+use super::option::Option;
 
 fn build_command_for_test(name: &str) -> Command {
     return Command {
@@ -56,7 +58,7 @@ fn test_parse_command_no_arguments() {
 }
 
 #[test]
-fn test_parse_command_arguments() {
+fn test_parse_command_with_arguments() {
     let program_parameters: Vec<String> = vec![
 		"baz".to_string(),
 		"foo".to_string(),
@@ -71,4 +73,34 @@ fn test_parse_command_arguments() {
 	];
 
     assert!(parse_command_works(&program_parameters, &commands, "baz"));
+}
+
+#[test]
+fn test_build_default_options() {
+    let command = Command {
+        name: "test command".to_string(),
+        help: "test command".to_string(),
+        options: vec![
+            Option::required("a", "a", None, None),
+            Option::required("b", "b", None, Some("b")),
+            Option::required("c", "c", Some('c'), None),
+            Option::required("d", "d", Some('d'), Some("d")),
+            Option::optional("e", "e", None),
+            Option::optional("f", "f", Some('f')),
+            Option::flag("g", "g", None),
+            Option::flag("h", "h", Some('h')),
+        ],
+        arguments: Vec::new(),
+        last_argument_is_variadic: false,
+    };
+
+    let (options, flags) = build_default_options(&command);
+
+    assert!(options.len() == 2);
+    assert!(options.get(&"b".to_string()).map_or(false, |v| *v == "b"));
+    assert!(options.get(&"d".to_string()).map_or(false, |v| *v == "d"));
+
+    assert!(flags.len() == 2);
+    assert!(flags.get(&"g".to_string()).map_or(false, |v| *v == false));
+    assert!(flags.get(&"h".to_string()).map_or(false, |v| *v == false));
 }
