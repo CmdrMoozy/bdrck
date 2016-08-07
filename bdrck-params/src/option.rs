@@ -16,14 +16,15 @@ pub struct Option {
 }
 
 impl Option {
-    /// Constructs a required option. This option may have a default value.
-    /// But, importantly, it will always have some value inside the command
-    /// function.
     pub fn required(name: &str,
                     help: &str,
                     short_name: Optional<char>,
                     default_value: Optional<&str>)
                     -> Option {
+        //! Constructs a required option. This option may have a default value.
+        //! But, importantly, it will always have some value inside the command
+        //! function.
+
         return Option {
             name: name.to_string(),
             help: help.to_string(),
@@ -34,9 +35,10 @@ impl Option {
         };
     }
 
-    /// Construct an optional value. This option does not have a default
-    /// value, and it may have no value to access inside the command function.
     pub fn optional(name: &str, help: &str, short_name: Optional<char>) -> Option {
+        //! Construct an optional value. This option does not have a default
+        //! value, and it may have no value to access inside the command function.
+
         return Option {
             name: name.to_string(),
             help: help.to_string(),
@@ -47,10 +49,11 @@ impl Option {
         };
     }
 
-    /// Construct a flag option. This option's value is either true or false,
-    /// and is false unless it is explicitly passed to the command as an
-    /// argument.
     pub fn flag(name: &str, help: &str, short_name: Optional<char>) -> Option {
+        //! Construct a flag option. This option's value is either true or false,
+        //! and is false unless it is explicitly passed to the command as an
+        //! argument.
+
         return Option {
             name: name.to_string(),
             help: help.to_string(),
@@ -62,12 +65,13 @@ impl Option {
     }
 }
 
-/// Given an iterator over a collection of Options, locate the option with the
-/// given name (which can be either a short name or a long name). If no such
-/// Option is found, returns None instead.
 pub fn find_option<'a, I>(options: I, name: &str) -> Optional<&'a Option>
     where I: Iterator<Item = &'a Option>
 {
+    //! Given an iterator over a collection of Options, locate the option with the
+    //! given name (which can be either a short name or a long name). If no such
+    //! Option is found, returns None instead.
+
     let mut result: Optional<&'a Option> = None;
     for o in options {
         if o.name == name {
