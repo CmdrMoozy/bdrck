@@ -313,7 +313,7 @@ launchProcess(bdrck::process::StandardStreamPipes &pipes,
 			        errorPipe.get(bdrck::process::PipeSide::WRITE),
 			        message.c_str(), message.length());
 			assert(written ==
-			       static_cast<ssize_t>(message.length()));
+			       static_cast<std::size_t>(message.length()));
 		}
 		catch(...)
 		{
@@ -322,7 +322,7 @@ launchProcess(bdrck::process::StandardStreamPipes &pipes,
 			        errorPipe.get(bdrck::process::PipeSide::WRITE),
 			        message.c_str(), message.length());
 			assert(written ==
-			       static_cast<ssize_t>(message.length()));
+			       static_cast<std::size_t>(message.length()));
 		}
 		_exit(EXIT_FAILURE);
 	}

@@ -23,7 +23,7 @@ private:
 	typedef Wrapper<git_tree, git_tree_free> base_type;
 
 public:
-	explicit Tree(Object const &object);
+	explicit Tree(Object const &obj);
 	explicit Tree(Commit const &commit);
 	Tree(Repository &repository, Oid const &id);
 

@@ -75,7 +75,7 @@ namespace bdrck
 {
 namespace git
 {
-Tree::Tree(Object const &object) : base_type(peelToTree(object))
+Tree::Tree(Object const &obj) : base_type(peelToTree(obj))
 {
 }
 
