@@ -9,6 +9,7 @@ use std::string::String;
 /// accept more than one value), but whether or not this is the case is a
 /// property of the Command, not of the Argument (because the Argument only
 /// stores a description of the argument, not its final value).
+#[derive(Debug)]
 pub struct Argument {
     pub name: String,
     pub help: String,

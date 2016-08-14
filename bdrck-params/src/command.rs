@@ -7,6 +7,7 @@ use super::option::Option;
 /// A command is a single sub-command for a given program. Each command has
 /// its own description as well as sets of options and arguments that it
 /// accepts.
+#[derive(Debug)]
 pub struct Command {
     pub name: String,
     pub help: String,
