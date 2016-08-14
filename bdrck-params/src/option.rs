@@ -89,8 +89,8 @@ pub fn find_option<'a, I>(options: I, name: &str) -> Optional<&'a Option>
 
 #[cfg(test)]
 mod test {
-    use super::find_option;
     use super::Option;
+    use super::find_option;
 
     fn find_option_works(options: &Vec<Option>, query: &str, expected_name: &str) -> bool {
         return find_option(options.iter(), query).map_or(false, |o| o.name == expected_name);

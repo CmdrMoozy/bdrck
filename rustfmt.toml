@@ -1,0 +1,6 @@
+fn_single_line = true
+reorder_imports = true
+take_source_hints = false
+wrap_comments = true
+match_block_trailing_comma = true
+write_mode = "Overwrite"

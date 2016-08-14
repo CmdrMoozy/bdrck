@@ -75,7 +75,8 @@ pub fn get_program_parameters() -> Vec<String> {
 }
 
 /// This structure encapsulates the output from parsing the program's parameters
-/// according to a Command. It provides accessor functions to retrieve the values
+/// according to a Command. It provides accessor functions to retrieve the
+/// values
 /// conveniently.
 pub struct ParsedParameters<'a> {
     command: &'a Command,
@@ -134,10 +135,10 @@ mod test {
     use std::collections::HashMap;
     use std::string::String;
     use std::vec::Vec;
+    use super::ParsedParameters;
 
     use super::build_default_options;
     use super::parse_command;
-    use super::ParsedParameters;
     use super::super::command::Command;
     use super::super::option::Option;
 
