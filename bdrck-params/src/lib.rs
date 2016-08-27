@@ -2,14 +2,17 @@ use std::error::Error;
 use std::fmt;
 use std::string::String;
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum ErrorKind {
     NoCommandSpecified,
     UnrecognizedCommand { name: String },
+    NotAnOption,
+    UnrecognizedOption { name: String },
     MissingOptionValue { name: String },
+    InvalidBooleanValue { value: String },
 }
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct ParamsError {
     pub kind: ErrorKind,
 }
@@ -19,9 +22,12 @@ impl Error for ParamsError {
         match self.kind {
             ErrorKind::NoCommandSpecified => "No command specified",
             ErrorKind::UnrecognizedCommand { name: ref _n } => "Unrecognized command",
+            ErrorKind::NotAnOption => "Parameter is not an option",
+            ErrorKind::UnrecognizedOption { name: ref _n } => "Unrecognized option",
             ErrorKind::MissingOptionValue { name: ref _n } => {
                 "No default or specified value for option"
             },
+            ErrorKind::InvalidBooleanValue { value: ref _v } => "Invalid boolean value",
         }
     }
 }
@@ -33,8 +39,15 @@ impl fmt::Display for ParamsError {
             ErrorKind::UnrecognizedCommand { name: ref n } => {
                 f.write_str(format!("{} '{}'", self.description(), n).as_str())
             },
+            ErrorKind::NotAnOption => f.write_str(self.description()),
+            ErrorKind::UnrecognizedOption { name: ref n } => {
+                f.write_str(format!("{} '{}'", self.description(), n).as_str())
+            },
             ErrorKind::MissingOptionValue { name: ref n } => {
                 f.write_str(format!("{} '--{}'", self.description(), n).as_str())
+            },
+            ErrorKind::InvalidBooleanValue { value: ref v } => {
+                f.write_str(format!("{} '{}'", self.description(), v).as_str())
             },
         }
     }
