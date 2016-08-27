@@ -22,8 +22,8 @@ pub fn get_program_parameters() -> Vec<String> {
         .collect::<Vec<String>>();
 }
 
-fn parse_command<'a, PI, CI>(mut parameters: PI,
-                             mut commands: CI)
+fn parse_command<'a, PI, CI>(parameters: &mut PI,
+                             commands: &mut CI)
                              -> Result<&'a Command, ParamsError>
     where PI: Iterator<Item = &'a String>,
           CI: Iterator<Item = &'a Command>
@@ -55,26 +55,6 @@ fn build_default_options<'a>(parsed: &mut ParsedParameters<'a>) {
             parsed.flags.insert(&o.name, false);
         }
     }
-}
-
-fn all_options_are_present<'a>(parsed: &ParsedParameters<'a>) -> Optional<ParamsError> {
-    //! Checks if all of the given command's options are present in the given map
-    //! of option names to values. If an option is missing, returns an error with
-    //! more detailed information. Otherwise, returns None.
-
-    for o in &parsed.command.options {
-        if o.is_optional || o.is_flag {
-            continue;
-        }
-
-        if parsed.get_option(&o.name).is_none() {
-            return Some(ParamsError {
-                kind: ErrorKind::MissingOptionValue { name: o.name.clone() },
-            });
-        }
-    }
-
-    return None;
 }
 
 /// An option parameter is the string representation of an option, extracted
@@ -197,6 +177,12 @@ fn parse_option<'a, PI, OI>(parameters: &mut Peekable<PI>,
         option_parameters = opo.unwrap();
     }
 
+    if !option_parameters.option_obj.is_flag && option_parameters.value.is_none() {
+        return Err(ParamsError {
+            kind: ErrorKind::MissingOptionValue { name: option_parameters.name.to_owned() },
+        });
+    }
+
     let bool_value: Optional<bool>;
     {
         if option_parameters.option_obj.is_flag {
@@ -221,18 +207,81 @@ fn parse_option<'a, PI, OI>(parameters: &mut Peekable<PI>,
     }));
 }
 
+fn parse_all_options<'a, PI>(parameters: &mut Peekable<PI>,
+                             parsed_parameters: &ParsedParameters<'a>)
+                             -> Result<Vec<ParsedOption<'a>>, ParamsError>
+    where PI: Iterator<Item = &'a String>
+{
+    let mut parsed: Vec<ParsedOption<'a>> = Vec::new();
+    loop {
+        let pr = parse_option(parameters, parsed_parameters.command.options.iter());
+        if pr.is_err() {
+            return Err(pr.err().unwrap());
+        }
+        let po = pr.ok().unwrap();
+        if po.is_none() {
+            return Ok(parsed);
+        }
+        parsed.push(po.unwrap());
+    }
+}
+
+fn emplace_all_options<'a, PI>(parameters: &mut Peekable<PI>,
+                               parsed_parameters: &mut ParsedParameters<'a>)
+                               -> Optional<ParamsError>
+    where PI: Iterator<Item = &'a String>
+{
+    let po = parse_all_options(parameters, parsed_parameters);
+    if po.is_err() {
+        return Some(po.err().unwrap());
+    }
+    let parsed_options = po.ok().unwrap();
+
+    for parsed_option in &parsed_options {
+        if parsed_option.bool_value.is_none() {
+            parsed_parameters.options.insert(parsed_option.name, parsed_option.value.unwrap());
+        } else {
+            parsed_parameters.flags.insert(parsed_option.name, parsed_option.bool_value.unwrap());
+        }
+    }
+
+    return None;
+}
+
+fn all_options_are_present<'a>(parsed: &ParsedParameters<'a>) -> Optional<ParamsError> {
+    //! Checks if all of the given command's options are present in the given map
+    //! of option names to values. If an option is missing, returns an error with
+    //! more detailed information. Otherwise, returns None.
+
+    for o in &parsed.command.options {
+        if o.is_optional || o.is_flag {
+            continue;
+        }
+
+        if parsed.get_option(&o.name).is_none() {
+            return Some(ParamsError {
+                kind: ErrorKind::MissingOptionValue { name: o.name.clone() },
+            });
+        }
+    }
+
+    return None;
+}
+
 /// This structure encapsulates the output from parsing the program's parameters
 /// according to a Command. It provides accessor functions to retrieve the
 /// values conveniently.
 pub struct ParsedParameters<'a> {
     command: &'a Command,
-    options: HashMap<&'a String, &'a String>,
-    flags: HashMap<&'a String, bool>,
-    arguments: HashMap<&'a String, Vec<&'a String>>,
+    options: HashMap<&'a str, &'a str>,
+    flags: HashMap<&'a str, bool>,
+    arguments: HashMap<&'a str, Vec<&'a str>>,
 }
 
 impl<'a> ParsedParameters<'a> {
-    pub fn new<PI, CI>(parameters: PI, commands: CI) -> Result<ParsedParameters<'a>, ParamsError>
+    pub fn new<PI, CI>(parameters: &mut PI,
+                       commands: &mut CI)
+                       -> Result<ParsedParameters<'a>, ParamsError>
         where PI: Iterator<Item = &'a String>,
               CI: Iterator<Item = &'a Command>
     {
@@ -252,27 +301,25 @@ impl<'a> ParsedParameters<'a> {
             arguments: HashMap::new(),
         };
 
-        build_default_options(&mut parsed);
+        let mut peekable_parameters = parameters.peekable();
 
+        build_default_options(&mut parsed);
+        if let Some(e) = emplace_all_options(&mut peekable_parameters, &mut parsed) {
+            return Err(e);
+        }
         return all_options_are_present(&parsed).map_or(Ok(parsed), |e| Err(e));
     }
 
-    pub fn get_option<S>(&self, name: S) -> Optional<&&String>
-        where S: AsRef<str>
-    {
-        return self.options.get(&name.as_ref().to_owned());
+    pub fn get_option<'b>(&'b self, name: &'b str) -> Optional<&&str> {
+        return self.options.get(&name.as_ref());
     }
 
-    pub fn get_flag<S>(&self, name: S) -> Optional<&bool>
-        where S: AsRef<str>
-    {
-        return self.flags.get(&name.as_ref().to_owned());
+    pub fn get_flag<'b>(&'b self, name: &'b str) -> Optional<&bool> {
+        return self.flags.get(&name.as_ref());
     }
 
-    pub fn get_argument<S>(&self, name: S) -> Optional<&Vec<&String>>
-        where S: AsRef<str>
-    {
-        return self.arguments.get(&name.as_ref().to_string());
+    pub fn get_argument<'b>(&'b self, name: &'b str) -> Optional<&Vec<&str>> {
+        return self.arguments.get(&name.as_ref());
     }
 }
 
@@ -307,7 +354,7 @@ mod test {
                            commands: &Vec<Command>,
                            expected_name: &str)
                            -> bool {
-        return parse_command(program_parameters.iter(), commands.iter())
+        return parse_command(&mut program_parameters.iter(), &mut commands.iter())
             .ok()
             .map_or(false, |c| c.name == expected_name);
     }
@@ -327,7 +374,7 @@ mod test {
     		build_command_for_test("baz"),
     	];
 
-        assert!(parse_command(program_parameters.iter(), commands.iter()).ok().is_none());
+        assert!(parse_command(&mut program_parameters.iter(), &mut commands.iter()).ok().is_none());
     }
 
     #[test]
@@ -392,12 +439,12 @@ mod test {
         build_default_options(&mut parsed);
 
         assert!(parsed.options.len() == 2);
-        assert!(parsed.options.get(&"b".to_string()).map_or(false, |v| *v == "b"));
-        assert!(parsed.options.get(&"d".to_string()).map_or(false, |v| *v == "d"));
+        assert!(parsed.options.get("b").map_or(false, |v| *v == "b"));
+        assert!(parsed.options.get("d").map_or(false, |v| *v == "d"));
 
         assert!(parsed.flags.len() == 2);
-        assert!(parsed.flags.get(&"g".to_string()).map_or(false, |v| *v == false));
-        assert!(parsed.flags.get(&"h".to_string()).map_or(false, |v| *v == false));
+        assert!(parsed.flags.get("g").map_or(false, |v| *v == false));
+        assert!(parsed.flags.get("h").map_or(false, |v| *v == false));
     }
 
     #[test]
@@ -414,6 +461,19 @@ mod test {
             TestCase(vec!["--foobar".to_owned()], Vec::new(), Err(ParamsError {
                 kind: ErrorKind::UnrecognizedOption { name: "foobar".to_owned() },
             })),
+            // Option with no value.
+            TestCase(
+                vec!["--foobar".to_owned()],
+                vec![Option::required("foobar", "foobar", Some('f'), None)],
+                Err(ParamsError {
+                    kind: ErrorKind::MissingOptionValue { name: "foobar".to_owned() },
+                })),
+            TestCase(
+                vec!["--foobar".to_owned(), "--barbaz".to_owned()],
+                vec![Option::required("foobar", "foobar", Some('f'), None)],
+                Err(ParamsError {
+                    kind: ErrorKind::MissingOptionValue { name: "foobar".to_owned() },
+                })),
             // Option with value, using "-" or "--" and long or short name.
             TestCase(
                 vec!["--foobar=baz".to_owned()],
@@ -503,5 +563,54 @@ mod test {
             assert!(parse_option(&mut test_case.0.iter().peekable(), test_case.1.iter()) ==
                     test_case.2);
         }
+    }
+
+    #[test]
+    fn test_parsed_parameters_construction_options() {
+        let parameters: Vec<String> = vec![
+            "foobar".to_owned(),
+            "--opta".to_owned(),
+            "foo".to_owned(),
+            "--optc".to_owned(),
+            "bar".to_owned(),
+            "-f".to_owned(),
+            "--g=false".to_owned(),
+        ];
+
+        let commands = vec![
+            Command {
+                name: "foobar".to_owned(),
+                help: "foobar".to_owned(),
+                options: vec![
+                    Option::required("opta", "opta", Some('a'), None),
+                    Option::required("optb", "optb", Some('b'), Some("baz")),
+                    Option::optional("optc", "optc", Some('c')),
+                    Option::optional("optd", "optd", Some('d')),
+                    Option::flag("opte", "opte", Some('e')),
+                    Option::flag("optf", "optf", Some('f')),
+                    Option::flag("optg", "optg", Some('g')),
+                ],
+                arguments: Vec::new(),
+                last_argument_is_variadic: false,
+            },
+        ];
+
+        let mut expected_options = HashMap::new();
+        expected_options.insert("opta", "foo");
+        expected_options.insert("optb", "baz");
+        expected_options.insert("optc", "bar");
+
+        let mut expected_flags = HashMap::new();
+        expected_flags.insert("opte", false);
+        expected_flags.insert("optf", true);
+        expected_flags.insert("optg", false);
+
+        let pr = ParsedParameters::new(&mut parameters.iter(), &mut commands.iter());
+        assert!(pr.is_ok());
+        let parsed = pr.ok().unwrap();
+
+        assert!(parsed.command.name == commands[0].name);
+        assert!(parsed.options == expected_options);
+        assert!(parsed.flags == expected_flags);
     }
 }
