@@ -8,6 +8,7 @@ use std::vec::Vec;
 
 use super::ErrorKind;
 use super::ParamsError;
+use super::argument::Argument;
 use super::command::Command;
 use super::option::Option;
 use super::option::find_option;
@@ -112,7 +113,7 @@ fn next_option_parameters<'a, PI, OI>(parameters: &mut Peekable<PI>,
     // Since we got a valid option, advance the iterator.
     parameters.next();
 
-    let (name, value) = extract_option_name_and_value(parameter);
+    let (name, mut value) = extract_option_name_and_value(parameter);
 
     // Lookup the option by name.
     let option_obj: &Option;
@@ -127,12 +128,12 @@ fn next_option_parameters<'a, PI, OI>(parameters: &mut Peekable<PI>,
     }
 
     let next_parameter_is_value: bool = parameters.peek().map_or(false, |v| !v.starts_with("-"));
+    if next_parameter_is_value && value.is_none() {
+        value = Some(parameters.next().unwrap().as_ref());
+    }
     return Ok(Some(OptionParameters {
         name: option_obj.name.as_ref(),
-        value: value.or(match next_parameter_is_value {
-            false => None,
-            true => Some(parameters.next().unwrap().as_ref()),
-        }),
+        value: value,
         option_obj: option_obj,
     }));
 }
@@ -248,6 +249,46 @@ fn emplace_all_options<'a, PI>(parameters: &mut Peekable<PI>,
     return None;
 }
 
+fn emplace_all_arguments<'a, PI>(parameters: &mut Peekable<PI>,
+                                 parsed_parameters: &mut ParsedParameters<'a>)
+                                 -> Optional<ParamsError>
+    where PI: Iterator<Item = &'a String>
+{
+    if parsed_parameters.command.arguments.is_empty() {
+        return None;
+    }
+
+    if parsed_parameters.command.arguments.len() >= 2 {
+        for argument in &parsed_parameters.command.arguments[..parsed_parameters.command
+            .arguments
+            .len() - 1] {
+            let v = parameters.next();
+            if v.is_none() {
+                return Some(ParamsError {
+                    kind: ErrorKind::MissingArgumentValue { name: argument.name.clone() },
+                });
+            }
+            parsed_parameters.arguments.insert(argument.name.as_str(), vec![v.unwrap().as_str()]);
+        }
+    }
+
+    let last_argument: &Argument =
+        &parsed_parameters.command.arguments[parsed_parameters.command.arguments.len() - 1];
+    let last_argument_values: Vec<&'a str> = parameters.map(|v| v.as_str()).collect();
+    if parsed_parameters.command.last_argument_is_variadic {
+        parsed_parameters.arguments.insert(last_argument.name.as_str(), last_argument_values);
+    } else {
+        if last_argument_values.len() != 1 {
+            return Some(ParamsError {
+                kind: ErrorKind::WrongNumberOfArgumentValues { count: last_argument_values.len() },
+            });
+        }
+        parsed_parameters.arguments.insert(last_argument.name.as_str(), last_argument_values);
+    }
+
+    return None;
+}
+
 fn all_options_are_present<'a>(parsed: &ParsedParameters<'a>) -> Optional<ParamsError> {
     //! Checks if all of the given command's options are present in the given map
     //! of option names to values. If an option is missing, returns an error with
@@ -307,6 +348,9 @@ impl<'a> ParsedParameters<'a> {
         if let Some(e) = emplace_all_options(&mut peekable_parameters, &mut parsed) {
             return Err(e);
         }
+        if let Some(e) = emplace_all_arguments(&mut peekable_parameters, &mut parsed) {
+            return Err(e);
+        }
         return all_options_are_present(&parsed).map_or(Ok(parsed), |e| Err(e));
     }
 
@@ -337,6 +381,7 @@ mod test {
     use super::parse_option;
     use super::super::ErrorKind;
     use super::super::ParamsError;
+    use super::super::argument::Argument;
     use super::super::command::Command;
     use super::super::option::Option;
 
@@ -612,5 +657,152 @@ mod test {
         assert!(parsed.command.name == commands[0].name);
         assert!(parsed.options == expected_options);
         assert!(parsed.flags == expected_flags);
+    }
+
+    #[test]
+    fn test_parsed_parameters_construction_arguments() {
+        let parameters: Vec<String> = vec![
+            "foobar".to_owned(),
+            "--opta=oof".to_owned(),
+            "foo".to_owned(),
+            "bar".to_owned(),
+            "baz".to_owned(),
+        ];
+
+        let commands = vec![
+            Command {
+                name: "foobar".to_owned(),
+                help: "foobar".to_owned(),
+                options: vec![
+                    Option::required("opta", "opta", Some('a'), None),
+                ],
+                arguments: vec![
+                    Argument {
+                        name: "arga".to_owned(),
+                        help: "arga".to_owned(),
+                    },
+                    Argument {
+                        name: "argb".to_owned(),
+                        help: "argb".to_owned(),
+                    },
+                    Argument {
+                        name: "argc".to_owned(),
+                        help: "argc".to_owned(),
+                    },
+                ],
+                last_argument_is_variadic: false,
+            },
+        ];
+
+        let mut expected_arguments = HashMap::new();
+        expected_arguments.insert("arga", vec!["foo"]);
+        expected_arguments.insert("argb", vec!["bar"]);
+        expected_arguments.insert("argc", vec!["baz"]);
+
+        let pr = ParsedParameters::new(&mut parameters.iter(), &mut commands.iter());
+        assert!(pr.is_ok());
+        let parsed = pr.ok().unwrap();
+
+        assert!(parsed.command.name == commands[0].name);
+        assert!(parsed.arguments.len() == expected_arguments.len());
+        assert!(parsed.arguments == expected_arguments);
+    }
+
+    #[test]
+    fn test_parsed_parameters_construction_variadic_last_argument_empty() {
+        let parameters: Vec<String> = vec![
+            "foobar".to_owned(),
+            "--opta=oof".to_owned(),
+            "foo".to_owned(),
+            "bar".to_owned(),
+        ];
+
+        let commands = vec![
+            Command {
+                name: "foobar".to_owned(),
+                help: "foobar".to_owned(),
+                options: vec![
+                    Option::required("opta", "opta", Some('a'), None),
+                ],
+                arguments: vec![
+                    Argument {
+                        name: "arga".to_owned(),
+                        help: "arga".to_owned(),
+                    },
+                    Argument {
+                        name: "argb".to_owned(),
+                        help: "argb".to_owned(),
+                    },
+                    Argument {
+                        name: "argc".to_owned(),
+                        help: "argc".to_owned(),
+                    },
+                ],
+                last_argument_is_variadic: true,
+            },
+        ];
+
+        let mut expected_arguments = HashMap::new();
+        expected_arguments.insert("arga", vec!["foo"]);
+        expected_arguments.insert("argb", vec!["bar"]);
+        expected_arguments.insert("argc", Vec::new());
+
+        let pr = ParsedParameters::new(&mut parameters.iter(), &mut commands.iter());
+        assert!(pr.is_ok());
+        let parsed = pr.ok().unwrap();
+
+        assert!(parsed.command.name == commands[0].name);
+        assert!(parsed.arguments.len() == expected_arguments.len());
+        assert!(parsed.arguments == expected_arguments);
+    }
+
+    #[test]
+    fn test_parsed_parameters_construction_variadic_last_argument_many() {
+        let parameters: Vec<String> = vec![
+            "foobar".to_owned(),
+            "--opta=oof".to_owned(),
+            "foo".to_owned(),
+            "bar".to_owned(),
+            "baz".to_owned(),
+            "quux".to_owned(),
+        ];
+
+        let commands = vec![
+            Command {
+                name: "foobar".to_owned(),
+                help: "foobar".to_owned(),
+                options: vec![
+                    Option::required("opta", "opta", Some('a'), None),
+                ],
+                arguments: vec![
+                    Argument {
+                        name: "arga".to_owned(),
+                        help: "arga".to_owned(),
+                    },
+                    Argument {
+                        name: "argb".to_owned(),
+                        help: "argb".to_owned(),
+                    },
+                    Argument {
+                        name: "argc".to_owned(),
+                        help: "argc".to_owned(),
+                    },
+                ],
+                last_argument_is_variadic: true,
+            },
+        ];
+
+        let mut expected_arguments = HashMap::new();
+        expected_arguments.insert("arga", vec!["foo"]);
+        expected_arguments.insert("argb", vec!["bar"]);
+        expected_arguments.insert("argc", vec!["baz", "quux"]);
+
+        let pr = ParsedParameters::new(&mut parameters.iter(), &mut commands.iter());
+        assert!(pr.is_ok());
+        let parsed = pr.ok().unwrap();
+
+        assert!(parsed.command.name == commands[0].name);
+        assert!(parsed.arguments.len() == expected_arguments.len());
+        assert!(parsed.arguments == expected_arguments);
     }
 }

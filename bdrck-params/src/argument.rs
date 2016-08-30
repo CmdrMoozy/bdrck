@@ -1,4 +1,3 @@
-use std::option::Option as Optional;
 use std::string::String;
 
 /// An argument is a positional parameter. It must come after any Options
@@ -13,5 +12,4 @@ use std::string::String;
 pub struct Argument {
     pub name: String,
     pub help: String,
-    pub default_value: Optional<String>,
 }

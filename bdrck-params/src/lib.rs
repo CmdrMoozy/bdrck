@@ -10,6 +10,8 @@ pub enum ErrorKind {
     UnrecognizedOption { name: String },
     MissingOptionValue { name: String },
     InvalidBooleanValue { value: String },
+    MissingArgumentValue { name: String },
+    WrongNumberOfArgumentValues { count: usize },
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -28,6 +30,10 @@ impl Error for ParamsError {
                 "No default or specified value for option"
             },
             ErrorKind::InvalidBooleanValue { value: ref _v } => "Invalid boolean value",
+            ErrorKind::MissingArgumentValue { name: ref _n } => "Missing argument value",
+            ErrorKind::WrongNumberOfArgumentValues { count: ref _c } => {
+                "Wrong number of argument values; expected 1"
+            },
         }
     }
 }
@@ -48,6 +54,12 @@ impl fmt::Display for ParamsError {
             },
             ErrorKind::InvalidBooleanValue { value: ref v } => {
                 f.write_str(format!("{} '{}'", self.description(), v).as_str())
+            },
+            ErrorKind::MissingArgumentValue { name: ref n } => {
+                f.write_str(format!("{} '{}'", self.description(), n).as_str())
+            },
+            ErrorKind::WrongNumberOfArgumentValues { count: ref c } => {
+                f.write_str(format!("{} got {}", self.description(), c).as_str())
             },
         }
     }
