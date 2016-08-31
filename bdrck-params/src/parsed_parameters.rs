@@ -162,6 +162,10 @@ fn parse_option<'a, PI, OI>(parameters: &mut Peekable<PI>,
     where PI: Iterator<Item = &'a String>,
           OI: Iterator<Item = &'a Option>
 {
+    //! Parse the next option from the given iterator over program parameters. If
+    //! there are no more option parameters, returns None. If an option argument is
+    //! found but some error occurs, then an error is returned instead.
+
     let option_parameters: OptionParameters<'a>;
     {
         let opr = next_option_parameters(parameters, options);
@@ -210,6 +214,10 @@ fn parse_all_options<'a, PI>(parameters: &mut Peekable<PI>,
                              -> Result<Vec<ParsedOption<'a>>, ParamsError>
     where PI: Iterator<Item = &'a String>
 {
+    //! Call parse_option repeatedly on the given iterator until an error is
+    //! encountered or there are no more options to parse. Returns a possibly empty
+    //! vector of parsed options, or an error if one was encountered.
+
     let mut parsed: Vec<ParsedOption<'a>> = Vec::new();
     loop {
         let pr = parse_option(parameters, parsed_parameters.command.options.iter());
@@ -229,6 +237,10 @@ fn emplace_all_options<'a, PI>(parameters: &mut Peekable<PI>,
                                -> Optional<ParamsError>
     where PI: Iterator<Item = &'a String>
 {
+    //! Calls parse_all_options, and adds the result to the given parsed parameters
+    //! structure. An error is returned if one is encountered, and the parsed
+    //! parameters structure is not modified.
+
     let po = parse_all_options(parameters, parsed_parameters);
     if po.is_err() {
         return Some(po.err().unwrap());
