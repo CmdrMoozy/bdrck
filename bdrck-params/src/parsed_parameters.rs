@@ -145,17 +145,14 @@ struct ParsedOption<'a> {
     bool_value: Optional<bool>,
 }
 
-fn parse_bool<S>(value: S) -> Result<bool, ParamsError>
-    where S: AsRef<str>
-{
-    return match value.as_ref().trim().to_lowercase().as_ref() {
+fn parse_bool<'a>(value: &'a str) -> Result<bool, ParamsError> {
+    //! Return the boolean interpretation of a string, or an error if the string
+    //! isn't recognized as a valid boolean value.
+
+    return match value.trim().to_lowercase().as_ref() {
         "true" => Ok(true),
         "false" => Ok(false),
-        _ => {
-            Err(ParamsError {
-                kind: ErrorKind::InvalidBooleanValue { value: value.as_ref().to_string() },
-            })
-        },
+        _ => Err(ParamsError { kind: ErrorKind::InvalidBooleanValue { value: value.to_owned() } }),
     };
 }
 
