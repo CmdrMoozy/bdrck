@@ -4,6 +4,8 @@ use std::string::String;
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum ErrorKind {
+    MissingDefaultArgumentValue,
+    TooManyDefaultArgumentValues,
     NoCommandSpecified,
     UnrecognizedCommand { name: String },
     NotAnOption,
@@ -22,6 +24,14 @@ pub struct ParamsError {
 impl Error for ParamsError {
     fn description(&self) -> &str {
         match self.kind {
+            ErrorKind::MissingDefaultArgumentValue => {
+                "Missing default argument value: all arguments after the first one with a default \
+                 value must also have default values."
+            },
+            ErrorKind::TooManyDefaultArgumentValues => {
+                "Too many default argument values: arguments must have at most one default value, \
+                 except the last argument which may have more than one only if it is variadic."
+            },
             ErrorKind::NoCommandSpecified => "No command specified",
             ErrorKind::UnrecognizedCommand { name: ref _n } => "Unrecognized command",
             ErrorKind::NotAnOption => "Parameter is not an option",
@@ -41,6 +51,8 @@ impl Error for ParamsError {
 impl fmt::Display for ParamsError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self.kind {
+            ErrorKind::MissingDefaultArgumentValue => f.write_str(self.description()),
+            ErrorKind::TooManyDefaultArgumentValues => f.write_str(self.description()),
             ErrorKind::NoCommandSpecified => f.write_str(self.description()),
             ErrorKind::UnrecognizedCommand { name: ref n } => {
                 f.write_str(format!("{} '{}'", self.description(), n).as_str())
