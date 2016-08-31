@@ -258,43 +258,66 @@ fn emplace_all_options<'a, PI>(parameters: &mut Peekable<PI>,
     return None;
 }
 
+fn parse_all_arguments<'a, PI>(parameters: &mut Peekable<PI>,
+                               arguments: &'a Vec<Argument>,
+                               last_argument_is_variadic: bool)
+                               -> Result<HashMap<&'a str, Vec<&'a str>>, ParamsError>
+    where PI: Iterator<Item = &'a String>
+{
+    //! Parses all of the positional arguments from the given iterator over program
+    //! parameters, and returns either a possibly empty HashMap of parsed arguments
+    //! or an error, if one is encountered.
+
+    let mut parsed: HashMap<&'a str, Vec<&'a str>> = HashMap::new();
+    if arguments.is_empty() {
+        return Ok(parsed);
+    }
+
+    if arguments.len() >= 2 {
+        for argument in &arguments[..arguments.len() - 1] {
+            let v = parameters.next();
+            if v.is_none() {
+                return Err(ParamsError {
+                    kind: ErrorKind::MissingArgumentValue { name: argument.name.clone() },
+                });
+            }
+            parsed.insert(argument.name.as_str(), vec![v.unwrap().as_str()]);
+        }
+    }
+
+    let last_argument: &Argument = &arguments[arguments.len() - 1];
+    let last_argument_values: Vec<&'a str> = parameters.map(|v| v.as_str()).collect();
+    if last_argument_is_variadic {
+        parsed.insert(last_argument.name.as_str(), last_argument_values);
+    } else {
+        if last_argument_values.len() != 1 {
+            return Err(ParamsError {
+                kind: ErrorKind::WrongNumberOfArgumentValues { count: last_argument_values.len() },
+            });
+        }
+        parsed.insert(last_argument.name.as_str(), last_argument_values);
+    }
+
+    return Ok(parsed);
+}
+
 fn emplace_all_arguments<'a, PI>(parameters: &mut Peekable<PI>,
                                  parsed_parameters: &mut ParsedParameters<'a>)
                                  -> Optional<ParamsError>
     where PI: Iterator<Item = &'a String>
 {
-    if parsed_parameters.command.arguments.is_empty() {
-        return None;
-    }
+    //! Parses all of the positional arguments from the given iterator over program
+    //! parameters, and adds the result to the given parsed parameters structure.
+    //! An error is returned if one is encountered, and the parsed parameters
+    //! structure is not modified.
 
-    if parsed_parameters.command.arguments.len() >= 2 {
-        for argument in &parsed_parameters.command.arguments[..parsed_parameters.command
-            .arguments
-            .len() - 1] {
-            let v = parameters.next();
-            if v.is_none() {
-                return Some(ParamsError {
-                    kind: ErrorKind::MissingArgumentValue { name: argument.name.clone() },
-                });
-            }
-            parsed_parameters.arguments.insert(argument.name.as_str(), vec![v.unwrap().as_str()]);
-        }
+    let parsed_arguments = parse_all_arguments(parameters,
+                                               &parsed_parameters.command.arguments,
+                                               parsed_parameters.command.last_argument_is_variadic);
+    if parsed_arguments.is_err() {
+        return Some(parsed_arguments.err().unwrap());
     }
-
-    let last_argument: &Argument =
-        &parsed_parameters.command.arguments[parsed_parameters.command.arguments.len() - 1];
-    let last_argument_values: Vec<&'a str> = parameters.map(|v| v.as_str()).collect();
-    if parsed_parameters.command.last_argument_is_variadic {
-        parsed_parameters.arguments.insert(last_argument.name.as_str(), last_argument_values);
-    } else {
-        if last_argument_values.len() != 1 {
-            return Some(ParamsError {
-                kind: ErrorKind::WrongNumberOfArgumentValues { count: last_argument_values.len() },
-            });
-        }
-        parsed_parameters.arguments.insert(last_argument.name.as_str(), last_argument_values);
-    }
-
+    parsed_parameters.arguments = parsed_arguments.ok().unwrap();
     return None;
 }
 
