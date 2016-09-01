@@ -79,12 +79,12 @@ pub fn find_option<'a, I>(options: I, name: &str) -> Optional<&'a Option>
             result = Some(o);
             break;
         } else if let Some(sn) = o.short_name {
-            if result.is_none() && name.starts_with(sn) {
-                result = Some(o);
+            if name.starts_with(sn) {
+                result = result.or(Some(o));
             }
         }
     }
-    return result;
+    result
 }
 
 #[cfg(test)]

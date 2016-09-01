@@ -51,13 +51,9 @@ impl Error for ParamsError {
 impl fmt::Display for ParamsError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self.kind {
-            ErrorKind::MissingDefaultArgumentValue => f.write_str(self.description()),
-            ErrorKind::TooManyDefaultArgumentValues => f.write_str(self.description()),
-            ErrorKind::NoCommandSpecified => f.write_str(self.description()),
             ErrorKind::UnrecognizedCommand { name: ref n } => {
                 f.write_str(format!("{} '{}'", self.description(), n).as_str())
             },
-            ErrorKind::NotAnOption => f.write_str(self.description()),
             ErrorKind::UnrecognizedOption { name: ref n } => {
                 f.write_str(format!("{} '{}'", self.description(), n).as_str())
             },
@@ -73,6 +69,7 @@ impl fmt::Display for ParamsError {
             ErrorKind::WrongNumberOfArgumentValues { count: ref c } => {
                 f.write_str(format!("{} got {}", self.description(), c).as_str())
             },
+            _ => f.write_str(self.description()),
         }
     }
 }
