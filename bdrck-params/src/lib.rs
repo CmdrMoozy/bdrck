@@ -79,5 +79,6 @@ impl fmt::Display for ParamsError {
 
 pub mod argument;
 pub mod command;
+pub mod help;
 pub mod option;
 pub mod parsed_parameters;
