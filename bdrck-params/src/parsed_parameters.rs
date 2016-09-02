@@ -394,14 +394,20 @@ mod test {
     use super::super::command::Command;
     use super::super::option::Option;
 
+    fn noop_callback(_: &HashMap<&str, &str>,
+                     _: &HashMap<&str, bool>,
+                     _: &HashMap<&str, Vec<&str>>) {
+    }
+
     fn build_command_for_test(name: &str) -> Command {
-        return Command::new(name.to_owned(),
-                            name.to_owned(),
-                            Vec::new(),
-                            Vec::new(),
-                            false)
+        Command::new(name.to_owned(),
+                     name.to_owned(),
+                     Vec::new(),
+                     Vec::new(),
+                     false,
+                     Box::new(noop_callback))
             .ok()
-            .unwrap();
+            .unwrap()
     }
 
     fn parse_command_works(program_parameters: &Vec<String>,
@@ -479,7 +485,8 @@ mod test {
                 Option::flag("h", "h", Some('h')),
             ],
                                    Vec::new(),
-                                   false)
+                                   false,
+                                   Box::new(noop_callback))
             .ok()
             .unwrap();
 
@@ -645,7 +652,8 @@ mod test {
                     Option::flag("optg", "optg", Some('g')),
                 ],
                 Vec::new(),
-                false
+                false,
+                Box::new(noop_callback)
             ).ok().unwrap(),
         ];
 
@@ -702,7 +710,8 @@ mod test {
                         default_value: None,
                     },
                 ],
-                false
+                false,
+                Box::new(noop_callback)
             ).ok().unwrap(),
         ];
 
@@ -753,7 +762,8 @@ mod test {
                         default_value: None,
                     },
                 ],
-                true
+                true,
+                Box::new(noop_callback)
             ).ok().unwrap(),
         ];
 
@@ -806,7 +816,8 @@ mod test {
                         default_value: None,
                     },
                 ],
-                true
+                true,
+                Box::new(noop_callback)
             ).ok().unwrap(),
         ];
 
@@ -856,7 +867,8 @@ mod test {
                         default_value: Some(vec!["dvc".to_owned()]),
                     },
                 ],
-                false
+                false,
+                Box::new(noop_callback)
             ).ok().unwrap(),
         ];
 
@@ -906,7 +918,8 @@ mod test {
                         default_value: Some(vec!["dvc1".to_owned(), "dvc2".to_owned()]),
                     },
                 ],
-                true
+                true,
+                Box::new(noop_callback)
             ).ok().unwrap(),
         ];
 
