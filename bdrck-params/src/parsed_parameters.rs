@@ -298,8 +298,7 @@ fn emplace_all_arguments<'a, PI>(parameters: &mut Peekable<PI>,
     //! An error is returned if one is encountered, and the parsed parameters
     //! structure is not modified.
 
-    parsed_parameters.arguments =
-        try!(parse_all_arguments(parameters,
+    parsed_parameters.arguments = try!(parse_all_arguments(parameters,
                                  parsed_parameters.command.get_arguments(),
                                  parsed_parameters.command.last_argument_is_variadic()));
 
@@ -373,6 +372,10 @@ impl<'a> ParsedParameters<'a> {
 
     pub fn get_argument<'b>(&'b self, name: &'b str) -> Optional<&Vec<&str>> {
         self.arguments.get(&name.as_ref())
+    }
+
+    pub fn execute(&self) {
+        self.command.get_callback()(&self.options, &self.flags, &self.arguments);
     }
 }
 

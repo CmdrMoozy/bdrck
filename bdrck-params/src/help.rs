@@ -1,10 +1,10 @@
 use std::fmt::Error;
-use std::fmt::Formatter;
+use std::fmt::Write;
 use std::result::Result;
 
 use super::command::Command;
 
-pub fn print_program_help<'a, CI>(f: &mut Formatter,
+pub fn print_program_help<'a, CI>(f: &mut Write,
                                   program: &'a str,
                                   mut commands: CI)
                                   -> Result<(), Error>
@@ -19,7 +19,7 @@ pub fn print_program_help<'a, CI>(f: &mut Formatter,
     Ok(())
 }
 
-pub fn print_command_help<'a>(f: &mut Formatter,
+pub fn print_command_help<'a>(f: &mut Write,
                               program: &'a str,
                               command: &'a Command,
                               print_command_name: bool)

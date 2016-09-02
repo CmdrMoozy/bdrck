@@ -78,4 +78,5 @@ pub mod argument;
 pub mod command;
 pub mod help;
 pub mod option;
+pub mod parse_and_execute;
 pub mod parsed_parameters;
