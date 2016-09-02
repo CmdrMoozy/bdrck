@@ -10,12 +10,9 @@ use super::parsed_parameters::ParsedParameters;
 const EXIT_SUCCESS: i32 = 0;
 const EXIT_FAILURE: i32 = 1;
 
-macro_rules! println_stderr(
-    ($($arg:tt)*) => { {
-        writeln!(&mut ::std::io::stderr(), $($arg)*).unwrap();
-    } }
-);
-
+/// This structure can be constructed from an io::Write, and it implements
+/// fmt::Write. It is
+/// a simple adapter for using the former as if it were the latter.
 struct IoWriteAdapter {
     io_writer: Box<io::Write>,
 }
@@ -74,5 +71,12 @@ pub fn parse_and_execute_command<'a, PI, CI>(program: &'a str,
     where PI: Iterator<Item = &'a String>,
           CI: Iterator<Item = &'a Command>
 {
+    //! This function parses the given program parameters, and calls the
+    //! appropriate command callback. It prints out usage information if the
+    //! parameters are invalid, and returns a reasonable exit code for the process.
+    //!
+    //! This is the function which should be used for typical multi-command
+    //! programs.
+
     parse_and_execute_impl(program, parameters, commands, true, true)
 }

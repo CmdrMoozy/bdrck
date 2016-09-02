@@ -298,7 +298,8 @@ fn emplace_all_arguments<'a, PI>(parameters: &mut Peekable<PI>,
     //! An error is returned if one is encountered, and the parsed parameters
     //! structure is not modified.
 
-    parsed_parameters.arguments = try!(parse_all_arguments(parameters,
+    parsed_parameters.arguments =
+        try!(parse_all_arguments(parameters,
                                  parsed_parameters.command.get_arguments(),
                                  parsed_parameters.command.last_argument_is_variadic()));
 
