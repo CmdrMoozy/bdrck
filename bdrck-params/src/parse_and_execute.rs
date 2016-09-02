@@ -2,6 +2,7 @@ use std::boxed::Box;
 use std::fmt;
 use std::io;
 use std::string::String;
+use std::vec::Vec;
 
 use super::command::Command;
 use super::help;
@@ -79,4 +80,24 @@ pub fn parse_and_execute_command<'a, PI, CI>(program: &'a str,
     //! programs.
 
     parse_and_execute_impl(program, parameters, commands, true, true)
+}
+
+pub fn parse_and_execute<'a, PI>(program: &'a str, parameters: &mut PI, command: &'a Command) -> i32
+    where PI: Iterator<Item = &'a String>
+{
+    //! This function parses the given program parameters and calls the given
+    //! command's callback. It prints out usage information if the parameters are
+    //! invalid, and returns a reasonable exit code for the process.
+    //!
+    //! This is the function which should be used for typical single-command
+    //! programs.
+
+    let commands: Vec<&'a Command> = vec![command];
+    let command_parameters: Vec<&'a String> = vec![command.get_name()];
+
+    parse_and_execute_impl(program,
+                           &mut command_parameters.into_iter().chain(parameters),
+                           &mut commands.into_iter(),
+                           false,
+                           false)
 }
