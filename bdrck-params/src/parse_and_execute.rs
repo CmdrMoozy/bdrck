@@ -49,26 +49,31 @@ impl fmt::Write for IoWriteAdapter {
 fn parse_and_execute_impl<'a, PI, CI>(program: &'a str,
                                       parameters: &mut PI,
                                       commands: &mut CI,
-                                      _: bool,
-                                      _: bool)
+                                      print_program_help: bool,
+                                      print_command_name: bool)
                                       -> i32
     where PI: Iterator<Item = &'a String>,
           CI: Iterator<Item = &'a Command>
 {
+    use std::fmt::Write;
+
     let cr = parse_command(parameters, commands);
     if cr.is_err() {
-        help::print_program_help(&mut IoWriteAdapter::new_stderr(), program, commands).unwrap();
+        if print_program_help {
+            help::print_program_help(&mut IoWriteAdapter::new_stderr(), program, commands).unwrap();
+        }
         return EXIT_FAILURE;
     }
     let command = cr.ok().unwrap();
 
     let ppr = ParsedParameters::new(command, parameters);
     if ppr.is_err() {
-        help::print_program_help(&mut IoWriteAdapter::new_stderr(), program, commands).unwrap();
+        let mut stderr = IoWriteAdapter::new_stderr();
+        stderr.write_str(format!("ERROR: {}\n", ppr.err().unwrap()).as_ref()).unwrap();
+        help::print_command_help(&mut stderr, program, command, print_command_name).unwrap();
         return EXIT_FAILURE;
     }
-    let parsed = ppr.unwrap();
-    parsed.execute();
+    ppr.unwrap().execute();
 
     EXIT_SUCCESS
 }
