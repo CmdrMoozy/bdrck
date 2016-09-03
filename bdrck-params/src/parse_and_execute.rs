@@ -7,6 +7,7 @@ use std::vec::Vec;
 use super::command::Command;
 use super::help;
 use super::parsed_parameters::ParsedParameters;
+use super::parsed_parameters::parse_command;
 
 const EXIT_SUCCESS: i32 = 0;
 const EXIT_FAILURE: i32 = 1;
@@ -54,7 +55,14 @@ fn parse_and_execute_impl<'a, PI, CI>(program: &'a str,
     where PI: Iterator<Item = &'a String>,
           CI: Iterator<Item = &'a Command>
 {
-    let ppr = ParsedParameters::new(parameters, commands);
+    let cr = parse_command(parameters, commands);
+    if cr.is_err() {
+        help::print_program_help(&mut IoWriteAdapter::new_stderr(), program, commands).unwrap();
+        return EXIT_FAILURE;
+    }
+    let command = cr.ok().unwrap();
+
+    let ppr = ParsedParameters::new(command, parameters);
     if ppr.is_err() {
         help::print_program_help(&mut IoWriteAdapter::new_stderr(), program, commands).unwrap();
         return EXIT_FAILURE;

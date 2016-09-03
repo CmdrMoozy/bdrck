@@ -23,27 +23,6 @@ pub fn get_program_parameters() -> Vec<String> {
         .collect()
 }
 
-fn parse_command<'a, PI, CI>(parameters: &mut PI,
-                             commands: &mut CI)
-                             -> Result<&'a Command, ParamsError>
-    where PI: Iterator<Item = &'a String>,
-          CI: Iterator<Item = &'a Command>
-{
-    //! Look up by name the command indicated by the first element of the given
-    //! range of program parameters. If a matching command could not be found,
-    //! return None instead.
-
-    if let Some(command_parameter) = parameters.next() {
-        return commands.find(|&command| *command.get_name() == **command_parameter)
-            .map_or(Err(ParamsError {
-                        kind: ErrorKind::UnrecognizedCommand { name: (*command_parameter).clone() },
-                    }),
-                    |command| Ok(command));
-    }
-
-    Err(ParamsError { kind: ErrorKind::NoCommandSpecified })
-}
-
 fn build_default_options<'a>(parsed: &mut ParsedParameters<'a>) {
     //! Constructs maps for options and flags which contain the default values (if
     //! any) for each of the given command's options. Note that all flags have a
@@ -326,6 +305,27 @@ fn all_options_are_present<'a>(parsed: &ParsedParameters<'a>) -> Result<(), Para
     Ok(())
 }
 
+pub fn parse_command<'a, PI, CI>(parameters: &mut PI,
+                                 commands: &mut CI)
+                                 -> Result<&'a Command, ParamsError>
+    where PI: Iterator<Item = &'a String>,
+          CI: Iterator<Item = &'a Command>
+{
+    //! Look up by name the command indicated by the first element of the given
+    //! range of program parameters. If a matching command could not be found,
+    //! return None instead.
+
+    if let Some(command_parameter) = parameters.next() {
+        return commands.find(|&command| *command.get_name() == **command_parameter)
+            .map_or(Err(ParamsError {
+                        kind: ErrorKind::UnrecognizedCommand { name: (*command_parameter).clone() },
+                    }),
+                    |command| Ok(command));
+    }
+
+    Err(ParamsError { kind: ErrorKind::NoCommandSpecified })
+}
+
 /// This structure encapsulates the output from parsing the program's parameters
 /// according to a Command. It provides accessor functions to retrieve the
 /// values conveniently.
@@ -337,18 +337,17 @@ pub struct ParsedParameters<'a> {
 }
 
 impl<'a> ParsedParameters<'a> {
-    pub fn new<PI, CI>(parameters: &mut PI,
-                       commands: &mut CI)
-                       -> Result<ParsedParameters<'a>, ParamsError>
-        where PI: Iterator<Item = &'a String>,
-              CI: Iterator<Item = &'a Command>
+    pub fn new<PI>(command: &'a Command,
+                   parameters: &mut PI)
+                   -> Result<ParsedParameters<'a>, ParamsError>
+        where PI: Iterator<Item = &'a String>
     {
         //! Construct a new ParsedParameters instance by parsing the command,
         //! options, flags, and arguments from the given iterator over the set
         //! of program parameters.
 
         let mut parsed = ParsedParameters {
-            command: try!(parse_command(parameters, commands)),
+            command: command,
             options: HashMap::new(),
             flags: HashMap::new(),
             arguments: HashMap::new(),
@@ -421,6 +420,16 @@ mod test {
         return parse_command(&mut program_parameters.iter(), &mut commands.iter())
             .ok()
             .map_or(false, |c| *c.get_name() == expected_name);
+    }
+
+    fn parse_command_and_parameters<'a, PI, CI>(parameters: &mut PI,
+                                                commands: &mut CI)
+                                                -> Result<ParsedParameters<'a>, ParamsError>
+        where PI: Iterator<Item = &'a String>,
+              CI: Iterator<Item = &'a Command>
+    {
+        let command = try!(parse_command(parameters, commands));
+        ParsedParameters::new(command, parameters)
     }
 
     #[test]
@@ -671,7 +680,7 @@ mod test {
         expected_flags.insert("optf", true);
         expected_flags.insert("optg", false);
 
-        let pr = ParsedParameters::new(&mut parameters.iter(), &mut commands.iter());
+        let pr = parse_command_and_parameters(&mut parameters.iter(), &mut commands.iter());
         assert!(pr.is_ok());
         let parsed = pr.ok().unwrap();
 
@@ -724,7 +733,7 @@ mod test {
         expected_arguments.insert("argb", vec!["bar"]);
         expected_arguments.insert("argc", vec!["baz"]);
 
-        let pr = ParsedParameters::new(&mut parameters.iter(), &mut commands.iter());
+        let pr = parse_command_and_parameters(&mut parameters.iter(), &mut commands.iter());
         assert!(pr.is_ok());
         let parsed = pr.ok().unwrap();
 
@@ -776,7 +785,7 @@ mod test {
         expected_arguments.insert("argb", vec!["bar"]);
         expected_arguments.insert("argc", Vec::new());
 
-        let pr = ParsedParameters::new(&mut parameters.iter(), &mut commands.iter());
+        let pr = parse_command_and_parameters(&mut parameters.iter(), &mut commands.iter());
         assert!(pr.is_ok());
         let parsed = pr.ok().unwrap();
 
@@ -830,7 +839,7 @@ mod test {
         expected_arguments.insert("argb", vec!["bar"]);
         expected_arguments.insert("argc", vec!["baz", "quux"]);
 
-        let pr = ParsedParameters::new(&mut parameters.iter(), &mut commands.iter());
+        let pr = parse_command_and_parameters(&mut parameters.iter(), &mut commands.iter());
         assert!(pr.is_ok());
         let parsed = pr.ok().unwrap();
 
@@ -881,7 +890,7 @@ mod test {
         expected_arguments.insert("argb", vec!["dvb"]);
         expected_arguments.insert("argc", vec!["dvc"]);
 
-        let pr = ParsedParameters::new(&mut parameters.iter(), &mut commands.iter());
+        let pr = parse_command_and_parameters(&mut parameters.iter(), &mut commands.iter());
         assert!(pr.is_ok());
         let parsed = pr.ok().unwrap();
 
@@ -932,7 +941,7 @@ mod test {
         expected_arguments.insert("argb", vec!["dvb"]);
         expected_arguments.insert("argc", vec!["dvc1", "dvc2"]);
 
-        let pr = ParsedParameters::new(&mut parameters.iter(), &mut commands.iter());
+        let pr = parse_command_and_parameters(&mut parameters.iter(), &mut commands.iter());
         assert!(pr.is_ok());
         let parsed = pr.ok().unwrap();
 
