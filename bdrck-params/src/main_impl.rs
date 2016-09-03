@@ -19,9 +19,7 @@ pub fn main_impl_multiple_commands(commands: Vec<Command>) -> ! {
 
     let program = env::args().next().unwrap();
     let parameters = get_program_parameters();
-    process::exit(parse_and_execute_command(program.as_ref(),
-                                            &mut parameters.iter(),
-                                            &mut commands.iter()));
+    process::exit(parse_and_execute_command(program.as_ref(), &parameters, &commands));
 }
 
 pub fn main_impl_single_command(command: Command) -> ! {
@@ -36,5 +34,5 @@ pub fn main_impl_single_command(command: Command) -> ! {
 
     let program = env::args().next().unwrap();
     let parameters = get_program_parameters();
-    process::exit(parse_and_execute(program.as_ref(), &mut parameters.iter(), &command));
+    process::exit(parse_and_execute(program.as_ref(), parameters, command));
 }

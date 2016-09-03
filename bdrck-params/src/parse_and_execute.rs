@@ -46,27 +46,27 @@ impl fmt::Write for IoWriteAdapter {
     }
 }
 
-fn parse_and_execute_impl<'a, PI, CI>(program: &'a str,
-                                      parameters: &mut PI,
-                                      commands: &mut CI,
-                                      print_program_help: bool,
-                                      print_command_name: bool)
-                                      -> i32
-    where PI: Iterator<Item = &'a String>,
-          CI: Iterator<Item = &'a Command>
-{
+fn parse_and_execute_impl<'a>(program: &'a str,
+                              parameters: &'a Vec<String>,
+                              commands: &'a Vec<Command>,
+                              print_program_help: bool,
+                              print_command_name: bool)
+                              -> i32 {
     use std::fmt::Write;
 
-    let cr = parse_command(parameters, commands);
+    let cr = parse_command(&mut parameters.iter(), &mut commands.iter());
     if cr.is_err() {
         if print_program_help {
-            help::print_program_help(&mut IoWriteAdapter::new_stderr(), program, commands).unwrap();
+            help::print_program_help(&mut IoWriteAdapter::new_stderr(),
+                                     program,
+                                     &mut commands.iter())
+                .unwrap();
         }
         return EXIT_FAILURE;
     }
     let command = cr.ok().unwrap();
 
-    let ppr = ParsedParameters::new(command, parameters);
+    let ppr = ParsedParameters::new(command, &mut parameters.iter());
     if ppr.is_err() {
         let mut stderr = IoWriteAdapter::new_stderr();
         stderr.write_str(format!("ERROR: {}\n", ppr.err().unwrap()).as_ref()).unwrap();
@@ -78,13 +78,10 @@ fn parse_and_execute_impl<'a, PI, CI>(program: &'a str,
     EXIT_SUCCESS
 }
 
-pub fn parse_and_execute_command<'a, PI, CI>(program: &'a str,
-                                             parameters: &mut PI,
-                                             commands: &mut CI)
-                                             -> i32
-    where PI: Iterator<Item = &'a String>,
-          CI: Iterator<Item = &'a Command>
-{
+pub fn parse_and_execute_command<'a>(program: &'a str,
+                                     parameters: &'a Vec<String>,
+                                     commands: &'a Vec<Command>)
+                                     -> i32 {
     //! This function parses the given program parameters, and calls the
     //! appropriate command callback. It prints out usage information if the
     //! parameters are invalid, and returns a reasonable exit code for the process.
@@ -95,9 +92,7 @@ pub fn parse_and_execute_command<'a, PI, CI>(program: &'a str,
     parse_and_execute_impl(program, parameters, commands, true, true)
 }
 
-pub fn parse_and_execute<'a, PI>(program: &'a str, parameters: &mut PI, command: &'a Command) -> i32
-    where PI: Iterator<Item = &'a String>
-{
+pub fn parse_and_execute<'a>(program: &'a str, parameters: Vec<String>, command: Command) -> i32 {
     //! This function parses the given program parameters and calls the given
     //! command's callback. It prints out usage information if the parameters are
     //! invalid, and returns a reasonable exit code for the process.
@@ -105,12 +100,9 @@ pub fn parse_and_execute<'a, PI>(program: &'a str, parameters: &mut PI, command:
     //! This is the function which should be used for typical single-command
     //! programs.
 
-    let commands: Vec<&'a Command> = vec![command];
-    let command_parameters: Vec<&'a String> = vec![command.get_name()];
+    let commands: Vec<Command> = vec![command];
+    let command_parameters: Vec<String> = vec![commands[0].get_name().clone()];
+    let parameters: Vec<String> = command_parameters.into_iter().chain(parameters).collect();
 
-    parse_and_execute_impl(program,
-                           &mut command_parameters.into_iter().chain(parameters),
-                           &mut commands.into_iter(),
-                           false,
-                           false)
+    parse_and_execute_impl(program, &parameters, &commands, false, false)
 }
