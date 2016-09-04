@@ -54,7 +54,9 @@ fn parse_and_execute_impl<'a>(program: &'a str,
                               -> i32 {
     use std::fmt::Write;
 
-    let cr = parse_command(&mut parameters.iter(), &mut commands.iter());
+    let mut parameters_iterator = parameters.iter().peekable();
+
+    let cr = parse_command(&mut parameters_iterator, &mut commands.iter());
     if cr.is_err() {
         if print_program_help {
             help::print_program_help(&mut IoWriteAdapter::new_stderr(),
@@ -66,7 +68,7 @@ fn parse_and_execute_impl<'a>(program: &'a str,
     }
     let command = cr.ok().unwrap();
 
-    let ppr = ParsedParameters::new(command, &mut parameters.iter());
+    let ppr = ParsedParameters::new(command, &mut parameters_iterator);
     if ppr.is_err() {
         let mut stderr = IoWriteAdapter::new_stderr();
         stderr.write_str(format!("ERROR: {}\n", ppr.err().unwrap()).as_ref()).unwrap();
@@ -103,6 +105,56 @@ pub fn parse_and_execute<'a>(program: &'a str, parameters: Vec<String>, command:
     let commands: Vec<Command> = vec![command];
     let command_parameters: Vec<String> = vec![commands[0].get_name().clone()];
     let parameters: Vec<String> = command_parameters.into_iter().chain(parameters).collect();
+    println!("PARAMETERS: {:?}", parameters);
 
     parse_and_execute_impl(program, &parameters, &commands, false, false)
+}
+
+#[cfg(test)]
+mod test {
+    use std::collections::HashMap;
+
+    use super::EXIT_SUCCESS;
+    use super::parse_and_execute;
+    use super::super::argument::Argument;
+    use super::super::command::Command;
+    use super::super::option::Option;
+
+    #[test]
+    fn test_parse_and_execute_command() {}
+
+    #[test]
+    fn test_parse_and_execute() {
+        let callback: Box<Fn(&HashMap<&str, &str>,
+                             &HashMap<&str, bool>,
+                             &HashMap<&str, Vec<&str>>)> = Box::new(|options, flags, arguments| {
+            assert!(options.len() == 2);
+            assert!(flags.len() == 2);
+            assert!(arguments.len() == 1);
+        });
+        let program = "program".to_owned();
+        let parameters = vec![
+            "--opta=quuz".to_owned(),
+            "--flagb".to_owned(),
+            "baz".to_owned(),
+        ];
+        let command = Command::new("foobar".to_owned(),
+                                   "foobar".to_owned(),
+                                   vec![
+                Option::required("opta", "opta", None, None),
+                Option::required("optb", "optb", None, Some("oof")),
+                Option::flag("flaga", "flaga", None),
+                Option::flag("flagb", "flagb", None),
+            ],
+                                   vec![Argument {
+                                            name: "arga".to_owned(),
+                                            help: "arga".to_owned(),
+                                            default_value: None,
+                                        }],
+                                   false,
+                                   callback)
+            .unwrap();
+
+        assert!(parse_and_execute(program.as_ref(), parameters, command) == EXIT_SUCCESS);
+    }
 }

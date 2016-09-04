@@ -311,7 +311,7 @@ fn all_options_are_present<'a>(parsed: &ParsedParameters<'a>) -> Result<(), Para
     Ok(())
 }
 
-pub fn parse_command<'a, PI, CI>(parameters: &mut PI,
+pub fn parse_command<'a, PI, CI>(parameters: &mut Peekable<PI>,
                                  commands: &mut CI)
                                  -> Result<&'a Command, ParamsError>
     where PI: Iterator<Item = &'a String>,
@@ -344,7 +344,7 @@ pub struct ParsedParameters<'a> {
 
 impl<'a> ParsedParameters<'a> {
     pub fn new<PI>(command: &'a Command,
-                   parameters: &mut PI)
+                   parameters: &mut Peekable<PI>)
                    -> Result<ParsedParameters<'a>, ParamsError>
         where PI: Iterator<Item = &'a String>
     {
@@ -359,10 +359,9 @@ impl<'a> ParsedParameters<'a> {
             arguments: HashMap::new(),
         };
 
-        let mut peekable_parameters = parameters.peekable();
         build_default_options(&mut parsed);
-        try!(emplace_all_options(&mut peekable_parameters, &mut parsed));
-        try!(emplace_all_arguments(&mut peekable_parameters, &mut parsed));
+        try!(emplace_all_options(parameters, &mut parsed));
+        try!(emplace_all_arguments(parameters, &mut parsed));
         try!(all_options_are_present(&parsed));
 
         Ok(parsed)
@@ -388,6 +387,7 @@ impl<'a> ParsedParameters<'a> {
 #[cfg(test)]
 mod test {
     use std::collections::HashMap;
+    use std::iter::Peekable;
     use std::option::Option as Optional;
     use std::string::String;
     use std::vec::Vec;
@@ -423,12 +423,13 @@ mod test {
                            commands: &Vec<Command>,
                            expected_name: &str)
                            -> bool {
-        return parse_command(&mut program_parameters.iter(), &mut commands.iter())
+        return parse_command(&mut program_parameters.iter().peekable(),
+                             &mut commands.iter())
             .ok()
             .map_or(false, |c| *c.get_name() == expected_name);
     }
 
-    fn parse_command_and_parameters<'a, PI, CI>(parameters: &mut PI,
+    fn parse_command_and_parameters<'a, PI, CI>(parameters: &mut Peekable<PI>,
                                                 commands: &mut CI)
                                                 -> Result<ParsedParameters<'a>, ParamsError>
         where PI: Iterator<Item = &'a String>,
@@ -453,7 +454,10 @@ mod test {
     		build_command_for_test("baz"),
     	];
 
-        assert!(parse_command(&mut program_parameters.iter(), &mut commands.iter()).ok().is_none());
+        assert!(parse_command(&mut program_parameters.iter().peekable(),
+                              &mut commands.iter())
+            .ok()
+            .is_none());
     }
 
     #[test]
@@ -670,7 +674,8 @@ mod test {
         expected_flags.insert("optf", true);
         expected_flags.insert("optg", false);
 
-        let pr = parse_command_and_parameters(&mut parameters.iter(), &mut commands.iter());
+        let pr = parse_command_and_parameters(&mut parameters.iter().peekable(),
+                                              &mut commands.iter());
         assert!(pr.is_ok());
         let parsed = pr.ok().unwrap();
 
@@ -723,7 +728,8 @@ mod test {
         expected_arguments.insert("argb", vec!["bar"]);
         expected_arguments.insert("argc", vec!["baz"]);
 
-        let pr = parse_command_and_parameters(&mut parameters.iter(), &mut commands.iter());
+        let pr = parse_command_and_parameters(&mut parameters.iter().peekable(),
+                                              &mut commands.iter());
         assert!(pr.is_ok());
         let parsed = pr.ok().unwrap();
 
@@ -775,7 +781,8 @@ mod test {
         expected_arguments.insert("argb", vec!["bar"]);
         expected_arguments.insert("argc", Vec::new());
 
-        let pr = parse_command_and_parameters(&mut parameters.iter(), &mut commands.iter());
+        let pr = parse_command_and_parameters(&mut parameters.iter().peekable(),
+                                              &mut commands.iter());
         assert!(pr.is_ok());
         let parsed = pr.ok().unwrap();
 
@@ -829,7 +836,8 @@ mod test {
         expected_arguments.insert("argb", vec!["bar"]);
         expected_arguments.insert("argc", vec!["baz", "quux"]);
 
-        let pr = parse_command_and_parameters(&mut parameters.iter(), &mut commands.iter());
+        let pr = parse_command_and_parameters(&mut parameters.iter().peekable(),
+                                              &mut commands.iter());
         assert!(pr.is_ok());
         let parsed = pr.ok().unwrap();
 
@@ -880,7 +888,8 @@ mod test {
         expected_arguments.insert("argb", vec!["dvb"]);
         expected_arguments.insert("argc", vec!["dvc"]);
 
-        let pr = parse_command_and_parameters(&mut parameters.iter(), &mut commands.iter());
+        let pr = parse_command_and_parameters(&mut parameters.iter().peekable(),
+                                              &mut commands.iter());
         assert!(pr.is_ok());
         let parsed = pr.ok().unwrap();
 
@@ -931,7 +940,8 @@ mod test {
         expected_arguments.insert("argb", vec!["dvb"]);
         expected_arguments.insert("argc", vec!["dvc1", "dvc2"]);
 
-        let pr = parse_command_and_parameters(&mut parameters.iter(), &mut commands.iter());
+        let pr = parse_command_and_parameters(&mut parameters.iter().peekable(),
+                                              &mut commands.iter());
         assert!(pr.is_ok());
         let parsed = pr.ok().unwrap();
 
@@ -973,7 +983,8 @@ mod test {
         let mut expected_arguments = HashMap::new();
         expected_arguments.insert("arga", vec!["foo"]);
 
-        let pr = parse_command_and_parameters(&mut parameters.iter(), &mut commands.iter());
+        let pr = parse_command_and_parameters(&mut parameters.iter().peekable(),
+                                              &mut commands.iter());
         assert!(pr.is_ok());
         let parsed = pr.ok().unwrap();
 
@@ -1018,7 +1029,8 @@ mod test {
         let mut expected_arguments = HashMap::new();
         expected_arguments.insert("arga", vec!["foo"]);
 
-        let pr = parse_command_and_parameters(&mut parameters.iter(), &mut commands.iter());
+        let pr = parse_command_and_parameters(&mut parameters.iter().peekable(),
+                                              &mut commands.iter());
         assert!(pr.is_ok());
         let parsed = pr.ok().unwrap();
 
