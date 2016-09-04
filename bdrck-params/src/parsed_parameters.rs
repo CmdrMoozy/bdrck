@@ -103,9 +103,15 @@ fn next_option_parameters<'a, PI, OI>(parameters: &mut Peekable<PI>,
         option_obj = oo.unwrap();
     }
 
-    let next_parameter_is_value: bool = parameters.peek().map_or(false, |v| !v.starts_with("-"));
-    if next_parameter_is_value && value.is_none() {
-        value = Some(parameters.next().unwrap().as_ref());
+    // Search for the value in the next parameter, if this option is not a flag.
+    // For flags, because explicit values are optional, it is ambiguous whether or
+    // not the next parameter is a flag value or an argument.
+    if !option_obj.is_flag {
+        let next_parameter_is_value: bool = parameters.peek()
+            .map_or(false, |v| !v.starts_with("-"));
+        if next_parameter_is_value && value.is_none() {
+            value = Some(parameters.next().unwrap().as_ref());
+        }
     }
 
     Ok(Some(OptionParameters {
@@ -615,22 +621,6 @@ mod test {
                     value: Some("false"),
                     bool_value: Some(false),
                 }))),
-            TestCase(
-                vec!["-foobar".to_owned(), "false".to_owned()],
-                vec![Option::flag("foobar", "foobar", Some('f'))],
-                Ok(Some(ParsedOption {
-                    name: "foobar",
-                    value: Some("false"),
-                    bool_value: Some(false),
-                }))),
-            TestCase(
-                vec!["--f".to_owned(), "true".to_owned()],
-                vec![Option::flag("foobar", "foobar", Some('f'))],
-                Ok(Some(ParsedOption {
-                    name: "foobar",
-                    value: Some("true"),
-                    bool_value: Some(true),
-                }))),
         ];
 
         for test_case in &test_cases {
@@ -946,6 +936,96 @@ mod test {
         let parsed = pr.ok().unwrap();
 
         assert!(*parsed.command.get_name() == *commands[0].get_name());
+        assert!(parsed.arguments.len() == expected_arguments.len());
+        assert!(parsed.arguments == expected_arguments);
+    }
+
+    #[test]
+    fn test_parsed_parameters_flag_and_arguments() {
+        let parameters: Vec<String> = vec![
+            "foobar".to_owned(),
+            "--flag".to_owned(),
+            "foo".to_owned(),
+        ];
+
+        let commands = vec![
+            Command::new(
+                "foobar".to_owned(),
+                "foobar".to_owned(),
+                vec![
+                    Option::flag("flag", "flag", Some('f')),
+                ],
+                vec![
+                    Argument {
+                        name: "arga".to_owned(),
+                        help: "arga".to_owned(),
+                        default_value: None,
+                    },
+                ],
+                false,
+                Box::new(noop_callback)
+            ).ok().unwrap(),
+        ];
+
+        let mut expected_flags = HashMap::new();
+        expected_flags.insert("flag", true);
+
+        let mut expected_arguments = HashMap::new();
+        expected_arguments.insert("arga", vec!["foo"]);
+
+        let pr = parse_command_and_parameters(&mut parameters.iter(), &mut commands.iter());
+        assert!(pr.is_ok());
+        let parsed = pr.ok().unwrap();
+
+        assert!(*parsed.command.get_name() == *commands[0].get_name());
+        assert!(parsed.options.len() == 0);
+        assert!(parsed.flags.len() == expected_flags.len());
+        assert!(parsed.flags == expected_flags);
+        assert!(parsed.arguments.len() == expected_arguments.len());
+        assert!(parsed.arguments == expected_arguments);
+    }
+
+    #[test]
+    fn test_parsed_parameters_flag_value_and_arguments() {
+        let parameters: Vec<String> = vec![
+            "foobar".to_owned(),
+            "--flag=true".to_owned(),
+            "foo".to_owned(),
+        ];
+
+        let commands = vec![
+            Command::new(
+                "foobar".to_owned(),
+                "foobar".to_owned(),
+                vec![
+                    Option::flag("flag", "flag", Some('f')),
+                ],
+                vec![
+                    Argument {
+                        name: "arga".to_owned(),
+                        help: "arga".to_owned(),
+                        default_value: None,
+                    },
+                ],
+                false,
+                Box::new(noop_callback)
+            ).ok().unwrap(),
+        ];
+
+        let mut expected_flags = HashMap::new();
+        expected_flags.insert("flag", true);
+
+        let mut expected_arguments = HashMap::new();
+        expected_arguments.insert("arga", vec!["foo"]);
+
+        let pr = parse_command_and_parameters(&mut parameters.iter(), &mut commands.iter());
+        assert!(pr.is_ok());
+        let parsed = pr.ok().unwrap();
+
+        assert!(*parsed.command.get_name() == *commands[0].get_name());
+        assert!(parsed.options.len() == 0);
+        assert!(parsed.flags.len() == expected_flags.len());
+        assert!(parsed.flags == expected_flags);
         assert!(parsed.arguments.len() == expected_arguments.len());
         assert!(parsed.arguments == expected_arguments);
     }
