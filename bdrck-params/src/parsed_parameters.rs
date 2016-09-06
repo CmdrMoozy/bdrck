@@ -379,9 +379,7 @@ impl<'a> ParsedParameters<'a> {
         self.arguments.get(&name.as_ref())
     }
 
-    pub fn execute(&self) {
-        self.command.get_callback()(&self.options, &self.flags, &self.arguments);
-    }
+    pub fn execute(&self) { self.command.execute(&self.options, &self.flags, &self.arguments); }
 }
 
 #[cfg(test)]

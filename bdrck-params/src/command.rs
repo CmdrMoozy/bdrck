@@ -89,10 +89,11 @@ impl Command {
     pub fn get_options(&self) -> &Vec<Option> { &self.options }
     pub fn get_arguments(&self) -> &Vec<Argument> { &self.arguments }
     pub fn last_argument_is_variadic(&self) -> bool { self.last_argument_is_variadic }
-    pub fn get_callback(&self)
-                        -> &Fn(&HashMap<&str, &str>,
-                               &HashMap<&str, bool>,
-                               &HashMap<&str, Vec<&str>>) {
-        self.callback.as_ref()
+
+    pub fn execute(&self,
+                   options: &HashMap<&str, &str>,
+                   flags: &HashMap<&str, bool>,
+                   arguments: &HashMap<&str, Vec<&str>>) {
+        self.callback.as_ref()(options, flags, arguments);
     }
 }
