@@ -138,13 +138,14 @@ mod test {
 
     #[test]
     fn test_parse_and_execute() {
-        let callback: Box<Fn(&HashMap<&str, &str>,
+        let callback: Box<Fn(&HashMap<&str, String>,
                              &HashMap<&str, bool>,
-                             &HashMap<&str, Vec<&str>>)> = Box::new(|options, flags, arguments| {
-            assert!(options.len() == 2);
-            assert!(flags.len() == 2);
-            assert!(arguments.len() == 1);
-        });
+                             &HashMap<&str, Vec<String>>)> =
+            Box::new(|options, flags, arguments| {
+                assert!(options.len() == 2);
+                assert!(flags.len() == 2);
+                assert!(arguments.len() == 1);
+            });
         let program = "program".to_owned();
         let parameters = vec![
             "--opta=quuz".to_owned(),

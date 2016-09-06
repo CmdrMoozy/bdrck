@@ -79,9 +79,9 @@ impl PartialEq for Command {
 /// be called to execute the command in question.
 pub struct ExecutableCommand<'a> {
     command: &'a Command,
-    callback: Box<Fn(&HashMap<&str, &str>,
+    callback: Box<Fn(&HashMap<&str, String>,
                      &HashMap<&str, bool>,
-                     &HashMap<&str, Vec<&str>>)>,
+                     &HashMap<&str, Vec<String>>)>,
 }
 
 impl<'a> fmt::Debug for ExecutableCommand<'a> {
@@ -97,9 +97,9 @@ impl<'a> PartialEq<Command> for ExecutableCommand<'a> {
 
 impl<'a> ExecutableCommand<'a> {
     pub fn new(command: &'a Command,
-               callback: Box<Fn(&HashMap<&str, &str>,
+               callback: Box<Fn(&HashMap<&str, String>,
                                 &HashMap<&str, bool>,
-                                &HashMap<&str, Vec<&str>>)>)
+                                &HashMap<&str, Vec<String>>)>)
                -> ExecutableCommand<'a> {
         ExecutableCommand {
             command: command,
@@ -110,9 +110,9 @@ impl<'a> ExecutableCommand<'a> {
     pub fn get_command(&self) -> &'a Command { self.command }
 
     pub fn execute(&self,
-                   options: &HashMap<&str, &str>,
+                   options: &HashMap<&str, String>,
                    flags: &HashMap<&str, bool>,
-                   arguments: &HashMap<&str, Vec<&str>>) {
+                   arguments: &HashMap<&str, Vec<String>>) {
         self.callback.as_ref()(options, flags, arguments);
     }
 }
