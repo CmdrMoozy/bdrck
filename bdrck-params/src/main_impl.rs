@@ -2,12 +2,12 @@ use std::env;
 use std::process;
 use std::vec::Vec;
 
-use super::command::Command;
+use super::command::ExecutableCommand;
 use super::parse_and_execute::parse_and_execute;
 use super::parse_and_execute::parse_and_execute_command;
 use super::parsed_parameters::get_program_parameters;
 
-pub fn main_impl_multiple_commands(commands: Vec<Command>) -> ! {
+pub fn main_impl_multiple_commands(commands: Vec<ExecutableCommand>) -> ! {
     //! Parses command-line parameters and executes the specified command.
     //!
     //! This function exits this process with an appropriate exit code. Like
@@ -22,7 +22,7 @@ pub fn main_impl_multiple_commands(commands: Vec<Command>) -> ! {
     process::exit(parse_and_execute_command(program.as_ref(), &parameters, &commands));
 }
 
-pub fn main_impl_single_command(command: Command) -> ! {
+pub fn main_impl_single_command(command: ExecutableCommand) -> ! {
     //! Parses command-line parameters and executes the given command.
     //!
     //! This function exits this process with an appropriate exit code. Like

@@ -4,7 +4,7 @@ use std::io;
 use std::string::String;
 use std::vec::Vec;
 
-use super::command::Command;
+use super::command::ExecutableCommand;
 use super::help;
 use super::parsed_parameters::ParsedParameters;
 use super::parsed_parameters::parse_command;
@@ -46,9 +46,16 @@ impl fmt::Write for IoWriteAdapter {
     }
 }
 
+fn execute_command<'a>(parsed_parameters: &'a ParsedParameters,
+                       commands: &'a Vec<ExecutableCommand>) {
+    let executable_command =
+        commands.iter().skip_while(|ec| *ec != parsed_parameters.get_command()).next().unwrap();
+    parsed_parameters.execute(executable_command);
+}
+
 fn parse_and_execute_impl<'a>(program: &'a str,
                               parameters: &'a Vec<String>,
-                              commands: &'a Vec<Command>,
+                              commands: &'a Vec<ExecutableCommand>,
                               print_program_help: bool,
                               print_command_name: bool)
                               -> i32 {
@@ -56,12 +63,13 @@ fn parse_and_execute_impl<'a>(program: &'a str,
 
     let mut parameters_iterator = parameters.iter().peekable();
 
-    let cr = parse_command(&mut parameters_iterator, &mut commands.iter());
+    let cr = parse_command(&mut parameters_iterator,
+                           &mut commands.iter().map(|ec| ec.get_command()));
     if cr.is_err() {
         if print_program_help {
             help::print_program_help(&mut IoWriteAdapter::new_stderr(),
                                      program,
-                                     &mut commands.iter())
+                                     &mut commands.iter().map(|ec| ec.get_command()))
                 .unwrap();
         }
         return EXIT_FAILURE;
@@ -75,14 +83,16 @@ fn parse_and_execute_impl<'a>(program: &'a str,
         help::print_command_help(&mut stderr, program, command, print_command_name).unwrap();
         return EXIT_FAILURE;
     }
-    ppr.unwrap().execute();
+    let parsed_parameters = ppr.unwrap();
+
+    execute_command(&parsed_parameters, commands);
 
     EXIT_SUCCESS
 }
 
 pub fn parse_and_execute_command<'a>(program: &'a str,
                                      parameters: &'a Vec<String>,
-                                     commands: &'a Vec<Command>)
+                                     commands: &'a Vec<ExecutableCommand>)
                                      -> i32 {
     //! This function parses the given program parameters, and calls the
     //! appropriate command callback. It prints out usage information if the
@@ -94,7 +104,10 @@ pub fn parse_and_execute_command<'a>(program: &'a str,
     parse_and_execute_impl(program, parameters, commands, true, true)
 }
 
-pub fn parse_and_execute<'a>(program: &'a str, parameters: Vec<String>, command: Command) -> i32 {
+pub fn parse_and_execute<'a>(program: &'a str,
+                             parameters: Vec<String>,
+                             command: ExecutableCommand)
+                             -> i32 {
     //! This function parses the given program parameters and calls the given
     //! command's callback. It prints out usage information if the parameters are
     //! invalid, and returns a reasonable exit code for the process.
@@ -102,8 +115,8 @@ pub fn parse_and_execute<'a>(program: &'a str, parameters: Vec<String>, command:
     //! This is the function which should be used for typical single-command
     //! programs.
 
-    let commands: Vec<Command> = vec![command];
-    let command_parameters: Vec<String> = vec![commands[0].get_name().clone()];
+    let commands = vec![command];
+    let command_parameters: Vec<String> = vec![commands[0].get_command().get_name().clone()];
     let parameters: Vec<String> = command_parameters.into_iter().chain(parameters).collect();
     println!("PARAMETERS: {:?}", parameters);
 
@@ -118,6 +131,7 @@ mod test {
     use super::parse_and_execute;
     use super::super::argument::Argument;
     use super::super::command::Command;
+    use super::super::command::ExecutableCommand;
     use super::super::option::Option;
 
     #[test]
@@ -151,10 +165,11 @@ mod test {
                                             help: "arga".to_owned(),
                                             default_value: None,
                                         }],
-                                   false,
-                                   callback)
+                                   false)
             .unwrap();
+        let executable_command = ExecutableCommand::new(&command, callback);
 
-        assert!(parse_and_execute(program.as_ref(), parameters, command) == EXIT_SUCCESS);
+        assert!(parse_and_execute(program.as_ref(), parameters, executable_command) ==
+                EXIT_SUCCESS);
     }
 }

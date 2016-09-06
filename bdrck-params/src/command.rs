@@ -11,29 +11,13 @@ use super::option::Option;
 /// A command is a single sub-command for a given program. Each command has
 /// its own description as well as sets of options and arguments that it
 /// accepts.
+#[derive(Debug)]
 pub struct Command {
     name: String,
     help: String,
     options: Vec<Option>,
     arguments: Vec<Argument>,
     last_argument_is_variadic: bool,
-    callback: Box<Fn(&HashMap<&str, &str>,
-                     &HashMap<&str, bool>,
-                     &HashMap<&str, Vec<&str>>)>,
-}
-
-impl fmt::Debug for Command {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        try!(f.write_str(format!("Command {{ name: {:#?}, help: {:#?}, options: {:#?}, \
-                                  arguments: {:#?}, last_argument_is_variadic: {:#?} }}",
-                                 self.name,
-                                 self.help,
-                                 self.options,
-                                 self.arguments,
-                                 self.last_argument_is_variadic)
-            .as_ref()));
-        Ok(())
-    }
 }
 
 impl Command {
@@ -41,10 +25,7 @@ impl Command {
                help: String,
                options: Vec<Option>,
                arguments: Vec<Argument>,
-               last_argument_is_variadic: bool,
-               callback: Box<Fn(&HashMap<&str, &str>,
-                                &HashMap<&str, bool>,
-                                &HashMap<&str, Vec<&str>>)>)
+               last_argument_is_variadic: bool)
                -> Result<Command, ParamsError> {
         //! Constructs a new Command structure. Performs some validation on the inputs,
         //! and returns either a valid Command or an appropriate error.
@@ -80,7 +61,6 @@ impl Command {
             options: options,
             arguments: arguments,
             last_argument_is_variadic: last_argument_is_variadic,
-            callback: callback,
         })
     }
 
@@ -89,6 +69,45 @@ impl Command {
     pub fn get_options(&self) -> &Vec<Option> { &self.options }
     pub fn get_arguments(&self) -> &Vec<Argument> { &self.arguments }
     pub fn last_argument_is_variadic(&self) -> bool { self.last_argument_is_variadic }
+}
+
+impl PartialEq for Command {
+    fn eq(&self, other: &Command) -> bool { self.name == other.name }
+}
+
+/// An ExecutableCommand is a Command alongside a callback function which can
+/// be called to execute the command in question.
+pub struct ExecutableCommand<'a> {
+    command: &'a Command,
+    callback: Box<Fn(&HashMap<&str, &str>,
+                     &HashMap<&str, bool>,
+                     &HashMap<&str, Vec<&str>>)>,
+}
+
+impl<'a> fmt::Debug for ExecutableCommand<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        try!(f.write_str(format!("{:#?}", self.command).as_ref()));
+        Ok(())
+    }
+}
+
+impl<'a> PartialEq<Command> for ExecutableCommand<'a> {
+    fn eq(&self, other: &Command) -> bool { self.command == other }
+}
+
+impl<'a> ExecutableCommand<'a> {
+    pub fn new(command: &'a Command,
+               callback: Box<Fn(&HashMap<&str, &str>,
+                                &HashMap<&str, bool>,
+                                &HashMap<&str, Vec<&str>>)>)
+               -> ExecutableCommand<'a> {
+        ExecutableCommand {
+            command: command,
+            callback: callback,
+        }
+    }
+
+    pub fn get_command(&self) -> &'a Command { self.command }
 
     pub fn execute(&self,
                    options: &HashMap<&str, &str>,

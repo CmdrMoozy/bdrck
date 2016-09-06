@@ -10,6 +10,7 @@ use super::ErrorKind;
 use super::ParamsError;
 use super::argument::Argument;
 use super::command::Command;
+use super::command::ExecutableCommand;
 use super::option::Option;
 use super::option::find_option;
 
@@ -367,6 +368,8 @@ impl<'a> ParsedParameters<'a> {
         Ok(parsed)
     }
 
+    pub fn get_command(&self) -> &Command { self.command }
+
     pub fn get_option<'b>(&'b self, name: &'b str) -> Optional<&&str> {
         self.options.get(&name.as_ref())
     }
@@ -379,7 +382,9 @@ impl<'a> ParsedParameters<'a> {
         self.arguments.get(&name.as_ref())
     }
 
-    pub fn execute(&self) { self.command.execute(&self.options, &self.flags, &self.arguments); }
+    pub fn execute(&self, executable_command: &ExecutableCommand<'a>) {
+        executable_command.execute(&self.options, &self.flags, &self.arguments);
+    }
 }
 
 #[cfg(test)]
@@ -401,18 +406,12 @@ mod test {
     use super::super::command::Command;
     use super::super::option::Option;
 
-    fn noop_callback(_: &HashMap<&str, &str>,
-                     _: &HashMap<&str, bool>,
-                     _: &HashMap<&str, Vec<&str>>) {
-    }
-
     fn build_command_for_test(name: &str) -> Command {
         Command::new(name.to_owned(),
                      name.to_owned(),
                      Vec::new(),
                      Vec::new(),
-                     false,
-                     Box::new(noop_callback))
+                     false)
             .ok()
             .unwrap()
     }
@@ -506,8 +505,7 @@ mod test {
                 Option::flag("h", "h", Some('h')),
             ],
                                    Vec::new(),
-                                   false,
-                                   Box::new(noop_callback))
+                                   false)
             .ok()
             .unwrap();
 
@@ -657,8 +655,7 @@ mod test {
                     Option::flag("optg", "optg", Some('g')),
                 ],
                 Vec::new(),
-                false,
-                Box::new(noop_callback)
+                false
             ).ok().unwrap(),
         ];
 
@@ -716,8 +713,7 @@ mod test {
                         default_value: None,
                     },
                 ],
-                false,
-                Box::new(noop_callback)
+                false
             ).ok().unwrap(),
         ];
 
@@ -769,8 +765,7 @@ mod test {
                         default_value: None,
                     },
                 ],
-                true,
-                Box::new(noop_callback)
+                true
             ).ok().unwrap(),
         ];
 
@@ -824,8 +819,7 @@ mod test {
                         default_value: None,
                     },
                 ],
-                true,
-                Box::new(noop_callback)
+                true
             ).ok().unwrap(),
         ];
 
@@ -876,8 +870,7 @@ mod test {
                         default_value: Some(vec!["dvc".to_owned()]),
                     },
                 ],
-                false,
-                Box::new(noop_callback)
+                false
             ).ok().unwrap(),
         ];
 
@@ -928,8 +921,7 @@ mod test {
                         default_value: Some(vec!["dvc1".to_owned(), "dvc2".to_owned()]),
                     },
                 ],
-                true,
-                Box::new(noop_callback)
+                true
             ).ok().unwrap(),
         ];
 
@@ -970,8 +962,7 @@ mod test {
                         default_value: None,
                     },
                 ],
-                false,
-                Box::new(noop_callback)
+                false
             ).ok().unwrap(),
         ];
 
@@ -1016,8 +1007,7 @@ mod test {
                         default_value: None,
                     },
                 ],
-                false,
-                Box::new(noop_callback)
+                false
             ).ok().unwrap(),
         ];
 
