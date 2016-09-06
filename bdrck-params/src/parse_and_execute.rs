@@ -46,15 +46,16 @@ impl fmt::Write for IoWriteAdapter {
     }
 }
 
-fn execute_command(parsed_parameters: &ParsedParameters, commands: &Vec<ExecutableCommand>) {
+fn execute_command<'cl>(parsed_parameters: &ParsedParameters<'cl>,
+                        commands: &mut Vec<ExecutableCommand<'cl>>) {
     let executable_command =
-        commands.iter().skip_while(|ec| *ec != parsed_parameters.get_command()).next().unwrap();
+        commands.iter_mut().skip_while(|ec| *ec != parsed_parameters.get_command()).next().unwrap();
     parsed_parameters.execute(executable_command);
 }
 
 fn parse_and_execute_impl(program: &str,
                           parameters: &Vec<String>,
-                          commands: &Vec<ExecutableCommand>,
+                          commands: &mut Vec<ExecutableCommand>,
                           print_program_help: bool,
                           print_command_name: bool)
                           -> i32 {
@@ -91,7 +92,7 @@ fn parse_and_execute_impl(program: &str,
 
 pub fn parse_and_execute_command(program: &str,
                                  parameters: &Vec<String>,
-                                 commands: &Vec<ExecutableCommand>)
+                                 commands: &mut Vec<ExecutableCommand>)
                                  -> i32 {
     //! This function parses the given program parameters, and calls the
     //! appropriate command callback. It prints out usage information if the
@@ -114,12 +115,11 @@ pub fn parse_and_execute(program: &str,
     //! This is the function which should be used for typical single-command
     //! programs.
 
-    let commands = vec![command];
+    let mut commands = vec![command];
     let command_parameters: Vec<String> = vec![commands[0].get_command().get_name().clone()];
     let parameters: Vec<String> = command_parameters.into_iter().chain(parameters).collect();
-    println!("PARAMETERS: {:?}", parameters);
 
-    parse_and_execute_impl(program, &parameters, &commands, false, false)
+    parse_and_execute_impl(program, &parameters, &mut commands, false, false)
 }
 
 #[cfg(test)]
@@ -138,9 +138,9 @@ mod test {
 
     #[test]
     fn test_parse_and_execute() {
-        let callback: Box<Fn(&HashMap<&str, String>,
-                             &HashMap<&str, bool>,
-                             &HashMap<&str, Vec<String>>)> =
+        let callback: Box<FnMut(&HashMap<&str, String>,
+                                &HashMap<&str, bool>,
+                                &HashMap<&str, Vec<String>>)> =
             Box::new(|options, flags, arguments| {
                 assert!(options.len() == 2);
                 assert!(flags.len() == 2);

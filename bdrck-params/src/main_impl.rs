@@ -7,7 +7,7 @@ use super::parse_and_execute::parse_and_execute;
 use super::parse_and_execute::parse_and_execute_command;
 use super::parsed_parameters::get_program_parameters;
 
-pub fn main_impl_multiple_commands(commands: Vec<ExecutableCommand>) -> ! {
+pub fn main_impl_multiple_commands(mut commands: Vec<ExecutableCommand>) -> ! {
     //! Parses command-line parameters and executes the specified command.
     //!
     //! This function exits this process with an appropriate exit code. Like
@@ -19,7 +19,7 @@ pub fn main_impl_multiple_commands(commands: Vec<ExecutableCommand>) -> ! {
 
     let program = env::args().next().unwrap();
     let parameters = get_program_parameters();
-    process::exit(parse_and_execute_command(program.as_ref(), &parameters, &commands));
+    process::exit(parse_and_execute_command(program.as_ref(), &parameters, &mut commands));
 }
 
 pub fn main_impl_single_command(command: ExecutableCommand) -> ! {
