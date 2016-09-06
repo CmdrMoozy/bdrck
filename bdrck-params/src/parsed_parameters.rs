@@ -41,7 +41,6 @@ fn build_default_options(parsed: &mut ParsedParameters) {
 /// An option parameter is the string representation of an option, extracted
 /// from an iterator over program parameters.
 struct OptionParameters<'a> {
-    name: &'a str,
     value: Optional<&'a str>,
     option_obj: &'a Option,
 }
@@ -116,7 +115,6 @@ fn next_option_parameters<'a, PI, OI>(parameters: &mut Peekable<PI>,
     }
 
     Ok(Some(OptionParameters {
-        name: option_obj.name.as_ref(),
         value: value,
         option_obj: option_obj,
     }))
@@ -161,7 +159,7 @@ fn parse_option<'a, PI, OI>(parameters: &mut Peekable<PI>,
 
     if !option_parameters.option_obj.is_flag && option_parameters.value.is_none() {
         return Err(ParamsError {
-            kind: ErrorKind::MissingOptionValue { name: option_parameters.name.to_owned() },
+            kind: ErrorKind::MissingOptionValue { name: option_parameters.option_obj.name.clone() },
         });
     }
 
@@ -179,7 +177,7 @@ fn parse_option<'a, PI, OI>(parameters: &mut Peekable<PI>,
     }
 
     Ok(Some(ParsedOption {
-        name: option_parameters.name,
+        name: option_parameters.option_obj.name.as_str(),
         value: option_parameters.value,
         bool_value: bool_value,
     }))
