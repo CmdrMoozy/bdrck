@@ -24,7 +24,7 @@ pub fn get_program_parameters() -> Vec<String> {
         .collect()
 }
 
-fn build_default_options<'a>(parsed: &mut ParsedParameters<'a>) {
+fn build_default_options(parsed: &mut ParsedParameters) {
     //! Constructs maps for options and flags which contain the default values (if
     //! any) for each of the given command's options. Note that all flags have a
     //! default value of false.
@@ -46,7 +46,7 @@ struct OptionParameters<'a> {
     option_obj: &'a Option,
 }
 
-fn extract_option_name_and_value<'a>(option_parameter: &'a str) -> (&'a str, Optional<&'a str>) {
+fn extract_option_name_and_value(option_parameter: &str) -> (&str, Optional<&str>) {
     //! Extracts the option name (and, if one is present, the option value) from
     //! the given single option parameter. This involves stripping off the leading
     //! "-" or "--" prefix, and splitting the given parameter on its "=" character
@@ -129,7 +129,7 @@ struct ParsedOption<'a> {
     bool_value: Optional<bool>,
 }
 
-fn parse_bool<'a>(value: &'a str) -> Result<bool, ParamsError> {
+fn parse_bool(value: &str) -> Result<bool, ParamsError> {
     //! Return the boolean interpretation of a string, or an error if the string
     //! isn't recognized as a valid boolean value.
 
@@ -292,7 +292,7 @@ fn emplace_all_arguments<'a, PI>(parameters: &mut Peekable<PI>,
     Ok(())
 }
 
-fn all_options_are_present<'a>(parsed: &ParsedParameters<'a>) -> Result<(), ParamsError> {
+fn all_options_are_present(parsed: &ParsedParameters) -> Result<(), ParamsError> {
     //! Checks if all of the given command's options are present in the given map
     //! of option names to values. If an option is missing, returns an error with
     //! more detailed information. Otherwise, returns None.

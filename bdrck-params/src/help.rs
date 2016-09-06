@@ -5,7 +5,7 @@ use std::result::Result;
 use super::command::Command;
 
 pub fn print_program_help<'a, CI>(f: &mut Write,
-                                  program: &'a str,
+                                  program: &str,
                                   mut commands: CI)
                                   -> Result<(), Error>
     where CI: Iterator<Item = &'a Command>
@@ -19,11 +19,11 @@ pub fn print_program_help<'a, CI>(f: &mut Write,
     Ok(())
 }
 
-pub fn print_command_help<'a>(f: &mut Write,
-                              program: &'a str,
-                              command: &'a Command,
-                              print_command_name: bool)
-                              -> Result<(), Error> {
+pub fn print_command_help(f: &mut Write,
+                          program: &str,
+                          command: &Command,
+                          print_command_name: bool)
+                          -> Result<(), Error> {
     try!(f.write_str(format!("Usage: {} ", program).as_ref()));
     if print_command_name {
         try!(f.write_str(format!("{} ", command.get_name()).as_ref()));

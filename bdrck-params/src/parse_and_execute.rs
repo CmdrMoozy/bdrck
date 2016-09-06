@@ -46,19 +46,18 @@ impl fmt::Write for IoWriteAdapter {
     }
 }
 
-fn execute_command<'a>(parsed_parameters: &'a ParsedParameters,
-                       commands: &'a Vec<ExecutableCommand>) {
+fn execute_command(parsed_parameters: &ParsedParameters, commands: &Vec<ExecutableCommand>) {
     let executable_command =
         commands.iter().skip_while(|ec| *ec != parsed_parameters.get_command()).next().unwrap();
     parsed_parameters.execute(executable_command);
 }
 
-fn parse_and_execute_impl<'a>(program: &'a str,
-                              parameters: &'a Vec<String>,
-                              commands: &'a Vec<ExecutableCommand>,
-                              print_program_help: bool,
-                              print_command_name: bool)
-                              -> i32 {
+fn parse_and_execute_impl(program: &str,
+                          parameters: &Vec<String>,
+                          commands: &Vec<ExecutableCommand>,
+                          print_program_help: bool,
+                          print_command_name: bool)
+                          -> i32 {
     use std::fmt::Write;
 
     let mut parameters_iterator = parameters.iter().peekable();
@@ -90,10 +89,10 @@ fn parse_and_execute_impl<'a>(program: &'a str,
     EXIT_SUCCESS
 }
 
-pub fn parse_and_execute_command<'a>(program: &'a str,
-                                     parameters: &'a Vec<String>,
-                                     commands: &'a Vec<ExecutableCommand>)
-                                     -> i32 {
+pub fn parse_and_execute_command(program: &str,
+                                 parameters: &Vec<String>,
+                                 commands: &Vec<ExecutableCommand>)
+                                 -> i32 {
     //! This function parses the given program parameters, and calls the
     //! appropriate command callback. It prints out usage information if the
     //! parameters are invalid, and returns a reasonable exit code for the process.
@@ -104,10 +103,10 @@ pub fn parse_and_execute_command<'a>(program: &'a str,
     parse_and_execute_impl(program, parameters, commands, true, true)
 }
 
-pub fn parse_and_execute<'a>(program: &'a str,
-                             parameters: Vec<String>,
-                             command: ExecutableCommand)
-                             -> i32 {
+pub fn parse_and_execute(program: &str,
+                         parameters: Vec<String>,
+                         command: ExecutableCommand)
+                         -> i32 {
     //! This function parses the given program parameters and calls the given
     //! command's callback. It prints out usage information if the parameters are
     //! invalid, and returns a reasonable exit code for the process.
