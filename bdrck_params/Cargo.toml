@@ -6,4 +6,4 @@ authors = ["Axel Rasmussen <axel.rasmussen1@gmail.com>"]
 [dependencies]
 
 [dev-dependencies.bdrck_test]
-path = "../bdrck-test"
+path = "../bdrck_test"
