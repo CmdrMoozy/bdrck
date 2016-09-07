@@ -46,8 +46,8 @@ impl fmt::Write for IoWriteAdapter {
     }
 }
 
-fn execute_command<'cl>(parsed_parameters: &ParsedParameters<'cl>,
-                        commands: &mut Vec<ExecutableCommand<'cl>>) {
+fn execute_command<'cl, 'cbl>(parsed_parameters: &ParsedParameters<'cl>,
+                              commands: &mut Vec<ExecutableCommand<'cl, 'cbl>>) {
     let executable_command =
         commands.iter_mut().skip_while(|ec| *ec != parsed_parameters.get_command()).next().unwrap();
     parsed_parameters.execute(executable_command);
@@ -126,6 +126,9 @@ pub fn parse_and_execute(program: &str,
 mod test {
     use std::collections::HashMap;
 
+    extern crate bdrck_test;
+    use self::bdrck_test::fn_instrumentation::FnInstrumentation;
+
     use super::EXIT_SUCCESS;
     use super::parse_and_execute;
     use super::super::argument::Argument;
@@ -138,14 +141,18 @@ mod test {
 
     #[test]
     fn test_parse_and_execute() {
+        let instrumentation = FnInstrumentation::new();
         let callback: Box<FnMut(&HashMap<&str, String>,
                                 &HashMap<&str, bool>,
                                 &HashMap<&str, Vec<String>>)> =
             Box::new(|options, flags, arguments| {
+                instrumentation.record_call();
+
                 assert!(options.len() == 2);
                 assert!(flags.len() == 2);
                 assert!(arguments.len() == 1);
             });
+
         let program = "program".to_owned();
         let parameters = vec![
             "--opta=quuz".to_owned(),
@@ -169,7 +176,9 @@ mod test {
             .unwrap();
         let executable_command = ExecutableCommand::new(&command, callback);
 
+        assert!(instrumentation.get_call_count() == 0);
         assert!(parse_and_execute(program.as_ref(), parameters, executable_command) ==
                 EXIT_SUCCESS);
+        assert!(instrumentation.get_call_count() == 1);
     }
 }
