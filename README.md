@@ -5,6 +5,7 @@ Bdrck is a set of crates containing very generic common utilities. In particular
 | Crate        | Description                    |
 | ------------ | ------------------------------ |
 | bdrck-params | Command-line argument parsing. |
+| bdrck-test   | Utilities for unit tests.      |
 
 ## Versioning
 
