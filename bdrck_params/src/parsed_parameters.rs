@@ -370,8 +370,6 @@ impl<'cl> ParsedParameters<'cl> {
 
     pub fn get_command(&self) -> &Command { self.command }
     pub fn get_options(&self) -> &HashMap<&'cl str, String> { &self.options }
-    pub fn get_flags(&self) -> &HashMap<&'cl str, bool> { &self.flags }
-    pub fn get_arguments(&self) -> &HashMap<&'cl str, Vec<String>> { &self.arguments }
 
     pub fn execute<'cbl>(&self, executable_command: &mut ExecutableCommand<'cl, 'cbl>) {
         executable_command.execute(&self.options, &self.flags, &self.arguments);

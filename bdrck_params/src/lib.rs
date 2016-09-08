@@ -80,4 +80,5 @@ pub mod help;
 pub mod main_impl;
 pub mod option;
 pub mod parse_and_execute;
-pub mod parsed_parameters;
+
+mod parsed_parameters;
