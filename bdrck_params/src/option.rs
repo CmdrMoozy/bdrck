@@ -6,7 +6,7 @@ use std::string::String;
 /// name along with a value. Flags are options whose value is either true
 /// or false, and is false by default. Passing a flag by name means
 /// flipping its value to true.
-#[derive(Debug)]
+#[derive(Clone,Debug)]
 pub struct Option {
     pub name: String,
     pub help: String,
