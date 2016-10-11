@@ -13,8 +13,8 @@ pub const EXIT_SUCCESS: i32 = 0;
 pub const EXIT_FAILURE: i32 = 1;
 
 /// This structure can be constructed from an io::Write, and it implements
-/// fmt::Write. It is
-/// a simple adapter for using the former as if it were the latter.
+/// fmt::Write. It is a simple adapter for using the former as if it were the
+/// latter.
 struct IoWriteAdapter {
     io_writer: Box<io::Write>,
 }

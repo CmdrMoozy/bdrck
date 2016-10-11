@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use std::env;
 use std::iter::Peekable;
 use std::option::Option as Optional;
-use std::result::Result;
 use std::string::String;
 use std::vec::Vec;
 
@@ -61,10 +60,9 @@ fn extract_option_name_and_value(option_parameter: &str) -> (&str, Optional<&str
     (name, value)
 }
 
-fn next_option_parameters<'pl, 'cl, PI, OI>
-    (parameters: &mut Peekable<PI>,
-     options: OI)
-     -> Result<Optional<OptionParameters<'pl, 'cl>>, ParamsError>
+fn next_option_parameters<'pl, 'cl, PI, OI>(parameters: &mut Peekable<PI>,
+                                            options: OI)
+                                            -> ParamsResult<Optional<OptionParameters<'pl, 'cl>>>
     where PI: Iterator<Item = &'pl String>,
           OI: Iterator<Item = &'cl Option>
 {
@@ -127,7 +125,7 @@ struct ParsedOption<'cl, 'pl> {
     bool_value: Optional<bool>,
 }
 
-fn parse_bool(value: &str) -> Result<bool, ParamsError> {
+fn parse_bool(value: &str) -> ParamsResult<bool> {
     //! Return the boolean interpretation of a string, or an error if the string
     //! isn't recognized as a valid boolean value.
 
@@ -140,7 +138,7 @@ fn parse_bool(value: &str) -> Result<bool, ParamsError> {
 
 fn parse_option<'pl, 'cl, PI, OI>(parameters: &mut Peekable<PI>,
                                   options: OI)
-                                  -> Result<Optional<ParsedOption<'cl, 'pl>>, ParamsError>
+                                  -> ParamsResult<Optional<ParsedOption<'cl, 'pl>>>
     where PI: Iterator<Item = &'pl String>,
           OI: Iterator<Item = &'cl Option>
 {
@@ -185,7 +183,7 @@ fn parse_option<'pl, 'cl, PI, OI>(parameters: &mut Peekable<PI>,
 
 fn parse_all_options<'pl, 'cl, PI>(parameters: &mut Peekable<PI>,
                                    parsed_parameters: &ParsedParameters<'cl>)
-                                   -> Result<Vec<ParsedOption<'cl, 'pl>>, ParamsError>
+                                   -> ParamsResult<Vec<ParsedOption<'cl, 'pl>>>
     where PI: Iterator<Item = &'pl String>
 {
     //! Call parse_option repeatedly on the given iterator until an error is
@@ -204,7 +202,7 @@ fn parse_all_options<'pl, 'cl, PI>(parameters: &mut Peekable<PI>,
 
 fn emplace_all_options<'pl, 'cl, PI>(parameters: &mut Peekable<PI>,
                                      parsed_parameters: &mut ParsedParameters<'cl>)
-                                     -> Result<(), ParamsError>
+                                     -> ParamsResult<()>
     where PI: Iterator<Item = &'pl String>
 {
     //! Calls parse_all_options, and adds the result to the given parsed parameters
@@ -226,7 +224,7 @@ fn emplace_all_options<'pl, 'cl, PI>(parameters: &mut Peekable<PI>,
 fn parse_all_arguments<'pl, 'cl, PI>(parameters: &mut Peekable<PI>,
                                      arguments: &'cl Vec<Argument>,
                                      last_argument_is_variadic: bool)
-                                     -> Result<HashMap<&'cl str, Vec<String>>, ParamsError>
+                                     -> ParamsResult<HashMap<&'cl str, Vec<String>>>
     where PI: Iterator<Item = &'pl String>
 {
     //! Parses all of the positional arguments from the given iterator over program
@@ -275,7 +273,7 @@ fn parse_all_arguments<'pl, 'cl, PI>(parameters: &mut Peekable<PI>,
 
 fn emplace_all_arguments<'pl, 'cl, PI>(parameters: &mut Peekable<PI>,
                                        parsed_parameters: &mut ParsedParameters<'cl>)
-                                       -> Result<(), ParamsError>
+                                       -> ParamsResult<()>
     where PI: Iterator<Item = &'pl String>
 {
     //! Parses all of the positional arguments from the given iterator over program
@@ -291,7 +289,7 @@ fn emplace_all_arguments<'pl, 'cl, PI>(parameters: &mut Peekable<PI>,
     Ok(())
 }
 
-fn all_options_are_present(parsed: &ParsedParameters) -> Result<(), ParamsError> {
+fn all_options_are_present(parsed: &ParsedParameters) -> ParamsResult<()> {
     //! Checks if all of the given command's options are present in the given map
     //! of option names to values. If an option is missing, returns an error with
     //! more detailed information. Otherwise, returns None.
@@ -313,7 +311,7 @@ fn all_options_are_present(parsed: &ParsedParameters) -> Result<(), ParamsError>
 
 pub fn parse_command<'pl, 'cl, PI, CI>(parameters: &mut Peekable<PI>,
                                        commands: &mut CI)
-                                       -> Result<&'cl Command, ParamsError>
+                                       -> ParamsResult<&'cl Command>
     where PI: Iterator<Item = &'pl String>,
           CI: Iterator<Item = &'cl Command>
 {
@@ -345,7 +343,7 @@ pub struct ParsedParameters<'cl> {
 impl<'cl> ParsedParameters<'cl> {
     pub fn new<'pl, PI>(command: &'cl Command,
                         parameters: &mut Peekable<PI>)
-                        -> Result<ParsedParameters<'cl>, ParamsError>
+                        -> ParamsResult<ParsedParameters<'cl>>
         where PI: Iterator<Item = &'pl String>
     {
         //! Construct a new ParsedParameters instance by parsing the command,
@@ -415,7 +413,7 @@ mod test {
 
     fn parse_command_and_parameters<'a, PI, CI>(parameters: &mut Peekable<PI>,
                                                 commands: &mut CI)
-                                                -> Result<ParsedParameters<'a>, ParamsError>
+                                                -> ParamsResult<ParsedParameters<'a>>
         where PI: Iterator<Item = &'a String>,
               CI: Iterator<Item = &'a Command>
     {
@@ -516,9 +514,7 @@ mod test {
 
     #[test]
     fn test_parse_option() {
-        struct TestCase<'a>(Vec<String>,
-                            Vec<Option>,
-                            Result<Optional<ParsedOption<'a, 'a>>, ParamsError>);
+        struct TestCase<'a>(Vec<String>, Vec<Option>, ParamsResult<Optional<ParsedOption<'a, 'a>>>);
         let test_cases: Vec<TestCase> = vec![
             // Empty iterator.
             TestCase(Vec::new(), Vec::new(), Ok(None)),

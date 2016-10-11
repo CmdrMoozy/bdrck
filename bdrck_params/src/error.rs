@@ -1,5 +1,6 @@
 use std::error::Error;
 use std::fmt;
+use std::result::Result;
 use std::string::String;
 
 #[derive(Debug, Eq, PartialEq)]
@@ -71,3 +72,5 @@ impl fmt::Display for ParamsError {
         }
     }
 }
+
+pub type ParamsResult<T> = Result<T, ParamsError>;

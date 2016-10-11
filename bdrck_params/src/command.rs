@@ -25,7 +25,7 @@ impl Command {
                options: Vec<Option>,
                arguments: Vec<Argument>,
                last_argument_is_variadic: bool)
-               -> Result<Command, ParamsError> {
+               -> ParamsResult<Command> {
         //! Constructs a new Command structure. Performs some validation on the inputs,
         //! and returns either a valid Command or an appropriate error.
 
