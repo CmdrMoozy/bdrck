@@ -3,9 +3,8 @@ use std::fmt;
 use std::string::String;
 use std::vec::Vec;
 
-use super::ErrorKind;
-use super::ParamsError;
 use super::argument::Argument;
+use super::error::*;
 use super::option::Option;
 
 /// A command is a single sub-command for a given program. Each command has

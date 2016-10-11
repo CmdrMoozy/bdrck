@@ -6,11 +6,10 @@ use std::result::Result;
 use std::string::String;
 use std::vec::Vec;
 
-use super::ErrorKind;
-use super::ParamsError;
 use super::argument::Argument;
 use super::command::Command;
 use super::command::ExecutableCommand;
+use super::error::*;
 use super::option::Option;
 use super::option::find_option;
 
@@ -389,10 +388,9 @@ mod test {
     use super::build_default_options;
     use super::parse_command;
     use super::parse_option;
-    use super::super::ErrorKind;
-    use super::super::ParamsError;
     use super::super::argument::Argument;
     use super::super::command::Command;
+    use super::super::error::*;
     use super::super::option::Option;
 
     fn build_command_for_test(name: &str) -> Command {
