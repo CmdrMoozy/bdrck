@@ -1,13 +1,9 @@
-use std::fmt::Error;
+use std::fmt::Result;
 use std::fmt::Write;
-use std::result::Result;
 
 use super::command::Command;
 
-pub fn print_program_help<'a, CI>(f: &mut Write,
-                                  program: &str,
-                                  mut commands: CI)
-                                  -> Result<(), Error>
+pub fn print_program_help<'a, CI>(f: &mut Write, program: &str, mut commands: CI) -> Result
     where CI: Iterator<Item = &'a Command>
 {
     try!(f.write_str(format!(
@@ -23,7 +19,7 @@ pub fn print_command_help(f: &mut Write,
                           program: &str,
                           command: &Command,
                           print_command_name: bool)
-                          -> Result<(), Error> {
+                          -> Result {
     try!(f.write_str(format!("Usage: {} ", program).as_ref()));
     if print_command_name {
         try!(f.write_str(format!("{} ", command.get_name()).as_ref()));
