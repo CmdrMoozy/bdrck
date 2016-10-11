@@ -30,20 +30,6 @@ impl fmt::Write for IoWriteAdapter {
         self.io_writer.write_all(&buf.into_bytes()[..]).unwrap();
         Ok(())
     }
-
-    fn write_char(&mut self, c: char) -> Result<(), fmt::Error> {
-        let mut buf = String::new();
-        try!(buf.write_char(c));
-        self.io_writer.write_all(&buf.into_bytes()[..]).unwrap();
-        Ok(())
-    }
-
-    fn write_fmt(&mut self, args: fmt::Arguments) -> Result<(), fmt::Error> {
-        let mut buf = String::new();
-        try!(buf.write_fmt(args));
-        self.io_writer.write_all(&buf.into_bytes()[..]).unwrap();
-        Ok(())
-    }
 }
 
 fn execute_command<'cl, 'cbl>(parsed_parameters: &ParsedParameters<'cl>,
