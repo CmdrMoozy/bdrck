@@ -8,4 +8,3 @@ extern crate serde_derive;
 
 pub mod configuration;
 pub mod error;
-pub mod generic;
