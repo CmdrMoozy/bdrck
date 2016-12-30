@@ -10,7 +10,7 @@ use std::io;
 use std::path::PathBuf;
 use std::sync::{Mutex, MutexGuard};
 
-#[derive(Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct Identifier {
     pub application: String,
     pub name: String,
@@ -123,7 +123,7 @@ impl<T: Clone + Serialize + Deserialize> Configuration<T> {
 }
 
 lazy_static! {
-    static ref SINGLETONS: HashMap<Identifier, Mutex<Box<Any + Send>>> = HashMap::new();
+    static ref SINGLETONS: Mutex<HashMap<Identifier, Box<Any + Send>>> = Mutex::new(HashMap::new());
 }
 
 fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<T> {
@@ -133,12 +133,23 @@ fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<T> {
     }
 }
 
+pub fn new<T: Clone + Serialize + Deserialize + Send + 'static>(id: Identifier,
+                                                                default: T,
+                                                                custom_path: Option<&str>)
+                                                                -> Result<()> {
+    use std::ops::DerefMut;
+    let config: Configuration<T> = try!(Configuration::new(id.clone(), default, custom_path));
+    let mut guard = lock(&SINGLETONS);
+    guard.deref_mut().insert(id, Box::new(config));
+    Ok(())
+}
+
 pub fn instance_apply<T: 'static, R, F: FnOnce(&Configuration<T>) -> R>(id: &Identifier,
                                                                         f: F)
                                                                         -> Result<R> {
-    match SINGLETONS.get(id) {
-        Some(mutex) => {
-            match (*lock(mutex)).downcast_ref() {
+    match lock(&SINGLETONS).get(id) {
+        Some(instance) => {
+            match instance.downcast_ref() {
                 Some(config) => Ok(f(config)),
                 None => Err(Error::new(ErrorKind::IdentifierTypeMismatch)),
             }
@@ -150,11 +161,9 @@ pub fn instance_apply<T: 'static, R, F: FnOnce(&Configuration<T>) -> R>(id: &Ide
 pub fn instance_apply_mut<T: 'static, R, F: FnOnce(&mut Configuration<T>) -> R>(id: &Identifier,
                                                                                 f: F)
                                                                                 -> Result<R> {
-    use std::ops::DerefMut;
-    match SINGLETONS.get(id) {
-        Some(mutex) => {
-            let mut guard = lock(mutex);
-            match guard.deref_mut().downcast_mut() {
+    match lock(&SINGLETONS).get_mut(id) {
+        Some(instance) => {
+            match instance.downcast_mut() {
                 Some(config) => Ok(f(config)),
                 None => Err(Error::new(ErrorKind::IdentifierTypeMismatch)),
             }
