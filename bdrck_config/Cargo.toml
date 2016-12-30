@@ -5,6 +5,7 @@ authors = ["Axel Rasmussen <axel.rasmussen1@gmail.com>"]
 
 [dependencies]
 backtrace = "0.2"
+lazy_static = "0.2"
 rmp-serde = "0.10"
 serde = "0.8"
 serde_derive = "0.8"

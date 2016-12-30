@@ -6,12 +6,13 @@ use std::error;
 use std::fmt;
 use std::io;
 use std::result;
-use std::string::String;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ErrorKind {
     Encoding { cause: String },
+    IdentifierTypeMismatch,
     Io { cause: String },
+    UnrecognizedIdentifier,
 }
 
 #[derive(Debug)]
@@ -49,7 +50,9 @@ impl error::Error for Error {
     fn description(&self) -> &str {
         match self.kind {
             ErrorKind::Encoding { cause: _ } => "Encoding error",
+            ErrorKind::IdentifierTypeMismatch => "Identifier / type mismatch",
             ErrorKind::Io { cause: _ } => "Input/output error",
+            ErrorKind::UnrecognizedIdentifier => "Unrecognized configuration identifier",
         }
     }
 }
@@ -64,6 +67,7 @@ impl fmt::Display for Error {
             ErrorKind::Io { cause: ref c } => {
                 f.write_str(format!("{}: {}", self.description(), c).as_str())
             },
+            _ => f.write_str(self.description()),
         }
     }
 }

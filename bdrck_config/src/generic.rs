@@ -4,7 +4,6 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io;
 use std::path::Path;
-use std::string::String;
 use std::vec::Vec;
 
 fn serialize<T: Serialize>(v: &T) -> Result<Vec<u8>> {
