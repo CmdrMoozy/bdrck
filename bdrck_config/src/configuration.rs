@@ -144,6 +144,23 @@ pub fn new<T: Clone + Serialize + Deserialize + Send + 'static>(id: Identifier,
     Ok(())
 }
 
+pub fn remove<T: Clone + Serialize + Deserialize + 'static>(id: &Identifier) -> Result<()> {
+    let mut guard = lock(&SINGLETONS);
+
+    if let Some(instance) = guard.get(id) {
+        if let Some(config) = instance.downcast_ref::<&Configuration<T>>() {
+            try!(config.persist());
+        } else {
+            return Err(Error::new(ErrorKind::IdentifierTypeMismatch));
+        }
+    }
+
+    match guard.remove(id) {
+        Some(_) => Ok(()),
+        None => Err(Error::new(ErrorKind::UnrecognizedIdentifier)),
+    }
+}
+
 pub fn instance_apply<T: 'static, R, F: FnOnce(&Configuration<T>) -> R>(id: &Identifier,
                                                                         f: F)
                                                                         -> Result<R> {
