@@ -1,3 +1,5 @@
+#![feature(proc_macro)]
+
 extern crate backtrace;
 #[macro_use]
 extern crate lazy_static;
@@ -8,3 +10,6 @@ extern crate serde_derive;
 
 pub mod configuration;
 pub mod error;
+
+#[cfg(test)]
+mod tests;

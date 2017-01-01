@@ -148,7 +148,7 @@ pub fn remove<T: Clone + Serialize + Deserialize + 'static>(id: &Identifier) -> 
     let mut guard = lock(&SINGLETONS);
 
     if let Some(instance) = guard.get(id) {
-        if let Some(config) = instance.downcast_ref::<&Configuration<T>>() {
+        if let Some(config) = instance.downcast_ref::<Configuration<T>>() {
             try!(config.persist());
         } else {
             return Err(Error::new(ErrorKind::IdentifierTypeMismatch));
