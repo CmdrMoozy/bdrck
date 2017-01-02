@@ -392,13 +392,7 @@ mod test {
     use super::super::option::Option;
 
     fn build_command_for_test(name: &str) -> Command {
-        Command::new(name.to_owned(),
-                     name.to_owned(),
-                     Vec::new(),
-                     Vec::new(),
-                     false)
-            .ok()
-            .unwrap()
+        Command::new(name, name, Vec::new(), Vec::new(), false).ok().unwrap()
     }
 
     fn parse_command_works(program_parameters: &Vec<String>,
@@ -477,8 +471,8 @@ mod test {
 
     #[test]
     fn test_build_default_options() {
-        let command = Command::new("test".to_owned(),
-                                   "test".to_owned(),
+        let command = Command::new("test",
+                                   "test",
                                    vec![
                 Option::required("a", "a", None, None),
                 Option::required("b", "b", None, Some("b")),
@@ -626,8 +620,8 @@ mod test {
 
         let commands = vec![
             Command::new(
-                "foobar".to_owned(),
-                "foobar".to_owned(),
+                "foobar",
+                "foobar",
                 vec![
                     Option::required("opta", "opta", Some('a'), None),
                     Option::required("optb", "optb", Some('b'), Some("baz")),
@@ -674,8 +668,8 @@ mod test {
 
         let commands = vec![
             Command::new(
-                "foobar".to_owned(),
-                "foobar".to_owned(),
+                "foobar",
+                "foobar",
                 vec![
                     Option::required("opta", "opta", Some('a'), None),
                 ],
@@ -726,8 +720,8 @@ mod test {
 
         let commands = vec![
             Command::new(
-                "foobar".to_owned(),
-                "foobar".to_owned(),
+                "foobar",
+                "foobar",
                 vec![
                     Option::required("opta", "opta", Some('a'), None),
                 ],
@@ -780,8 +774,8 @@ mod test {
 
         let commands = vec![
             Command::new(
-                "foobar".to_owned(),
-                "foobar".to_owned(),
+                "foobar",
+                "foobar",
                 vec![
                     Option::required("opta", "opta", Some('a'), None),
                 ],
@@ -831,8 +825,8 @@ mod test {
 
         let commands = vec![
             Command::new(
-                "foobar".to_owned(),
-                "foobar".to_owned(),
+                "foobar",
+                "foobar",
                 vec![
                     Option::required("opta", "opta", Some('a'), None),
                 ],
@@ -882,8 +876,8 @@ mod test {
 
         let commands = vec![
             Command::new(
-                "foobar".to_owned(),
-                "foobar".to_owned(),
+                "foobar",
+                "foobar",
                 vec![
                     Option::required("opta", "opta", Some('a'), None),
                 ],
@@ -933,8 +927,8 @@ mod test {
 
         let commands = vec![
             Command::new(
-                "foobar".to_owned(),
-                "foobar".to_owned(),
+                "foobar",
+                "foobar",
                 vec![
                     Option::flag("flag", "flag", Some('f')),
                 ],
@@ -978,8 +972,8 @@ mod test {
 
         let commands = vec![
             Command::new(
-                "foobar".to_owned(),
-                "foobar".to_owned(),
+                "foobar",
+                "foobar",
                 vec![
                     Option::flag("flag", "flag", Some('f')),
                 ],

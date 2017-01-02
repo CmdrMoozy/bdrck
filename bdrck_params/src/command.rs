@@ -20,8 +20,8 @@ pub struct Command {
 }
 
 impl Command {
-    pub fn new(name: String,
-               help: String,
+    pub fn new(name: &str,
+               help: &str,
                options: Vec<Option>,
                arguments: Vec<Argument>,
                last_argument_is_variadic: bool)
@@ -55,8 +55,8 @@ impl Command {
         }
 
         Ok(Command {
-            name: name,
-            help: help,
+            name: name.to_owned(),
+            help: help.to_owned(),
             options: options,
             arguments: arguments,
             last_argument_is_variadic: last_argument_is_variadic,

@@ -34,8 +34,8 @@ fn test_parse_and_execute_command() {
         "baz".to_owned(),
     ];
     let commands = vec![
-        Command::new("foobar".to_owned(),
-                "foobar".to_owned(),
+        Command::new("foobar",
+                "foobar",
                 vec![
                     Option::required("opta", "opta", None, None),
                     Option::required("optb", "optb", None, Some("oof")),
@@ -82,8 +82,8 @@ fn test_parse_and_execute() {
         "--flagb".to_owned(),
         "baz".to_owned(),
     ];
-    let command = Command::new("foobar".to_owned(),
-                               "foobar".to_owned(),
+    let command = Command::new("foobar",
+                               "foobar",
                                vec![
             Option::required("opta", "opta", None, None),
             Option::required("optb", "optb", None, Some("oof")),
