@@ -74,13 +74,15 @@ impl PartialEq for Command {
     fn eq(&self, other: &Command) -> bool { self.name == other.name }
 }
 
+type CommandCallback<'a> = Box<FnMut(&HashMap<&str, String>,
+                                     &HashMap<&str, bool>,
+                                     &HashMap<&str, Vec<String>>) + 'a>;
+
 /// An ExecutableCommand is a Command alongside a callback function which can
 /// be called to execute the command in question.
 pub struct ExecutableCommand<'a, 'b> {
     command: &'a Command,
-    callback: Box<FnMut(&HashMap<&str, String>,
-                        &HashMap<&str, bool>,
-                        &HashMap<&str, Vec<String>>) + 'b>,
+    callback: CommandCallback<'b>,
 }
 
 impl<'a, 'b> fmt::Debug for ExecutableCommand<'a, 'b> {
@@ -95,11 +97,7 @@ impl<'a, 'b> PartialEq<Command> for ExecutableCommand<'a, 'b> {
 }
 
 impl<'a, 'b> ExecutableCommand<'a, 'b> {
-    pub fn new(command: &'a Command,
-               callback: Box<FnMut(&HashMap<&str, String>,
-                                   &HashMap<&str, bool>,
-                                   &HashMap<&str, Vec<String>>) + 'b>)
-               -> ExecutableCommand<'a, 'b> {
+    pub fn new(command: &'a Command, callback: CommandCallback<'b>) -> ExecutableCommand<'a, 'b> {
         ExecutableCommand {
             command: command,
             callback: callback,
