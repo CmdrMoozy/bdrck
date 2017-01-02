@@ -50,13 +50,7 @@ pub fn print_command_help(f: &mut Write,
     if !command.get_arguments().is_empty() {
         try!(f.write_str("\nPositional arguments:"));
         for argument in command.get_arguments() {
-            try!(f.write_str(format!("\n\t{} - {}", argument.name, argument.help).as_ref()));
-            if argument.default_value.is_some() {
-                try!(f.write_str(format!(" [Default: {}]",
-                                         &argument.default_value.as_ref().unwrap()[..]
-                                             .join(", "))
-                    .as_ref()));
-            }
+            try!(f.write_fmt(format_args!("\n\t{}", argument)));
         }
         if command.last_argument_is_variadic() {
             try!(f.write_str(" [One or more]"));

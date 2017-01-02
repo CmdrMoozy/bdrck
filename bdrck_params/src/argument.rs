@@ -1,3 +1,4 @@
+use std::fmt;
 use std::option::Option as Optional;
 use std::string::String;
 
@@ -11,7 +12,31 @@ use std::string::String;
 /// stores a description of the argument, not its final value).
 #[derive(Debug)]
 pub struct Argument {
-    pub name: String,
-    pub help: String,
-    pub default_value: Optional<Vec<String>>,
+    name: String,
+    help: String,
+    default_value: Optional<Vec<String>>,
+}
+
+impl Argument {
+    pub fn new(name: &str, help: &str, default_value: Optional<Vec<String>>) -> Argument {
+        Argument {
+            name: name.to_owned(),
+            help: help.to_owned(),
+            default_value: default_value,
+        }
+    }
+
+    pub fn name(&self) -> &String { &self.name }
+
+    pub fn default_value(&self) -> Optional<&Vec<String>> { self.default_value.as_ref() }
+}
+
+impl fmt::Display for Argument {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        try!(write!(f, "{} - {}", self.name, self.help));
+        if let Some(default) = self.default_value() {
+            try!(write!(f, " [Default: {}]", &default[..].join(", ")));
+        }
+        Ok(())
+    }
 }

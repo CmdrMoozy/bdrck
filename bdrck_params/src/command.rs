@@ -32,8 +32,8 @@ impl Command {
         // All arguments after the first one with a default value must also have
         // default values.
         if !arguments.iter()
-            .skip_while(|a| a.default_value.is_none())
-            .all(|a| a.default_value.is_some()) {
+            .skip_while(|a| a.default_value().is_none())
+            .all(|a| a.default_value().is_some()) {
             return Err(ParamsError { kind: ErrorKind::MissingDefaultArgumentValue });
         }
 
@@ -41,16 +41,15 @@ impl Command {
         if arguments.len() > 0 &&
            !&arguments[..arguments.len() - 1]
             .iter()
-            .all(|a| a.default_value.as_ref().map_or(0, |dv| dv.len()) <= 1) {
+            .all(|a| a.default_value().map_or(0, |dv| dv.len()) <= 1) {
             return Err(ParamsError { kind: ErrorKind::TooManyDefaultArgumentValues });
         }
 
         // The last argument can have more than one default value only if it is
         // variadic.
         if !last_argument_is_variadic &&
-           arguments.iter().last().map_or(false, |a| {
-            a.default_value.as_ref().map_or(false, |dv| dv.len() > 1)
-        }) {
+           arguments.iter().last().map_or(false,
+                                          |a| a.default_value().map_or(false, |dv| dv.len() > 1)) {
             return Err(ParamsError { kind: ErrorKind::TooManyDefaultArgumentValues });
         }
 

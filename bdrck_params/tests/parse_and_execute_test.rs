@@ -42,11 +42,9 @@ fn test_parse_and_execute_command() {
                     Option::flag("flaga", "flaga", None),
                     Option::flag("flagb", "flagb", None),
                 ],
-                vec![Argument {
-                    name: "arga".to_owned(),
-                    help: "arga".to_owned(),
-                    default_value: None,
-                }],
+                vec![
+                    Argument::new("arga", "arga", None),
+                ],
                 false)
                 .unwrap(),
     ];
@@ -90,11 +88,9 @@ fn test_parse_and_execute() {
             Option::flag("flaga", "flaga", None),
             Option::flag("flagb", "flagb", None),
         ],
-                               vec![Argument {
-                                        name: "arga".to_owned(),
-                                        help: "arga".to_owned(),
-                                        default_value: None,
-                                    }],
+                               vec![
+                                   Argument::new("arga", "arga", None),
+                            ],
                                false)
         .unwrap();
     let executable_command = ExecutableCommand::new(&command, callback);

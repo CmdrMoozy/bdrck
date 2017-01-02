@@ -238,34 +238,33 @@ fn parse_all_arguments<'pl, 'cl, PI>(parameters: &mut Peekable<PI>,
 
     if arguments.len() >= 2 {
         for argument in &arguments[..arguments.len() - 1] {
-            let v = parameters.next().or(argument.default_value
-                .as_ref()
+            let v = parameters.next().or(argument.default_value()
                 .map(|dv| dv.first())
                 .map_or(None, |dv| Some(dv.unwrap())));
             if v.is_none() {
                 return Err(ParamsError {
-                    kind: ErrorKind::MissingArgumentValue { name: argument.name.clone() },
+                    kind: ErrorKind::MissingArgumentValue { name: argument.name().clone() },
                 });
             }
-            parsed.insert(argument.name.as_str(), vec![v.unwrap().clone()]);
+            parsed.insert(argument.name().as_str(), vec![v.unwrap().clone()]);
         }
     }
 
     let last_argument: &Argument = &arguments[arguments.len() - 1];
     let mut last_argument_values: Vec<String> = parameters.map(|v| v.clone()).collect();
-    if last_argument_values.is_empty() && last_argument.default_value.is_some() {
+    if last_argument_values.is_empty() && last_argument.default_value().is_some() {
         last_argument_values =
-            last_argument.default_value.as_ref().unwrap().iter().map(|v| v.clone()).collect();
+            last_argument.default_value().unwrap().iter().map(|v| v.clone()).collect();
     }
     if last_argument_is_variadic {
-        parsed.insert(last_argument.name.as_str(), last_argument_values);
+        parsed.insert(last_argument.name().as_str(), last_argument_values);
     } else {
         if last_argument_values.len() != 1 {
             return Err(ParamsError {
                 kind: ErrorKind::WrongNumberOfArgumentValues { count: last_argument_values.len() },
             });
         }
-        parsed.insert(last_argument.name.as_str(), last_argument_values);
+        parsed.insert(last_argument.name().as_str(), last_argument_values);
     }
 
     Ok(parsed)
@@ -674,21 +673,9 @@ mod test {
                     Option::required("opta", "opta", Some('a'), None),
                 ],
                 vec![
-                    Argument {
-                        name: "arga".to_owned(),
-                        help: "arga".to_owned(),
-                        default_value: None,
-                    },
-                    Argument {
-                        name: "argb".to_owned(),
-                        help: "argb".to_owned(),
-                        default_value: None,
-                    },
-                    Argument {
-                        name: "argc".to_owned(),
-                        help: "argc".to_owned(),
-                        default_value: None,
-                    },
+                    Argument::new("arga", "arga", None),
+                    Argument::new("argb", "argb", None),
+                    Argument::new("argc", "argc", None),
                 ],
                 false
             ).ok().unwrap(),
@@ -726,21 +713,9 @@ mod test {
                     Option::required("opta", "opta", Some('a'), None),
                 ],
                 vec![
-                    Argument {
-                        name: "arga".to_owned(),
-                        help: "arga".to_owned(),
-                        default_value: None,
-                    },
-                    Argument {
-                        name: "argb".to_owned(),
-                        help: "argb".to_owned(),
-                        default_value: None,
-                    },
-                    Argument {
-                        name: "argc".to_owned(),
-                        help: "argc".to_owned(),
-                        default_value: None,
-                    },
+                    Argument::new("arga", "arga", None),
+                    Argument::new("argb", "argb", None),
+                    Argument::new("argc", "argc", None),
                 ],
                 true
             ).ok().unwrap(),
@@ -780,21 +755,9 @@ mod test {
                     Option::required("opta", "opta", Some('a'), None),
                 ],
                 vec![
-                    Argument {
-                        name: "arga".to_owned(),
-                        help: "arga".to_owned(),
-                        default_value: None,
-                    },
-                    Argument {
-                        name: "argb".to_owned(),
-                        help: "argb".to_owned(),
-                        default_value: None,
-                    },
-                    Argument {
-                        name: "argc".to_owned(),
-                        help: "argc".to_owned(),
-                        default_value: None,
-                    },
+                    Argument::new("arga", "arga", None),
+                    Argument::new("argb", "argb", None),
+                    Argument::new("argc", "argc", None),
                 ],
                 true
             ).ok().unwrap(),
@@ -831,21 +794,9 @@ mod test {
                     Option::required("opta", "opta", Some('a'), None),
                 ],
                 vec![
-                    Argument {
-                        name: "arga".to_owned(),
-                        help: "arga".to_owned(),
-                        default_value: Some(vec!["dva".to_owned()]),
-                    },
-                    Argument {
-                        name: "argb".to_owned(),
-                        help: "argb".to_owned(),
-                        default_value: Some(vec!["dvb".to_owned()]),
-                    },
-                    Argument {
-                        name: "argc".to_owned(),
-                        help: "argc".to_owned(),
-                        default_value: Some(vec!["dvc".to_owned()]),
-                    },
+                    Argument::new("arga", "arga", Some(vec!["dva".to_owned()])),
+                    Argument::new("argb", "argb", Some(vec!["dvb".to_owned()])),
+                    Argument::new("argc", "argc", Some(vec!["dvc".to_owned()])),
                 ],
                 false
             ).ok().unwrap(),
@@ -882,21 +833,9 @@ mod test {
                     Option::required("opta", "opta", Some('a'), None),
                 ],
                 vec![
-                    Argument {
-                        name: "arga".to_owned(),
-                        help: "arga".to_owned(),
-                        default_value: Some(vec!["dva".to_owned()]),
-                    },
-                    Argument {
-                        name: "argb".to_owned(),
-                        help: "argb".to_owned(),
-                        default_value: Some(vec!["dvb".to_owned()]),
-                    },
-                    Argument {
-                        name: "argc".to_owned(),
-                        help: "argc".to_owned(),
-                        default_value: Some(vec!["dvc1".to_owned(), "dvc2".to_owned()]),
-                    },
+                    Argument::new("arga", "arga", Some(vec!["dva".to_owned()])),
+                    Argument::new("argb", "argb", Some(vec!["dvb".to_owned()])),
+                    Argument::new("argc", "argc", Some(vec!["dvc1".to_owned(), "dvc2".to_owned()])),
                 ],
                 true
             ).ok().unwrap(),
@@ -933,11 +872,7 @@ mod test {
                     Option::flag("flag", "flag", Some('f')),
                 ],
                 vec![
-                    Argument {
-                        name: "arga".to_owned(),
-                        help: "arga".to_owned(),
-                        default_value: None,
-                    },
+                    Argument::new("arga", "arga", None),
                 ],
                 false
             ).ok().unwrap(),
@@ -978,11 +913,7 @@ mod test {
                     Option::flag("flag", "flag", Some('f')),
                 ],
                 vec![
-                    Argument {
-                        name: "arga".to_owned(),
-                        help: "arga".to_owned(),
-                        default_value: None,
-                    },
+                    Argument::new("arga", "arga", None),
                 ],
                 false
             ).ok().unwrap(),
