@@ -4,7 +4,6 @@ extern crate bdrck_test;
 use self::bdrck_test::fn_instrumentation::FnInstrumentation;
 
 extern crate bdrck_params;
-use self::bdrck_params::parse_and_execute::EXIT_SUCCESS;
 use self::bdrck_params::parse_and_execute::parse_and_execute;
 use self::bdrck_params::parse_and_execute::parse_and_execute_command;
 use self::bdrck_params::argument::Argument;
@@ -53,10 +52,7 @@ fn test_parse_and_execute_command() {
     ];
 
     assert!(instrumentation.get_call_count() == 0);
-    assert!(parse_and_execute_command(program.as_ref(),
-                                      &parameters,
-                                      &mut executable_commands) ==
-            EXIT_SUCCESS);
+    assert!(parse_and_execute_command(program.as_ref(), &parameters, &mut executable_commands).is_ok());
     assert!(instrumentation.get_call_count() == 1);
 }
 
@@ -96,7 +92,6 @@ fn test_parse_and_execute() {
     let executable_command = ExecutableCommand::new(&command, callback);
 
     assert!(instrumentation.get_call_count() == 0);
-    assert!(parse_and_execute(program.as_ref(), parameters, executable_command) ==
-            EXIT_SUCCESS);
+    assert!(parse_and_execute(program.as_ref(), parameters, executable_command).is_ok());
     assert!(instrumentation.get_call_count() == 1);
 }

@@ -94,7 +94,7 @@ fn next_option_parameters<'pl, 'cl, PI, OI>(parameters: &mut Peekable<PI>,
     {
         let oo: Optional<&Option> = find_option(options, name);
         if oo.is_none() {
-            return Err(Error { kind: ErrorKind::UnrecognizedOption { name: name.to_owned() } });
+            return Err(Error::new(ErrorKind::UnrecognizedOption { name: name.to_owned() }));
         }
         option_obj = oo.unwrap();
     }
@@ -130,7 +130,7 @@ fn parse_bool(value: &str) -> Result<bool> {
     match value.trim().to_lowercase().as_ref() {
         "true" => Ok(true),
         "false" => Ok(false),
-        _ => Err(Error { kind: ErrorKind::InvalidBooleanValue { value: value.to_owned() } }),
+        _ => Err(Error::new(ErrorKind::InvalidBooleanValue { value: value.to_owned() })),
     }
 }
 
@@ -154,9 +154,9 @@ fn parse_option<'pl, 'cl, PI, OI>(parameters: &mut Peekable<PI>,
     }
 
     if !option_parameters.option_obj.is_flag && option_parameters.value.is_none() {
-        return Err(Error {
-            kind: ErrorKind::MissingOptionValue { name: option_parameters.option_obj.name.clone() },
-        });
+        return Err(Error::new(ErrorKind::MissingOptionValue {
+            name: option_parameters.option_obj.name.clone(),
+        }));
     }
 
     let bool_value: Optional<bool>;
@@ -240,9 +240,9 @@ fn parse_all_arguments<'pl, 'cl, PI>(parameters: &mut Peekable<PI>,
                 .map(|dv| dv.first())
                 .map_or(None, |dv| Some(dv.unwrap())));
             if v.is_none() {
-                return Err(Error {
-                    kind: ErrorKind::MissingArgumentValue { name: argument.name().clone() },
-                });
+                return Err(Error::new(ErrorKind::MissingArgumentValue {
+                    name: argument.name().clone(),
+                }));
             }
             parsed.insert(argument.name().as_str(), vec![v.unwrap().clone()]);
         }
@@ -258,9 +258,9 @@ fn parse_all_arguments<'pl, 'cl, PI>(parameters: &mut Peekable<PI>,
         parsed.insert(last_argument.name().as_str(), last_argument_values);
     } else {
         if last_argument_values.len() != 1 {
-            return Err(Error {
-                kind: ErrorKind::WrongNumberOfArgumentValues { count: last_argument_values.len() },
-            });
+            return Err(Error::new(ErrorKind::WrongNumberOfArgumentValues {
+                count: last_argument_values.len(),
+            }));
         }
         parsed.insert(last_argument.name().as_str(), last_argument_values);
     }
@@ -297,7 +297,7 @@ fn all_options_are_present(parsed: &ParsedParameters) -> Result<()> {
         }
 
         if parsed.get_options().get(o.name.as_str()).is_none() {
-            return Err(Error { kind: ErrorKind::MissingOptionValue { name: o.name.clone() } });
+            return Err(Error::new(ErrorKind::MissingOptionValue { name: o.name.clone() }));
         }
     }
 
@@ -316,13 +316,13 @@ pub fn parse_command<'pl, 'cl, PI, CI>(parameters: &mut Peekable<PI>,
 
     if let Some(command_parameter) = parameters.next() {
         return commands.find(|&command| *command.get_name() == **command_parameter)
-            .map_or(Err(Error {
-                        kind: ErrorKind::UnrecognizedCommand { name: (*command_parameter).clone() },
-                    }),
+            .map_or(Err(Error::new(ErrorKind::UnrecognizedCommand {
+                        name: (*command_parameter).clone(),
+                    })),
                     |command| Ok(command));
     }
 
-    Err(Error { kind: ErrorKind::NoCommandSpecified })
+    Err(Error::new(ErrorKind::NoCommandSpecified))
 }
 
 /// This structure encapsulates the output from parsing the program's parameters
@@ -510,22 +510,17 @@ mod test {
             // Iterator pointing to an argument instead of an option.
             TestCase(vec!["foobar".to_owned()], Vec::new(), Ok(None)),
             // Option name not found.
-            TestCase(vec!["--foobar".to_owned()], Vec::new(), Err(Error {
-                kind: ErrorKind::UnrecognizedOption { name: "foobar".to_owned() },
-            })),
+            TestCase(vec!["--foobar".to_owned()], Vec::new(),
+                Err(Error::new(ErrorKind::UnrecognizedOption { name: "foobar".to_owned() }))),
             // Option with no value.
             TestCase(
                 vec!["--foobar".to_owned()],
                 vec![Option::required("foobar", "foobar", Some('f'), None)],
-                Err(Error {
-                    kind: ErrorKind::MissingOptionValue { name: "foobar".to_owned() },
-                })),
+                Err(Error::new(ErrorKind::MissingOptionValue { name: "foobar".to_owned() }))),
             TestCase(
                 vec!["--foobar".to_owned(), "--barbaz".to_owned()],
                 vec![Option::required("foobar", "foobar", Some('f'), None)],
-                Err(Error {
-                    kind: ErrorKind::MissingOptionValue { name: "foobar".to_owned() },
-                })),
+                Err(Error::new(ErrorKind::MissingOptionValue { name: "foobar".to_owned() }))),
             // Option with value, using "-" or "--" and long or short name.
             TestCase(
                 vec!["--foobar=baz".to_owned()],

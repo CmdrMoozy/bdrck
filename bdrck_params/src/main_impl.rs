@@ -1,11 +1,24 @@
+use ::command::ExecutableCommand;
+use ::error::Result;
+use ::parse_and_execute::parse_and_execute;
+use ::parse_and_execute::parse_and_execute_command;
+use ::parsed_parameters::get_program_parameters;
 use std::env;
 use std::process;
 use std::vec::Vec;
 
-use super::command::ExecutableCommand;
-use super::parse_and_execute::parse_and_execute;
-use super::parse_and_execute::parse_and_execute_command;
-use super::parsed_parameters::get_program_parameters;
+const EXIT_SUCCESS: i32 = 0;
+const EXIT_FAILURE: i32 = 1;
+
+fn handle_result(r: Result<()>) -> i32 {
+    match r {
+        Ok(_) => EXIT_SUCCESS,
+        Err(e) => {
+            error!("{}", e);
+            EXIT_FAILURE
+        },
+    }
+}
 
 pub fn main_impl_multiple_commands(mut commands: Vec<ExecutableCommand>) -> ! {
     //! Parses command-line parameters and executes the specified command.
@@ -19,7 +32,9 @@ pub fn main_impl_multiple_commands(mut commands: Vec<ExecutableCommand>) -> ! {
 
     let program = env::args().next().unwrap();
     let parameters = get_program_parameters();
-    process::exit(parse_and_execute_command(program.as_ref(), &parameters, &mut commands));
+    process::exit(handle_result(parse_and_execute_command(program.as_ref(),
+                                                          &parameters,
+                                                          &mut commands)));
 }
 
 pub fn main_impl_single_command(command: ExecutableCommand) -> ! {
@@ -34,5 +49,5 @@ pub fn main_impl_single_command(command: ExecutableCommand) -> ! {
 
     let program = env::args().next().unwrap();
     let parameters = get_program_parameters();
-    process::exit(parse_and_execute(program.as_ref(), parameters, command));
+    process::exit(handle_result(parse_and_execute(program.as_ref(), parameters, command)));
 }

@@ -1,3 +1,7 @@
+extern crate backtrace;
+#[macro_use]
+extern crate log;
+
 pub mod argument;
 pub mod command;
 pub mod error;
