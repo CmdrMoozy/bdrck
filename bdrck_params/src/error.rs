@@ -1,6 +1,6 @@
-use std::error::Error;
+use std::error;
 use std::fmt;
-use std::result::Result;
+use std::result;
 use std::string::String;
 
 #[derive(Debug, Eq, PartialEq)]
@@ -18,11 +18,11 @@ pub enum ErrorKind {
 }
 
 #[derive(Debug, Eq, PartialEq)]
-pub struct ParamsError {
+pub struct Error {
     pub kind: ErrorKind,
 }
 
-impl Error for ParamsError {
+impl error::Error for Error {
     fn description(&self) -> &str {
         match self.kind {
             ErrorKind::MissingDefaultArgumentValue => {
@@ -47,8 +47,9 @@ impl Error for ParamsError {
     }
 }
 
-impl fmt::Display for ParamsError {
+impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use std::error::Error;
         match self.kind {
             ErrorKind::UnrecognizedCommand { name: ref n } => {
                 f.write_str(format!("{} '{}'", self.description(), n).as_str())
@@ -73,4 +74,4 @@ impl fmt::Display for ParamsError {
     }
 }
 
-pub type ParamsResult<T> = Result<T, ParamsError>;
+pub type Result<T> = result::Result<T, Error>;

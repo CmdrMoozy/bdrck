@@ -62,7 +62,7 @@ fn extract_option_name_and_value(option_parameter: &str) -> (&str, Optional<&str
 
 fn next_option_parameters<'pl, 'cl, PI, OI>(parameters: &mut Peekable<PI>,
                                             options: OI)
-                                            -> ParamsResult<Optional<OptionParameters<'pl, 'cl>>>
+                                            -> Result<Optional<OptionParameters<'pl, 'cl>>>
     where PI: Iterator<Item = &'pl String>,
           OI: Iterator<Item = &'cl Option>
 {
@@ -94,9 +94,7 @@ fn next_option_parameters<'pl, 'cl, PI, OI>(parameters: &mut Peekable<PI>,
     {
         let oo: Optional<&Option> = find_option(options, name);
         if oo.is_none() {
-            return Err(ParamsError {
-                kind: ErrorKind::UnrecognizedOption { name: name.to_owned() },
-            });
+            return Err(Error { kind: ErrorKind::UnrecognizedOption { name: name.to_owned() } });
         }
         option_obj = oo.unwrap();
     }
@@ -125,20 +123,20 @@ struct ParsedOption<'cl, 'pl> {
     bool_value: Optional<bool>,
 }
 
-fn parse_bool(value: &str) -> ParamsResult<bool> {
+fn parse_bool(value: &str) -> Result<bool> {
     //! Return the boolean interpretation of a string, or an error if the string
     //! isn't recognized as a valid boolean value.
 
     match value.trim().to_lowercase().as_ref() {
         "true" => Ok(true),
         "false" => Ok(false),
-        _ => Err(ParamsError { kind: ErrorKind::InvalidBooleanValue { value: value.to_owned() } }),
+        _ => Err(Error { kind: ErrorKind::InvalidBooleanValue { value: value.to_owned() } }),
     }
 }
 
 fn parse_option<'pl, 'cl, PI, OI>(parameters: &mut Peekable<PI>,
                                   options: OI)
-                                  -> ParamsResult<Optional<ParsedOption<'cl, 'pl>>>
+                                  -> Result<Optional<ParsedOption<'cl, 'pl>>>
     where PI: Iterator<Item = &'pl String>,
           OI: Iterator<Item = &'cl Option>
 {
@@ -156,7 +154,7 @@ fn parse_option<'pl, 'cl, PI, OI>(parameters: &mut Peekable<PI>,
     }
 
     if !option_parameters.option_obj.is_flag && option_parameters.value.is_none() {
-        return Err(ParamsError {
+        return Err(Error {
             kind: ErrorKind::MissingOptionValue { name: option_parameters.option_obj.name.clone() },
         });
     }
@@ -183,7 +181,7 @@ fn parse_option<'pl, 'cl, PI, OI>(parameters: &mut Peekable<PI>,
 
 fn parse_all_options<'pl, 'cl, PI>(parameters: &mut Peekable<PI>,
                                    parsed_parameters: &ParsedParameters<'cl>)
-                                   -> ParamsResult<Vec<ParsedOption<'cl, 'pl>>>
+                                   -> Result<Vec<ParsedOption<'cl, 'pl>>>
     where PI: Iterator<Item = &'pl String>
 {
     //! Call parse_option repeatedly on the given iterator until an error is
@@ -202,7 +200,7 @@ fn parse_all_options<'pl, 'cl, PI>(parameters: &mut Peekable<PI>,
 
 fn emplace_all_options<'pl, 'cl, PI>(parameters: &mut Peekable<PI>,
                                      parsed_parameters: &mut ParsedParameters<'cl>)
-                                     -> ParamsResult<()>
+                                     -> Result<()>
     where PI: Iterator<Item = &'pl String>
 {
     //! Calls parse_all_options, and adds the result to the given parsed parameters
@@ -224,7 +222,7 @@ fn emplace_all_options<'pl, 'cl, PI>(parameters: &mut Peekable<PI>,
 fn parse_all_arguments<'pl, 'cl, PI>(parameters: &mut Peekable<PI>,
                                      arguments: &'cl Vec<Argument>,
                                      last_argument_is_variadic: bool)
-                                     -> ParamsResult<HashMap<&'cl str, Vec<String>>>
+                                     -> Result<HashMap<&'cl str, Vec<String>>>
     where PI: Iterator<Item = &'pl String>
 {
     //! Parses all of the positional arguments from the given iterator over program
@@ -242,7 +240,7 @@ fn parse_all_arguments<'pl, 'cl, PI>(parameters: &mut Peekable<PI>,
                 .map(|dv| dv.first())
                 .map_or(None, |dv| Some(dv.unwrap())));
             if v.is_none() {
-                return Err(ParamsError {
+                return Err(Error {
                     kind: ErrorKind::MissingArgumentValue { name: argument.name().clone() },
                 });
             }
@@ -260,7 +258,7 @@ fn parse_all_arguments<'pl, 'cl, PI>(parameters: &mut Peekable<PI>,
         parsed.insert(last_argument.name().as_str(), last_argument_values);
     } else {
         if last_argument_values.len() != 1 {
-            return Err(ParamsError {
+            return Err(Error {
                 kind: ErrorKind::WrongNumberOfArgumentValues { count: last_argument_values.len() },
             });
         }
@@ -272,7 +270,7 @@ fn parse_all_arguments<'pl, 'cl, PI>(parameters: &mut Peekable<PI>,
 
 fn emplace_all_arguments<'pl, 'cl, PI>(parameters: &mut Peekable<PI>,
                                        parsed_parameters: &mut ParsedParameters<'cl>)
-                                       -> ParamsResult<()>
+                                       -> Result<()>
     where PI: Iterator<Item = &'pl String>
 {
     //! Parses all of the positional arguments from the given iterator over program
@@ -288,7 +286,7 @@ fn emplace_all_arguments<'pl, 'cl, PI>(parameters: &mut Peekable<PI>,
     Ok(())
 }
 
-fn all_options_are_present(parsed: &ParsedParameters) -> ParamsResult<()> {
+fn all_options_are_present(parsed: &ParsedParameters) -> Result<()> {
     //! Checks if all of the given command's options are present in the given map
     //! of option names to values. If an option is missing, returns an error with
     //! more detailed information. Otherwise, returns None.
@@ -299,9 +297,7 @@ fn all_options_are_present(parsed: &ParsedParameters) -> ParamsResult<()> {
         }
 
         if parsed.get_options().get(o.name.as_str()).is_none() {
-            return Err(ParamsError {
-                kind: ErrorKind::MissingOptionValue { name: o.name.clone() },
-            });
+            return Err(Error { kind: ErrorKind::MissingOptionValue { name: o.name.clone() } });
         }
     }
 
@@ -310,7 +306,7 @@ fn all_options_are_present(parsed: &ParsedParameters) -> ParamsResult<()> {
 
 pub fn parse_command<'pl, 'cl, PI, CI>(parameters: &mut Peekable<PI>,
                                        commands: &mut CI)
-                                       -> ParamsResult<&'cl Command>
+                                       -> Result<&'cl Command>
     where PI: Iterator<Item = &'pl String>,
           CI: Iterator<Item = &'cl Command>
 {
@@ -320,13 +316,13 @@ pub fn parse_command<'pl, 'cl, PI, CI>(parameters: &mut Peekable<PI>,
 
     if let Some(command_parameter) = parameters.next() {
         return commands.find(|&command| *command.get_name() == **command_parameter)
-            .map_or(Err(ParamsError {
+            .map_or(Err(Error {
                         kind: ErrorKind::UnrecognizedCommand { name: (*command_parameter).clone() },
                     }),
                     |command| Ok(command));
     }
 
-    Err(ParamsError { kind: ErrorKind::NoCommandSpecified })
+    Err(Error { kind: ErrorKind::NoCommandSpecified })
 }
 
 /// This structure encapsulates the output from parsing the program's parameters
@@ -342,7 +338,7 @@ pub struct ParsedParameters<'cl> {
 impl<'cl> ParsedParameters<'cl> {
     pub fn new<'pl, PI>(command: &'cl Command,
                         parameters: &mut Peekable<PI>)
-                        -> ParamsResult<ParsedParameters<'cl>>
+                        -> Result<ParsedParameters<'cl>>
         where PI: Iterator<Item = &'pl String>
     {
         //! Construct a new ParsedParameters instance by parsing the command,
@@ -406,7 +402,7 @@ mod test {
 
     fn parse_command_and_parameters<'a, PI, CI>(parameters: &mut Peekable<PI>,
                                                 commands: &mut CI)
-                                                -> ParamsResult<ParsedParameters<'a>>
+                                                -> Result<ParsedParameters<'a>>
         where PI: Iterator<Item = &'a String>,
               CI: Iterator<Item = &'a Command>
     {
@@ -507,27 +503,27 @@ mod test {
 
     #[test]
     fn test_parse_option() {
-        struct TestCase<'a>(Vec<String>, Vec<Option>, ParamsResult<Optional<ParsedOption<'a, 'a>>>);
+        struct TestCase<'a>(Vec<String>, Vec<Option>, Result<Optional<ParsedOption<'a, 'a>>>);
         let test_cases: Vec<TestCase> = vec![
             // Empty iterator.
             TestCase(Vec::new(), Vec::new(), Ok(None)),
             // Iterator pointing to an argument instead of an option.
             TestCase(vec!["foobar".to_owned()], Vec::new(), Ok(None)),
             // Option name not found.
-            TestCase(vec!["--foobar".to_owned()], Vec::new(), Err(ParamsError {
+            TestCase(vec!["--foobar".to_owned()], Vec::new(), Err(Error {
                 kind: ErrorKind::UnrecognizedOption { name: "foobar".to_owned() },
             })),
             // Option with no value.
             TestCase(
                 vec!["--foobar".to_owned()],
                 vec![Option::required("foobar", "foobar", Some('f'), None)],
-                Err(ParamsError {
+                Err(Error {
                     kind: ErrorKind::MissingOptionValue { name: "foobar".to_owned() },
                 })),
             TestCase(
                 vec!["--foobar".to_owned(), "--barbaz".to_owned()],
                 vec![Option::required("foobar", "foobar", Some('f'), None)],
-                Err(ParamsError {
+                Err(Error {
                     kind: ErrorKind::MissingOptionValue { name: "foobar".to_owned() },
                 })),
             // Option with value, using "-" or "--" and long or short name.

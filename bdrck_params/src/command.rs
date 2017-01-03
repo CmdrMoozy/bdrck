@@ -25,7 +25,7 @@ impl Command {
                options: Vec<Option>,
                arguments: Vec<Argument>,
                last_argument_is_variadic: bool)
-               -> ParamsResult<Command> {
+               -> Result<Command> {
         //! Constructs a new Command structure. Performs some validation on the inputs,
         //! and returns either a valid Command or an appropriate error.
 
@@ -34,7 +34,7 @@ impl Command {
         if !arguments.iter()
             .skip_while(|a| a.default_value().is_none())
             .all(|a| a.default_value().is_some()) {
-            return Err(ParamsError { kind: ErrorKind::MissingDefaultArgumentValue });
+            return Err(Error { kind: ErrorKind::MissingDefaultArgumentValue });
         }
 
         // All arguments other than the last one must have at most one default value.
@@ -42,7 +42,7 @@ impl Command {
            !&arguments[..arguments.len() - 1]
             .iter()
             .all(|a| a.default_value().map_or(0, |dv| dv.len()) <= 1) {
-            return Err(ParamsError { kind: ErrorKind::TooManyDefaultArgumentValues });
+            return Err(Error { kind: ErrorKind::TooManyDefaultArgumentValues });
         }
 
         // The last argument can have more than one default value only if it is
@@ -50,7 +50,7 @@ impl Command {
         if !last_argument_is_variadic &&
            arguments.iter().last().map_or(false,
                                           |a| a.default_value().map_or(false, |dv| dv.len() > 1)) {
-            return Err(ParamsError { kind: ErrorKind::TooManyDefaultArgumentValues });
+            return Err(Error { kind: ErrorKind::TooManyDefaultArgumentValues });
         }
 
         Ok(Command {
