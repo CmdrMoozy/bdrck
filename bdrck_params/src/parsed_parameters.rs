@@ -37,12 +37,12 @@ fn build_default_options(parsed: &mut ParsedParameters) {
 
 /// An option parameter is the string representation of an option, extracted
 /// from an iterator over program parameters.
-struct OptionParameters<'pl, 'cl> {
-    value: Optional<&'pl str>,
+struct OptionParameters<'cl> {
+    value: Optional<String>,
     option_obj: &'cl Option,
 }
 
-fn extract_option_name_and_value(option_parameter: &str) -> (&str, Optional<&str>) {
+fn find_option_name_and_value(option_parameter: &str) -> (&str, Optional<&str>) {
     //! Extracts the option name (and, if one is present, the option value) from
     //! the given single option parameter. This involves stripping off the leading
     //! "-" or "--" prefix, and splitting the given parameter on its "=" character
@@ -61,7 +61,7 @@ fn extract_option_name_and_value(option_parameter: &str) -> (&str, Optional<&str
 
 fn next_option_parameters<'pl, 'cl, PI, OI>(parameters: &mut Peekable<PI>,
                                             options: OI)
-                                            -> Result<Optional<OptionParameters<'pl, 'cl>>>
+                                            -> Result<Optional<OptionParameters<'cl>>>
     where PI: Iterator<Item = &'pl String>,
           OI: Iterator<Item = &'cl Option>
 {
@@ -86,17 +86,13 @@ fn next_option_parameters<'pl, 'cl, PI, OI>(parameters: &mut Peekable<PI>,
     // Since we got a valid option, advance the iterator.
     parameters.next();
 
-    let (name, mut value) = extract_option_name_and_value(parameter);
+    let (name, mut value) = find_option_name_and_value(parameter);
 
     // Lookup the option by name.
-    let option_obj: &Option;
-    {
-        let oo: Optional<&Option> = find_option(options, name);
-        if oo.is_none() {
-            return Err(Error::new(ErrorKind::UnrecognizedOption { name: name.to_owned() }));
-        }
-        option_obj = oo.unwrap();
-    }
+    let option_obj: &Option = match find_option(options, name) {
+        Some(oo) => oo,
+        None => return Err(Error::new(ErrorKind::UnrecognizedOption { name: name.to_owned() })),
+    };
 
     // Search for the value in the next parameter, if this option is not a flag.
     // For flags, because explicit values are optional, it is ambiguous whether or
@@ -105,20 +101,20 @@ fn next_option_parameters<'pl, 'cl, PI, OI>(parameters: &mut Peekable<PI>,
         let next_parameter_is_value: bool = parameters.peek()
             .map_or(false, |v| !v.starts_with("-"));
         if next_parameter_is_value && value.is_none() {
-            value = Some(parameters.next().unwrap().as_ref());
+            value = Some(parameters.next().unwrap().as_str());
         }
     }
 
     Ok(Some(OptionParameters {
-        value: value,
+        value: value.map(|v| v.to_owned()),
         option_obj: option_obj,
     }))
 }
 
 #[derive(Eq, PartialEq)]
-struct ParsedOption<'cl, 'pl> {
-    name: &'cl str,
-    value: Optional<&'pl str>,
+struct ParsedOption {
+    name: String,
+    value: Optional<String>,
     bool_value: Optional<bool>,
 }
 
@@ -135,7 +131,7 @@ fn parse_bool(value: &str) -> Result<bool> {
 
 fn parse_option<'pl, 'cl, PI, OI>(parameters: &mut Peekable<PI>,
                                   options: OI)
-                                  -> Result<Optional<ParsedOption<'cl, 'pl>>>
+                                  -> Result<Optional<ParsedOption>>
     where PI: Iterator<Item = &'pl String>,
           OI: Iterator<Item = &'cl Option>
 {
@@ -143,14 +139,11 @@ fn parse_option<'pl, 'cl, PI, OI>(parameters: &mut Peekable<PI>,
     //! there are no more option parameters, returns None. If an option argument is
     //! found but some error occurs, then an error is returned instead.
 
-    let option_parameters: OptionParameters<'pl, 'cl>;
-    {
-        let opo = try!(next_option_parameters(parameters, options));
-        if opo.is_none() {
-            return Ok(None);
-        }
-        option_parameters = opo.unwrap();
-    }
+    let option_parameters: OptionParameters<'cl> = match try!(next_option_parameters(parameters,
+                                                                                     options)) {
+        Some(op) => op,
+        None => return Ok(None),
+    };
 
     if !option_parameters.option_obj.is_flag && option_parameters.value.is_none() {
         return Err(Error::new(ErrorKind::MissingOptionValue {
@@ -158,21 +151,18 @@ fn parse_option<'pl, 'cl, PI, OI>(parameters: &mut Peekable<PI>,
         }));
     }
 
-    let bool_value: Optional<bool>;
-    {
-        if option_parameters.option_obj.is_flag {
-            if let Some(v) = option_parameters.value {
-                bool_value = Some(try!(parse_bool(v)));
-            } else {
-                bool_value = Some(true);
-            }
-        } else {
-            bool_value = None;
-        }
-    }
+    let bool_value: Optional<bool> = match option_parameters.option_obj.is_flag {
+        false => None,
+        true => {
+            Some(match option_parameters.value.as_ref() {
+                Some(v) => try!(parse_bool(v.as_str())),
+                None => true,
+            })
+        },
+    };
 
     Ok(Some(ParsedOption {
-        name: option_parameters.option_obj.name.as_str(),
+        name: option_parameters.option_obj.name.clone(),
         value: option_parameters.value,
         bool_value: bool_value,
     }))
@@ -180,14 +170,14 @@ fn parse_option<'pl, 'cl, PI, OI>(parameters: &mut Peekable<PI>,
 
 fn parse_all_options<'pl, 'cl, PI>(parameters: &mut Peekable<PI>,
                                    parsed_parameters: &ParsedParameters<'cl>)
-                                   -> Result<Vec<ParsedOption<'cl, 'pl>>>
+                                   -> Result<Vec<ParsedOption>>
     where PI: Iterator<Item = &'pl String>
 {
     //! Call parse_option repeatedly on the given iterator until an error is
     //! encountered or there are no more options to parse. Returns a possibly empty
     //! vector of parsed options, or an error if one was encountered.
 
-    let mut parsed: Vec<ParsedOption<'cl, 'pl>> = Vec::new();
+    let mut parsed: Vec<ParsedOption> = Vec::new();
     while let Some(parsed_option) = try!(parse_option(parameters,
                                                       parsed_parameters.command.options.iter())) {
         parsed.push(parsed_option);
@@ -207,7 +197,7 @@ fn emplace_all_options<'pl, 'cl, PI>(parameters: &mut Peekable<PI>,
     for parsed_option in &try!(parse_all_options(parameters, parsed_parameters)) {
         if parsed_option.bool_value.is_none() {
             parsed_parameters.options.insert(parsed_option.name.to_owned(),
-                                             parsed_option.value.unwrap().to_owned());
+                                             parsed_option.value.clone().unwrap());
         } else {
             parsed_parameters.flags.insert(parsed_option.name.to_owned(),
                                            parsed_option.bool_value.unwrap());
@@ -503,7 +493,7 @@ mod test {
 
     #[test]
     fn test_parse_option() {
-        struct TestCase<'a>(Vec<String>, Vec<Option>, Result<Optional<ParsedOption<'a, 'a>>>);
+        struct TestCase(Vec<String>, Vec<Option>, Result<Optional<ParsedOption>>);
         let test_cases: Vec<TestCase> = vec![
             // Empty iterator.
             TestCase(Vec::new(), Vec::new(), Ok(None)),
@@ -526,32 +516,32 @@ mod test {
                 vec!["--foobar=baz".to_owned()],
                 vec![Option::required("foobar", "foobar", Some('f'), None)],
                 Ok(Some(ParsedOption {
-                    name: "foobar",
-                    value: Some("baz"),
+                    name: "foobar".to_owned(),
+                    value: Some("baz".to_owned()),
                     bool_value: None,
                 }))),
             TestCase(
                 vec!["-f=baz".to_owned()],
                 vec![Option::required("foobar", "foobar", Some('f'), None)],
                 Ok(Some(ParsedOption {
-                    name: "foobar",
-                    value: Some("baz"),
+                    name: "foobar".to_owned(),
+                    value: Some("baz".to_owned()),
                     bool_value: None,
                 }))),
             TestCase(
                 vec!["-foobar".to_owned(), "baz".to_owned()],
                 vec![Option::required("foobar", "foobar", Some('f'), None)],
                 Ok(Some(ParsedOption {
-                    name: "foobar",
-                    value: Some("baz"),
+                    name: "foobar".to_owned(),
+                    value: Some("baz".to_owned()),
                     bool_value: None,
                 }))),
             TestCase(
                 vec!["--f".to_owned(), "baz".to_owned()],
                 vec![Option::required("foobar", "foobar", Some('f'), None)],
                 Ok(Some(ParsedOption {
-                    name: "foobar",
-                    value: Some("baz"),
+                    name: "foobar".to_owned(),
+                    value: Some("baz".to_owned()),
                     bool_value: None,
                 }))),
             // Flag with no explicit value, using "-" or "--" and long or short name.
@@ -559,7 +549,7 @@ mod test {
                 vec!["--foobar".to_owned()],
                 vec![Option::flag("foobar", "foobar", Some('f'))],
                 Ok(Some(ParsedOption {
-                    name: "foobar",
+                    name: "foobar".to_owned(),
                     value: None,
                     bool_value: Some(true),
                 }))),
@@ -567,7 +557,7 @@ mod test {
                 vec!["-f".to_owned()],
                 vec![Option::flag("foobar", "foobar", Some('f'))],
                 Ok(Some(ParsedOption {
-                    name: "foobar",
+                    name: "foobar".to_owned(),
                     value: None,
                     bool_value: Some(true),
                 }))),
@@ -576,16 +566,16 @@ mod test {
                 vec!["--foobar=true".to_owned()],
                 vec![Option::flag("foobar", "foobar", Some('f'))],
                 Ok(Some(ParsedOption {
-                    name: "foobar",
-                    value: Some("true"),
+                    name: "foobar".to_owned(),
+                    value: Some("true".to_owned()),
                     bool_value: Some(true),
                 }))),
             TestCase(
                 vec!["-f=false".to_owned()],
                 vec![Option::flag("foobar", "foobar", Some('f'))],
                 Ok(Some(ParsedOption {
-                    name: "foobar",
-                    value: Some("false"),
+                    name: "foobar".to_owned(),
+                    value: Some("false".to_owned()),
                     bool_value: Some(false),
                 }))),
         ];
