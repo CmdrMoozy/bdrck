@@ -1,17 +1,15 @@
+use ::argument::Argument;
+use ::command::{Command, CommandResult};
+use ::command::ExecutableCommand;
+use ::error::*;
+use ::option::Option;
+use ::option::find_option;
 use std::collections::HashMap;
 use std::env;
 use std::iter::Peekable;
 use std::option::Option as Optional;
-use std::result;
 use std::string::String;
 use std::vec::Vec;
-
-use super::argument::Argument;
-use super::command::Command;
-use super::command::ExecutableCommand;
-use super::error::*;
-use super::option::Option;
-use super::option::find_option;
 
 pub fn get_program_parameters() -> Vec<String> {
     //! Returns the current program's parameters (accessed essentialy via
@@ -366,7 +364,7 @@ impl<'cl> ParsedParameters<'cl> {
 
     pub fn execute<'cbl, E>(&self,
                             executable_command: &mut ExecutableCommand<'cl, 'cbl, E>)
-                            -> result::Result<(), E> {
+                            -> CommandResult<E> {
         executable_command.execute(&self.options, &self.flags, &self.arguments)
     }
 }

@@ -1,4 +1,4 @@
-use ::command::ExecutableCommand;
+use ::command::{CommandResult, ExecutableCommand};
 use ::error::Result;
 use ::help;
 use ::parsed_parameters::ParsedParameters;
@@ -32,7 +32,7 @@ impl fmt::Write for IoWriteAdapter {
 
 fn execute_command<'cl, 'cbl, E>(parsed_parameters: &ParsedParameters<'cl>,
                                  commands: &mut Vec<ExecutableCommand<'cl, 'cbl, E>>)
-                                 -> result::Result<(), E> {
+                                 -> CommandResult<E> {
     let executable_command =
         commands.iter_mut().skip_while(|ec| *ec != parsed_parameters.get_command()).next().unwrap();
     parsed_parameters.execute(executable_command)
@@ -43,7 +43,7 @@ fn parse_and_execute_impl<E>(program: &str,
                              commands: &mut Vec<ExecutableCommand<E>>,
                              print_program_help: bool,
                              print_command_name: bool)
-                             -> Result<result::Result<(), E>> {
+                             -> Result<CommandResult<E>> {
     let mut parameters_iterator = parameters.iter().peekable();
 
     let cr = parse_command(&mut parameters_iterator,
@@ -72,7 +72,7 @@ fn parse_and_execute_impl<E>(program: &str,
 pub fn parse_and_execute_command<E>(program: &str,
                                     parameters: &Vec<String>,
                                     commands: &mut Vec<ExecutableCommand<E>>)
-                                    -> Result<result::Result<(), E>> {
+                                    -> Result<CommandResult<E>> {
     //! This function parses the given program parameters, and calls the
     //! appropriate command callback. It prints out usage information if the
     //! parameters are invalid, and returns a reasonable exit code for the process.
@@ -86,7 +86,7 @@ pub fn parse_and_execute_command<E>(program: &str,
 pub fn parse_and_execute<E>(program: &str,
                             parameters: Vec<String>,
                             command: ExecutableCommand<E>)
-                            -> Result<result::Result<(), E>> {
+                            -> Result<CommandResult<E>> {
     //! This function parses the given program parameters and calls the given
     //! command's callback. It prints out usage information if the parameters are
     //! invalid, and returns a reasonable exit code for the process.

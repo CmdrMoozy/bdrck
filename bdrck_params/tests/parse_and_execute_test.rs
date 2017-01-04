@@ -1,6 +1,3 @@
-use std::collections::HashMap;
-use std::result::Result;
-
 extern crate bdrck_test;
 use self::bdrck_test::fn_instrumentation::FnInstrumentation;
 
@@ -8,23 +5,22 @@ extern crate bdrck_params;
 use self::bdrck_params::parse_and_execute::parse_and_execute;
 use self::bdrck_params::parse_and_execute::parse_and_execute_command;
 use self::bdrck_params::argument::Argument;
-use self::bdrck_params::command::Command;
+use self::bdrck_params::command::{Command, CommandCallback};
 use self::bdrck_params::command::ExecutableCommand;
 use self::bdrck_params::option::Option;
 
 #[test]
 fn test_parse_and_execute_command() {
     let instrumentation = FnInstrumentation::new();
-    let callback: Box<FnMut(&HashMap<&str, String>, &HashMap<&str, bool>, &HashMap<&str, Vec<String>>) -> Result<(), ()>> =
-        Box::new(|options, flags, arguments| {
-            instrumentation.record_call();
+    let callback: CommandCallback<()> = Box::new(|options, flags, arguments| {
+        instrumentation.record_call();
 
-            assert!(options.len() == 2);
-            assert!(flags.len() == 2);
-            assert!(arguments.len() == 1);
+        assert!(options.len() == 2);
+        assert!(flags.len() == 2);
+        assert!(arguments.len() == 1);
 
-            Ok(())
-        });
+        Ok(())
+    });
 
     let program = "program".to_owned();
     let parameters = vec![
@@ -60,16 +56,15 @@ fn test_parse_and_execute_command() {
 #[test]
 fn test_parse_and_execute() {
     let instrumentation = FnInstrumentation::new();
-    let callback: Box<FnMut(&HashMap<&str, String>, &HashMap<&str, bool>, &HashMap<&str, Vec<String>>) -> Result<(), ()>> =
-        Box::new(|options, flags, arguments| {
-            instrumentation.record_call();
+    let callback: CommandCallback<()> = Box::new(|options, flags, arguments| {
+        instrumentation.record_call();
 
-            assert!(options.len() == 2);
-            assert!(flags.len() == 2);
-            assert!(arguments.len() == 1);
+        assert!(options.len() == 2);
+        assert!(flags.len() == 2);
+        assert!(arguments.len() == 1);
 
-            Ok(())
-        });
+        Ok(())
+    });
 
     let program = "program".to_owned();
     let parameters = vec![

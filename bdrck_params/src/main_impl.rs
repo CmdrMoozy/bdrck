@@ -1,17 +1,16 @@
-use ::command::ExecutableCommand;
+use ::command::{CommandResult, ExecutableCommand};
 use ::error::Result;
 use ::parse_and_execute::parse_and_execute;
 use ::parse_and_execute::parse_and_execute_command;
 use ::parsed_parameters::get_program_parameters;
 use std::env;
 use std::process;
-use std::result;
 use std::vec::Vec;
 
 const EXIT_SUCCESS: i32 = 0;
 const EXIT_FAILURE: i32 = 1;
 
-fn handle_result<E>(r: Result<result::Result<(), E>>) -> i32 {
+fn handle_result<E>(r: Result<CommandResult<E>>) -> i32 {
     match r {
         Ok(command_result) => {
             match command_result {
