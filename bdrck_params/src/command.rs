@@ -76,9 +76,9 @@ impl PartialEq for Command {
 
 pub type CommandResult<E> = result::Result<(), E>;
 
-pub type CommandCallback<'a, E> = Box<FnMut(&HashMap<&str, String>,
-    &HashMap<&str, bool>,
-    &HashMap<&str, Vec<String>>)
+pub type CommandCallback<'a, E> = Box<FnMut(HashMap<String, String>,
+    HashMap<String, bool>,
+    HashMap<String, Vec<String>>)
     -> CommandResult<E> + 'a>;
 
 /// An ExecutableCommand is a Command alongside a callback function which can
@@ -112,9 +112,9 @@ impl<'a, 'b, E> ExecutableCommand<'a, 'b, E> {
     pub fn get_command(&self) -> &'a Command { self.command }
 
     pub fn execute(&mut self,
-                   options: &HashMap<&str, String>,
-                   flags: &HashMap<&str, bool>,
-                   arguments: &HashMap<&str, Vec<String>>)
+                   options: HashMap<String, String>,
+                   flags: HashMap<String, bool>,
+                   arguments: HashMap<String, Vec<String>>)
                    -> CommandResult<E> {
         self.callback.as_mut()(options, flags, arguments)
     }

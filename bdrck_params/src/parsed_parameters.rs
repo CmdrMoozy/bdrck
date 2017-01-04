@@ -28,9 +28,9 @@ fn build_default_options(parsed: &mut ParsedParameters) {
 
     for o in parsed.command.get_options() {
         if let Some(ref dv) = o.default_value {
-            parsed.options.insert(&o.name, dv.clone());
+            parsed.options.insert(o.name.clone(), dv.clone());
         } else if o.is_flag {
-            parsed.flags.insert(&o.name, false);
+            parsed.flags.insert(o.name.clone(), false);
         }
     }
 }
@@ -208,10 +208,11 @@ fn emplace_all_options<'pl, 'cl, PI>(parameters: &mut Peekable<PI>,
 
     for parsed_option in &try!(parse_all_options(parameters, parsed_parameters)) {
         if parsed_option.bool_value.is_none() {
-            parsed_parameters.options
-                .insert(parsed_option.name, parsed_option.value.unwrap().to_owned());
+            parsed_parameters.options.insert(parsed_option.name.to_owned(),
+                                             parsed_option.value.unwrap().to_owned());
         } else {
-            parsed_parameters.flags.insert(parsed_option.name, parsed_option.bool_value.unwrap());
+            parsed_parameters.flags.insert(parsed_option.name.to_owned(),
+                                           parsed_option.bool_value.unwrap());
         }
     }
 
@@ -221,14 +222,14 @@ fn emplace_all_options<'pl, 'cl, PI>(parameters: &mut Peekable<PI>,
 fn parse_all_arguments<'pl, 'cl, PI>(parameters: &mut Peekable<PI>,
                                      arguments: &'cl Vec<Argument>,
                                      last_argument_is_variadic: bool)
-                                     -> Result<HashMap<&'cl str, Vec<String>>>
+                                     -> Result<HashMap<String, Vec<String>>>
     where PI: Iterator<Item = &'pl String>
 {
     //! Parses all of the positional arguments from the given iterator over program
     //! parameters, and returns either a possibly empty HashMap of parsed arguments
     //! or an error, if one is encountered.
 
-    let mut parsed: HashMap<&'cl str, Vec<String>> = HashMap::new();
+    let mut parsed: HashMap<String, Vec<String>> = HashMap::new();
     if arguments.is_empty() {
         return Ok(parsed);
     }
@@ -243,7 +244,7 @@ fn parse_all_arguments<'pl, 'cl, PI>(parameters: &mut Peekable<PI>,
                     name: argument.name().clone(),
                 }));
             }
-            parsed.insert(argument.name().as_str(), vec![v.unwrap().clone()]);
+            parsed.insert(argument.name().clone(), vec![v.unwrap().clone()]);
         }
     }
 
@@ -254,14 +255,14 @@ fn parse_all_arguments<'pl, 'cl, PI>(parameters: &mut Peekable<PI>,
             last_argument.default_value().unwrap().iter().map(|v| v.clone()).collect();
     }
     if last_argument_is_variadic {
-        parsed.insert(last_argument.name().as_str(), last_argument_values);
+        parsed.insert(last_argument.name().clone(), last_argument_values);
     } else {
         if last_argument_values.len() != 1 {
             return Err(Error::new(ErrorKind::WrongNumberOfArgumentValues {
                 count: last_argument_values.len(),
             }));
         }
-        parsed.insert(last_argument.name().as_str(), last_argument_values);
+        parsed.insert(last_argument.name().clone(), last_argument_values);
     }
 
     Ok(parsed)
@@ -285,17 +286,17 @@ fn emplace_all_arguments<'pl, 'cl, PI>(parameters: &mut Peekable<PI>,
     Ok(())
 }
 
-fn all_options_are_present(parsed: &ParsedParameters) -> Result<()> {
+fn all_options_are_present(command: &Command, options: &HashMap<String, String>) -> Result<()> {
     //! Checks if all of the given command's options are present in the given map
     //! of option names to values. If an option is missing, returns an error with
     //! more detailed information. Otherwise, returns None.
 
-    for o in parsed.command.get_options() {
+    for o in command.get_options() {
         if o.is_optional || o.is_flag {
             continue;
         }
 
-        if parsed.get_options().get(o.name.as_str()).is_none() {
+        if options.get(o.name.as_str()).is_none() {
             return Err(Error::new(ErrorKind::MissingOptionValue { name: o.name.clone() }));
         }
     }
@@ -329,9 +330,9 @@ pub fn parse_command<'pl, 'cl, PI, CI>(parameters: &mut Peekable<PI>,
 /// values conveniently.
 pub struct ParsedParameters<'cl> {
     command: &'cl Command,
-    options: HashMap<&'cl str, String>,
-    flags: HashMap<&'cl str, bool>,
-    arguments: HashMap<&'cl str, Vec<String>>,
+    options: HashMap<String, String>,
+    flags: HashMap<String, bool>,
+    arguments: HashMap<String, Vec<String>>,
 }
 
 impl<'cl> ParsedParameters<'cl> {
@@ -354,18 +355,17 @@ impl<'cl> ParsedParameters<'cl> {
         build_default_options(&mut parsed);
         try!(emplace_all_options(parameters, &mut parsed));
         try!(emplace_all_arguments(parameters, &mut parsed));
-        try!(all_options_are_present(&parsed));
+        try!(all_options_are_present(parsed.command, &parsed.options));
 
         Ok(parsed)
     }
 
     pub fn get_command(&self) -> &Command { self.command }
-    pub fn get_options(&self) -> &HashMap<&'cl str, String> { &self.options }
 
-    pub fn execute<'cbl, E>(&self,
+    pub fn execute<'cbl, E>(self,
                             executable_command: &mut ExecutableCommand<'cl, 'cbl, E>)
                             -> CommandResult<E> {
-        executable_command.execute(&self.options, &self.flags, &self.arguments)
+        executable_command.execute(self.options, self.flags, self.arguments)
     }
 }
 
@@ -628,14 +628,14 @@ mod test {
         ];
 
         let mut expected_options = HashMap::new();
-        expected_options.insert("opta", "foo".to_owned());
-        expected_options.insert("optb", "baz".to_owned());
-        expected_options.insert("optc", "bar".to_owned());
+        expected_options.insert("opta".to_owned(), "foo".to_owned());
+        expected_options.insert("optb".to_owned(), "baz".to_owned());
+        expected_options.insert("optc".to_owned(), "bar".to_owned());
 
         let mut expected_flags = HashMap::new();
-        expected_flags.insert("opte", false);
-        expected_flags.insert("optf", true);
-        expected_flags.insert("optg", false);
+        expected_flags.insert("opte".to_owned(), false);
+        expected_flags.insert("optf".to_owned(), true);
+        expected_flags.insert("optg".to_owned(), false);
 
         let pr = parse_command_and_parameters(&mut parameters.iter().peekable(),
                                               &mut commands.iter());
@@ -674,9 +674,9 @@ mod test {
         ];
 
         let mut expected_arguments = HashMap::new();
-        expected_arguments.insert("arga", vec!["foo".to_owned()]);
-        expected_arguments.insert("argb", vec!["bar".to_owned()]);
-        expected_arguments.insert("argc", vec!["baz".to_owned()]);
+        expected_arguments.insert("arga".to_owned(), vec!["foo".to_owned()]);
+        expected_arguments.insert("argb".to_owned(), vec!["bar".to_owned()]);
+        expected_arguments.insert("argc".to_owned(), vec!["baz".to_owned()]);
 
         let pr = parse_command_and_parameters(&mut parameters.iter().peekable(),
                                               &mut commands.iter());
@@ -714,9 +714,9 @@ mod test {
         ];
 
         let mut expected_arguments = HashMap::new();
-        expected_arguments.insert("arga", vec!["foo".to_owned()]);
-        expected_arguments.insert("argb", vec!["bar".to_owned()]);
-        expected_arguments.insert("argc", Vec::new());
+        expected_arguments.insert("arga".to_owned(), vec!["foo".to_owned()]);
+        expected_arguments.insert("argb".to_owned(), vec!["bar".to_owned()]);
+        expected_arguments.insert("argc".to_owned(), Vec::new());
 
         let pr = parse_command_and_parameters(&mut parameters.iter().peekable(),
                                               &mut commands.iter());
@@ -756,9 +756,9 @@ mod test {
         ];
 
         let mut expected_arguments = HashMap::new();
-        expected_arguments.insert("arga", vec!["foo".to_owned()]);
-        expected_arguments.insert("argb", vec!["bar".to_owned()]);
-        expected_arguments.insert("argc", vec!["baz".to_owned(), "quux".to_owned()]);
+        expected_arguments.insert("arga".to_owned(), vec!["foo".to_owned()]);
+        expected_arguments.insert("argb".to_owned(), vec!["bar".to_owned()]);
+        expected_arguments.insert("argc".to_owned(), vec!["baz".to_owned(), "quux".to_owned()]);
 
         let pr = parse_command_and_parameters(&mut parameters.iter().peekable(),
                                               &mut commands.iter());
@@ -795,9 +795,9 @@ mod test {
         ];
 
         let mut expected_arguments = HashMap::new();
-        expected_arguments.insert("arga", vec!["foo".to_owned()]);
-        expected_arguments.insert("argb", vec!["dvb".to_owned()]);
-        expected_arguments.insert("argc", vec!["dvc".to_owned()]);
+        expected_arguments.insert("arga".to_owned(), vec!["foo".to_owned()]);
+        expected_arguments.insert("argb".to_owned(), vec!["dvb".to_owned()]);
+        expected_arguments.insert("argc".to_owned(), vec!["dvc".to_owned()]);
 
         let pr = parse_command_and_parameters(&mut parameters.iter().peekable(),
                                               &mut commands.iter());
@@ -834,9 +834,10 @@ mod test {
         ];
 
         let mut expected_arguments = HashMap::new();
-        expected_arguments.insert("arga", vec!["foo".to_owned()]);
-        expected_arguments.insert("argb", vec!["dvb".to_owned()]);
-        expected_arguments.insert("argc", vec!["dvc1".to_owned(), "dvc2".to_owned()]);
+        expected_arguments.insert("arga".to_owned(), vec!["foo".to_owned()]);
+        expected_arguments.insert("argb".to_owned(), vec!["dvb".to_owned()]);
+        expected_arguments.insert("argc".to_owned(),
+                                  vec!["dvc1".to_owned(), "dvc2".to_owned()]);
 
         let pr = parse_command_and_parameters(&mut parameters.iter().peekable(),
                                               &mut commands.iter());
@@ -871,10 +872,10 @@ mod test {
         ];
 
         let mut expected_flags = HashMap::new();
-        expected_flags.insert("flag", true);
+        expected_flags.insert("flag".to_owned(), true);
 
         let mut expected_arguments = HashMap::new();
-        expected_arguments.insert("arga", vec!["foo".to_owned()]);
+        expected_arguments.insert("arga".to_owned(), vec!["foo".to_owned()]);
 
         let pr = parse_command_and_parameters(&mut parameters.iter().peekable(),
                                               &mut commands.iter());
@@ -912,10 +913,10 @@ mod test {
         ];
 
         let mut expected_flags = HashMap::new();
-        expected_flags.insert("flag", true);
+        expected_flags.insert("flag".to_owned(), true);
 
         let mut expected_arguments = HashMap::new();
-        expected_arguments.insert("arga", vec!["foo".to_owned()]);
+        expected_arguments.insert("arga".to_owned(), vec!["foo".to_owned()]);
 
         let pr = parse_command_and_parameters(&mut parameters.iter().peekable(),
                                               &mut commands.iter());

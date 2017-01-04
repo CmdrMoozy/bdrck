@@ -30,7 +30,7 @@ impl fmt::Write for IoWriteAdapter {
     }
 }
 
-fn execute_command<'cl, 'cbl, E>(parsed_parameters: &ParsedParameters<'cl>,
+fn execute_command<'cl, 'cbl, E>(parsed_parameters: ParsedParameters<'cl>,
                                  commands: &mut Vec<ExecutableCommand<'cl, 'cbl, E>>)
                                  -> CommandResult<E> {
     let executable_command =
@@ -66,7 +66,7 @@ fn parse_and_execute_impl<E>(program: &str,
     }
     let parsed_parameters = ppr.unwrap();
 
-    Ok(execute_command(&parsed_parameters, &mut commands))
+    Ok(execute_command(parsed_parameters, &mut commands))
 }
 
 pub fn parse_and_execute_command<E>(program: &str,
