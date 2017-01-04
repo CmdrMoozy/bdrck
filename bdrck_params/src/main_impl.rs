@@ -5,14 +5,23 @@ use ::parse_and_execute::parse_and_execute_command;
 use ::parsed_parameters::get_program_parameters;
 use std::env;
 use std::process;
+use std::result;
 use std::vec::Vec;
 
 const EXIT_SUCCESS: i32 = 0;
 const EXIT_FAILURE: i32 = 1;
 
-fn handle_result(r: Result<()>) -> i32 {
+fn handle_result<E>(r: Result<result::Result<(), E>>) -> i32 {
     match r {
-        Ok(_) => EXIT_SUCCESS,
+        Ok(command_result) => {
+            match command_result {
+                Ok(_) => EXIT_SUCCESS,
+                Err(_) => {
+                    error!("Command returned error code");
+                    EXIT_FAILURE
+                },
+            }
+        },
         Err(e) => {
             error!("{}", e);
             EXIT_FAILURE
@@ -20,7 +29,7 @@ fn handle_result(r: Result<()>) -> i32 {
     }
 }
 
-pub fn main_impl_multiple_commands(mut commands: Vec<ExecutableCommand>) -> ! {
+pub fn main_impl_multiple_commands<E>(mut commands: Vec<ExecutableCommand<E>>) -> ! {
     //! Parses command-line parameters and executes the specified command.
     //!
     //! This function exits this process with an appropriate exit code. Like
@@ -37,7 +46,7 @@ pub fn main_impl_multiple_commands(mut commands: Vec<ExecutableCommand>) -> ! {
                                                           &mut commands)));
 }
 
-pub fn main_impl_single_command(command: ExecutableCommand) -> ! {
+pub fn main_impl_single_command<E>(command: ExecutableCommand<E>) -> ! {
     //! Parses command-line parameters and executes the given command.
     //!
     //! This function exits this process with an appropriate exit code. Like

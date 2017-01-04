@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::env;
 use std::iter::Peekable;
 use std::option::Option as Optional;
+use std::result;
 use std::string::String;
 use std::vec::Vec;
 
@@ -363,8 +364,10 @@ impl<'cl> ParsedParameters<'cl> {
     pub fn get_command(&self) -> &Command { self.command }
     pub fn get_options(&self) -> &HashMap<&'cl str, String> { &self.options }
 
-    pub fn execute<'cbl>(&self, executable_command: &mut ExecutableCommand<'cl, 'cbl>) {
-        executable_command.execute(&self.options, &self.flags, &self.arguments);
+    pub fn execute<'cbl, E>(&self,
+                            executable_command: &mut ExecutableCommand<'cl, 'cbl, E>)
+                            -> result::Result<(), E> {
+        executable_command.execute(&self.options, &self.flags, &self.arguments)
     }
 }
 

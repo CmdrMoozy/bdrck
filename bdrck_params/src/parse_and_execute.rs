@@ -30,19 +30,20 @@ impl fmt::Write for IoWriteAdapter {
     }
 }
 
-fn execute_command<'cl, 'cbl>(parsed_parameters: &ParsedParameters<'cl>,
-                              commands: &mut Vec<ExecutableCommand<'cl, 'cbl>>) {
+fn execute_command<'cl, 'cbl, E>(parsed_parameters: &ParsedParameters<'cl>,
+                                 commands: &mut Vec<ExecutableCommand<'cl, 'cbl, E>>)
+                                 -> result::Result<(), E> {
     let executable_command =
         commands.iter_mut().skip_while(|ec| *ec != parsed_parameters.get_command()).next().unwrap();
-    parsed_parameters.execute(executable_command);
+    parsed_parameters.execute(executable_command)
 }
 
-fn parse_and_execute_impl(program: &str,
-                          parameters: &Vec<String>,
-                          commands: &mut Vec<ExecutableCommand>,
-                          print_program_help: bool,
-                          print_command_name: bool)
-                          -> Result<()> {
+fn parse_and_execute_impl<E>(program: &str,
+                             parameters: &Vec<String>,
+                             commands: &mut Vec<ExecutableCommand<E>>,
+                             print_program_help: bool,
+                             print_command_name: bool)
+                             -> Result<result::Result<(), E>> {
     let mut parameters_iterator = parameters.iter().peekable();
 
     let cr = parse_command(&mut parameters_iterator,
@@ -65,15 +66,13 @@ fn parse_and_execute_impl(program: &str,
     }
     let parsed_parameters = ppr.unwrap();
 
-    execute_command(&parsed_parameters, commands);
-
-    Ok(())
+    Ok(execute_command(&parsed_parameters, commands))
 }
 
-pub fn parse_and_execute_command(program: &str,
-                                 parameters: &Vec<String>,
-                                 commands: &mut Vec<ExecutableCommand>)
-                                 -> Result<()> {
+pub fn parse_and_execute_command<E>(program: &str,
+                                    parameters: &Vec<String>,
+                                    commands: &mut Vec<ExecutableCommand<E>>)
+                                    -> Result<result::Result<(), E>> {
     //! This function parses the given program parameters, and calls the
     //! appropriate command callback. It prints out usage information if the
     //! parameters are invalid, and returns a reasonable exit code for the process.
@@ -84,10 +83,10 @@ pub fn parse_and_execute_command(program: &str,
     parse_and_execute_impl(program, parameters, commands, true, true)
 }
 
-pub fn parse_and_execute(program: &str,
-                         parameters: Vec<String>,
-                         command: ExecutableCommand)
-                         -> Result<()> {
+pub fn parse_and_execute<E>(program: &str,
+                            parameters: Vec<String>,
+                            command: ExecutableCommand<E>)
+                            -> Result<result::Result<(), E>> {
     //! This function parses the given program parameters and calls the given
     //! command's callback. It prints out usage information if the parameters are
     //! invalid, and returns a reasonable exit code for the process.

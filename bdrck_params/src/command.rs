@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::fmt;
+use std::result;
 use std::string::String;
 use std::vec::Vec;
 
@@ -73,30 +74,32 @@ impl PartialEq for Command {
     fn eq(&self, other: &Command) -> bool { self.name == other.name }
 }
 
-type CommandCallback<'a> = Box<FnMut(&HashMap<&str, String>,
+type CommandCallback<'a, E> = Box<FnMut(&HashMap<&str, String>,
                                      &HashMap<&str, bool>,
-                                     &HashMap<&str, Vec<String>>) + 'a>;
+                                     &HashMap<&str, Vec<String>>) -> result::Result<(), E> + 'a>;
 
 /// An ExecutableCommand is a Command alongside a callback function which can
 /// be called to execute the command in question.
-pub struct ExecutableCommand<'a, 'b> {
+pub struct ExecutableCommand<'a, 'b, E> {
     command: &'a Command,
-    callback: CommandCallback<'b>,
+    callback: CommandCallback<'b, E>,
 }
 
-impl<'a, 'b> fmt::Debug for ExecutableCommand<'a, 'b> {
+impl<'a, 'b, E> fmt::Debug for ExecutableCommand<'a, 'b, E> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         try!(f.write_str(format!("{:#?}", self.command).as_ref()));
         Ok(())
     }
 }
 
-impl<'a, 'b> PartialEq<Command> for ExecutableCommand<'a, 'b> {
+impl<'a, 'b, E> PartialEq<Command> for ExecutableCommand<'a, 'b, E> {
     fn eq(&self, other: &Command) -> bool { self.command == other }
 }
 
-impl<'a, 'b> ExecutableCommand<'a, 'b> {
-    pub fn new(command: &'a Command, callback: CommandCallback<'b>) -> ExecutableCommand<'a, 'b> {
+impl<'a, 'b, E> ExecutableCommand<'a, 'b, E> {
+    pub fn new(command: &'a Command,
+               callback: CommandCallback<'b, E>)
+               -> ExecutableCommand<'a, 'b, E> {
         ExecutableCommand {
             command: command,
             callback: callback,
@@ -108,7 +111,8 @@ impl<'a, 'b> ExecutableCommand<'a, 'b> {
     pub fn execute(&mut self,
                    options: &HashMap<&str, String>,
                    flags: &HashMap<&str, bool>,
-                   arguments: &HashMap<&str, Vec<String>>) {
-        self.callback.as_mut()(options, flags, arguments);
+                   arguments: &HashMap<&str, Vec<String>>)
+                   -> result::Result<(), E> {
+        self.callback.as_mut()(options, flags, arguments)
     }
 }

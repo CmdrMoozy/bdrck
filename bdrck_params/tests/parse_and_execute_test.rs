@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::result::Result;
 
 extern crate bdrck_test;
 use self::bdrck_test::fn_instrumentation::FnInstrumentation;
@@ -14,15 +15,15 @@ use self::bdrck_params::option::Option;
 #[test]
 fn test_parse_and_execute_command() {
     let instrumentation = FnInstrumentation::new();
-    let callback: Box<FnMut(&HashMap<&str, String>,
-                            &HashMap<&str, bool>,
-                            &HashMap<&str, Vec<String>>)> =
+    let callback: Box<FnMut(&HashMap<&str, String>, &HashMap<&str, bool>, &HashMap<&str, Vec<String>>) -> Result<(), ()>> =
         Box::new(|options, flags, arguments| {
             instrumentation.record_call();
 
             assert!(options.len() == 2);
             assert!(flags.len() == 2);
             assert!(arguments.len() == 1);
+
+            Ok(())
         });
 
     let program = "program".to_owned();
@@ -59,15 +60,15 @@ fn test_parse_and_execute_command() {
 #[test]
 fn test_parse_and_execute() {
     let instrumentation = FnInstrumentation::new();
-    let callback: Box<FnMut(&HashMap<&str, String>,
-                            &HashMap<&str, bool>,
-                            &HashMap<&str, Vec<String>>)> =
+    let callback: Box<FnMut(&HashMap<&str, String>, &HashMap<&str, bool>, &HashMap<&str, Vec<String>>) -> Result<(), ()>> =
         Box::new(|options, flags, arguments| {
             instrumentation.record_call();
 
             assert!(options.len() == 2);
             assert!(flags.len() == 2);
             assert!(arguments.len() == 1);
+
+            Ok(())
         });
 
     let program = "program".to_owned();
