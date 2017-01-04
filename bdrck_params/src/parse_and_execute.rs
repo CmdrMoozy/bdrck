@@ -47,12 +47,12 @@ fn parse_and_execute_impl<E>(program: &str,
     let mut parameters_iterator = parameters.iter().peekable();
 
     let cr = parse_command(&mut parameters_iterator,
-                           &mut commands.iter().map(|ec| ec.get_command()));
+                           &mut commands.iter().map(|ec| ec.command));
     if cr.is_err() {
         if print_program_help {
             try!(help::print_program_help(&mut IoWriteAdapter::new_stderr(),
                                           program,
-                                          &mut commands.iter().map(|ec| ec.get_command())));
+                                          &mut commands.iter().map(|ec| ec.command)));
         }
         return Err(cr.err().unwrap());
     }
@@ -95,7 +95,7 @@ pub fn parse_and_execute<E>(program: &str,
     //! programs.
 
     parse_and_execute_impl(program,
-                           &Some(command.get_command().get_name().clone())
+                           &Some(command.command.name.clone())
                                .into_iter()
                                .chain(parameters.iter().cloned())
                                .collect(),

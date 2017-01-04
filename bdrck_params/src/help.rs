@@ -9,7 +9,7 @@ pub fn print_program_help<'a, CI>(f: &mut Write, program: &str, mut commands: CI
         "Usage: {} command [options ...] [arguments ...]\n", program).as_ref()));
     try!(f.write_str("Available commands:\n"));
     while let Some(command) = commands.next() {
-        try!(f.write_str(format!("\t{} - {}\n", command.get_name(), command.get_help()).as_ref()));
+        try!(f.write_str(format!("\t{} - {}\n", command.name, command.help).as_ref()));
     }
     Ok(())
 }
@@ -21,13 +21,13 @@ pub fn print_command_help(f: &mut Write,
                           -> Result<()> {
     try!(f.write_str(format!("Usage: {} ", program).as_ref()));
     if print_command_name {
-        try!(f.write_str(format!("{} ", command.get_name()).as_ref()));
+        try!(f.write_str(format!("{} ", command.name).as_ref()));
     }
     try!(f.write_str("[options ...] [arguments ...]\n"));
 
-    if !command.get_options().is_empty() {
+    if !command.options.is_empty() {
         try!(f.write_str("\nOptions:\n"));
-        for option in command.get_options() {
+        for option in &command.options {
             try!(f.write_str(format!("\t--{}", option.name).as_ref()));
             if option.short_name.is_some() {
                 try!(f.write_str(format!(", -{}", option.short_name.as_ref().unwrap()).as_ref()));
@@ -46,12 +46,12 @@ pub fn print_command_help(f: &mut Write,
         }
     }
 
-    if !command.get_arguments().is_empty() {
+    if !command.arguments.is_empty() {
         try!(f.write_str("\nPositional arguments:"));
-        for argument in command.get_arguments() {
+        for argument in &command.arguments {
             try!(f.write_fmt(format_args!("\n\t{}", argument)));
         }
-        if command.last_argument_is_variadic() {
+        if command.last_argument_is_variadic {
             try!(f.write_str(" [One or more]"));
         }
         try!(f.write_str("\n"));

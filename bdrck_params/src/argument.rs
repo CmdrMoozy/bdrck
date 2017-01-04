@@ -12,9 +12,9 @@ use std::string::String;
 /// stores a description of the argument, not its final value).
 #[derive(Debug)]
 pub struct Argument {
-    name: String,
-    help: String,
-    default_value: Optional<Vec<String>>,
+    pub name: String,
+    pub help: String,
+    pub default_value: Optional<Vec<String>>,
 }
 
 impl Argument {
@@ -25,16 +25,12 @@ impl Argument {
             default_value: default_value,
         }
     }
-
-    pub fn name(&self) -> &String { &self.name }
-
-    pub fn default_value(&self) -> Optional<&Vec<String>> { self.default_value.as_ref() }
 }
 
 impl fmt::Display for Argument {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         try!(write!(f, "{} - {}", self.name, self.help));
-        if let Some(default) = self.default_value() {
+        if let Some(default) = self.default_value.as_ref() {
             try!(write!(f, " [Default: {}]", &default[..].join(", ")));
         }
         Ok(())

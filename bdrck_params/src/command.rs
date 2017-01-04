@@ -13,11 +13,11 @@ use super::option::Option;
 /// accepts.
 #[derive(Debug)]
 pub struct Command {
-    name: String,
-    help: String,
-    options: Vec<Option>,
-    arguments: Vec<Argument>,
-    last_argument_is_variadic: bool,
+    pub name: String,
+    pub help: String,
+    pub options: Vec<Option>,
+    pub arguments: Vec<Argument>,
+    pub last_argument_is_variadic: bool,
 }
 
 impl Command {
@@ -33,8 +33,8 @@ impl Command {
         // All arguments after the first one with a default value must also have
         // default values.
         if !arguments.iter()
-            .skip_while(|a| a.default_value().is_none())
-            .all(|a| a.default_value().is_some()) {
+            .skip_while(|a| a.default_value.is_none())
+            .all(|a| a.default_value.is_some()) {
             return Err(Error::new(ErrorKind::MissingDefaultArgumentValue));
         }
 
@@ -42,15 +42,16 @@ impl Command {
         if arguments.len() > 0 &&
            !&arguments[..arguments.len() - 1]
             .iter()
-            .all(|a| a.default_value().map_or(0, |dv| dv.len()) <= 1) {
+            .all(|a| a.default_value.as_ref().map_or(0, |dv| dv.len()) <= 1) {
             return Err(Error::new(ErrorKind::TooManyDefaultArgumentValues));
         }
 
         // The last argument can have more than one default value only if it is
         // variadic.
         if !last_argument_is_variadic &&
-           arguments.iter().last().map_or(false,
-                                          |a| a.default_value().map_or(false, |dv| dv.len() > 1)) {
+           arguments.iter().last().map_or(false, |a| {
+            a.default_value.as_ref().map_or(false, |dv| dv.len() > 1)
+        }) {
             return Err(Error::new(ErrorKind::TooManyDefaultArgumentValues));
         }
 
@@ -62,12 +63,6 @@ impl Command {
             last_argument_is_variadic: last_argument_is_variadic,
         })
     }
-
-    pub fn get_name(&self) -> &String { &self.name }
-    pub fn get_help(&self) -> &String { &self.help }
-    pub fn get_options(&self) -> &Vec<Option> { &self.options }
-    pub fn get_arguments(&self) -> &Vec<Argument> { &self.arguments }
-    pub fn last_argument_is_variadic(&self) -> bool { self.last_argument_is_variadic }
 }
 
 impl PartialEq for Command {
@@ -84,7 +79,7 @@ pub type CommandCallback<'a, E> = Box<FnMut(HashMap<String, String>,
 /// An ExecutableCommand is a Command alongside a callback function which can
 /// be called to execute the command in question.
 pub struct ExecutableCommand<'a, 'b, E> {
-    command: &'a Command,
+    pub command: &'a Command,
     callback: CommandCallback<'b, E>,
 }
 
@@ -108,8 +103,6 @@ impl<'a, 'b, E> ExecutableCommand<'a, 'b, E> {
             callback: callback,
         }
     }
-
-    pub fn get_command(&self) -> &'a Command { self.command }
 
     pub fn execute(&mut self,
                    options: HashMap<String, String>,

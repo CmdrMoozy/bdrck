@@ -26,7 +26,7 @@ fn build_default_options(parsed: &mut ParsedParameters) {
     //! any) for each of the given command's options. Note that all flags have a
     //! default value of false.
 
-    for o in parsed.command.get_options() {
+    for o in &parsed.command.options {
         if let Some(ref dv) = o.default_value {
             parsed.options.insert(o.name.clone(), dv.clone());
         } else if o.is_flag {
@@ -189,9 +189,7 @@ fn parse_all_options<'pl, 'cl, PI>(parameters: &mut Peekable<PI>,
 
     let mut parsed: Vec<ParsedOption<'cl, 'pl>> = Vec::new();
     while let Some(parsed_option) = try!(parse_option(parameters,
-                                                      parsed_parameters.command
-                                                          .get_options()
-                                                          .iter())) {
+                                                      parsed_parameters.command.options.iter())) {
         parsed.push(parsed_option);
     }
     Ok(parsed)
@@ -236,33 +234,34 @@ fn parse_all_arguments<'pl, 'cl, PI>(parameters: &mut Peekable<PI>,
 
     if arguments.len() >= 2 {
         for argument in &arguments[..arguments.len() - 1] {
-            let v = parameters.next().or(argument.default_value()
+            let v = parameters.next().or(argument.default_value
+                .as_ref()
                 .map(|dv| dv.first())
                 .map_or(None, |dv| Some(dv.unwrap())));
             if v.is_none() {
                 return Err(Error::new(ErrorKind::MissingArgumentValue {
-                    name: argument.name().clone(),
+                    name: argument.name.clone(),
                 }));
             }
-            parsed.insert(argument.name().clone(), vec![v.unwrap().clone()]);
+            parsed.insert(argument.name.clone(), vec![v.unwrap().clone()]);
         }
     }
 
     let last_argument: &Argument = &arguments[arguments.len() - 1];
     let mut last_argument_values: Vec<String> = parameters.map(|v| v.clone()).collect();
-    if last_argument_values.is_empty() && last_argument.default_value().is_some() {
+    if last_argument_values.is_empty() && last_argument.default_value.is_some() {
         last_argument_values =
-            last_argument.default_value().unwrap().iter().map(|v| v.clone()).collect();
+            last_argument.default_value.as_ref().unwrap().iter().map(|v| v.clone()).collect();
     }
     if last_argument_is_variadic {
-        parsed.insert(last_argument.name().clone(), last_argument_values);
+        parsed.insert(last_argument.name.clone(), last_argument_values);
     } else {
         if last_argument_values.len() != 1 {
             return Err(Error::new(ErrorKind::WrongNumberOfArgumentValues {
                 count: last_argument_values.len(),
             }));
         }
-        parsed.insert(last_argument.name().clone(), last_argument_values);
+        parsed.insert(last_argument.name.clone(), last_argument_values);
     }
 
     Ok(parsed)
@@ -278,10 +277,10 @@ fn emplace_all_arguments<'pl, 'cl, PI>(parameters: &mut Peekable<PI>,
     //! An error is returned if one is encountered, and the parsed parameters
     //! structure is not modified.
 
-    parsed_parameters.arguments =
-        try!(parse_all_arguments(parameters,
-                                 parsed_parameters.command.get_arguments(),
-                                 parsed_parameters.command.last_argument_is_variadic()));
+    parsed_parameters.arguments = try!(parse_all_arguments(parameters,
+                                                           &parsed_parameters.command.arguments,
+                                                           parsed_parameters.command
+                                                               .last_argument_is_variadic));
 
     Ok(())
 }
@@ -291,7 +290,7 @@ fn all_options_are_present(command: &Command, options: &HashMap<String, String>)
     //! of option names to values. If an option is missing, returns an error with
     //! more detailed information. Otherwise, returns None.
 
-    for o in command.get_options() {
+    for o in &command.options {
         if o.is_optional || o.is_flag {
             continue;
         }
@@ -315,7 +314,7 @@ pub fn parse_command<'pl, 'cl, PI, CI>(parameters: &mut Peekable<PI>,
     //! return None instead.
 
     if let Some(command_parameter) = parameters.next() {
-        return commands.find(|&command| *command.get_name() == **command_parameter)
+        return commands.find(|&command| command.name == **command_parameter)
             .map_or(Err(Error::new(ErrorKind::UnrecognizedCommand {
                         name: (*command_parameter).clone(),
                     })),
@@ -398,7 +397,7 @@ mod test {
         return parse_command(&mut program_parameters.iter().peekable(),
                              &mut commands.iter())
             .ok()
-            .map_or(false, |c| *c.get_name() == expected_name);
+            .map_or(false, |c| c.name == expected_name);
     }
 
     fn parse_command_and_parameters<'a, PI, CI>(parameters: &mut Peekable<PI>,
@@ -642,7 +641,7 @@ mod test {
         assert!(pr.is_ok());
         let parsed = pr.ok().unwrap();
 
-        assert!(*parsed.command.get_name() == *commands[0].get_name());
+        assert!(parsed.command.name == commands[0].name);
         assert!(parsed.options == expected_options);
         assert!(parsed.flags == expected_flags);
     }
@@ -683,7 +682,7 @@ mod test {
         assert!(pr.is_ok());
         let parsed = pr.ok().unwrap();
 
-        assert!(*parsed.command.get_name() == *commands[0].get_name());
+        assert!(parsed.command.name == commands[0].name);
         assert!(parsed.arguments.len() == expected_arguments.len());
         assert!(parsed.arguments == expected_arguments);
     }
@@ -723,7 +722,7 @@ mod test {
         assert!(pr.is_ok());
         let parsed = pr.ok().unwrap();
 
-        assert!(*parsed.command.get_name() == *commands[0].get_name());
+        assert!(parsed.command.name == commands[0].name);
         assert!(parsed.arguments.len() == expected_arguments.len());
         assert!(parsed.arguments == expected_arguments);
     }
@@ -765,7 +764,7 @@ mod test {
         assert!(pr.is_ok());
         let parsed = pr.ok().unwrap();
 
-        assert!(*parsed.command.get_name() == *commands[0].get_name());
+        assert!(parsed.command.name == commands[0].name);
         assert!(parsed.arguments.len() == expected_arguments.len());
         assert!(parsed.arguments == expected_arguments);
     }
@@ -804,7 +803,7 @@ mod test {
         assert!(pr.is_ok());
         let parsed = pr.ok().unwrap();
 
-        assert!(*parsed.command.get_name() == *commands[0].get_name());
+        assert!(parsed.command.name == commands[0].name);
         assert!(parsed.arguments.len() == expected_arguments.len());
         assert!(parsed.arguments == expected_arguments);
     }
@@ -844,7 +843,7 @@ mod test {
         assert!(pr.is_ok());
         let parsed = pr.ok().unwrap();
 
-        assert!(*parsed.command.get_name() == *commands[0].get_name());
+        assert!(parsed.command.name == commands[0].name);
         assert!(parsed.arguments.len() == expected_arguments.len());
         assert!(parsed.arguments == expected_arguments);
     }
@@ -882,7 +881,7 @@ mod test {
         assert!(pr.is_ok());
         let parsed = pr.ok().unwrap();
 
-        assert!(*parsed.command.get_name() == *commands[0].get_name());
+        assert!(parsed.command.name == commands[0].name);
         assert!(parsed.options.len() == 0);
         assert!(parsed.flags.len() == expected_flags.len());
         assert!(parsed.flags == expected_flags);
@@ -923,7 +922,7 @@ mod test {
         assert!(pr.is_ok());
         let parsed = pr.ok().unwrap();
 
-        assert!(*parsed.command.get_name() == *commands[0].get_name());
+        assert!(parsed.command.name == commands[0].name);
         assert!(parsed.options.len() == 0);
         assert!(parsed.flags.len() == expected_flags.len());
         assert!(parsed.flags == expected_flags);
