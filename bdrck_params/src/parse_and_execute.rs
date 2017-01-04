@@ -40,7 +40,7 @@ fn execute_command<'cl, 'cbl, E>(parsed_parameters: &ParsedParameters<'cl>,
 
 fn parse_and_execute_impl<E>(program: &str,
                              parameters: &Vec<String>,
-                             commands: &mut Vec<ExecutableCommand<E>>,
+                             mut commands: Vec<ExecutableCommand<E>>,
                              print_program_help: bool,
                              print_command_name: bool)
                              -> Result<CommandResult<E>> {
@@ -66,12 +66,12 @@ fn parse_and_execute_impl<E>(program: &str,
     }
     let parsed_parameters = ppr.unwrap();
 
-    Ok(execute_command(&parsed_parameters, commands))
+    Ok(execute_command(&parsed_parameters, &mut commands))
 }
 
 pub fn parse_and_execute_command<E>(program: &str,
                                     parameters: &Vec<String>,
-                                    commands: &mut Vec<ExecutableCommand<E>>)
+                                    commands: Vec<ExecutableCommand<E>>)
                                     -> Result<CommandResult<E>> {
     //! This function parses the given program parameters, and calls the
     //! appropriate command callback. It prints out usage information if the
@@ -84,7 +84,7 @@ pub fn parse_and_execute_command<E>(program: &str,
 }
 
 pub fn parse_and_execute<E>(program: &str,
-                            parameters: Vec<String>,
+                            parameters: &Vec<String>,
                             command: ExecutableCommand<E>)
                             -> Result<CommandResult<E>> {
     //! This function parses the given program parameters and calls the given
@@ -94,9 +94,12 @@ pub fn parse_and_execute<E>(program: &str,
     //! This is the function which should be used for typical single-command
     //! programs.
 
-    let mut commands = vec![command];
-    let command_parameters: Vec<String> = vec![commands[0].get_command().get_name().clone()];
-    let parameters: Vec<String> = command_parameters.into_iter().chain(parameters).collect();
-
-    parse_and_execute_impl(program, &parameters, &mut commands, false, false)
+    parse_and_execute_impl(program,
+                           &Some(command.get_command().get_name().clone())
+                               .into_iter()
+                               .chain(parameters.iter().cloned())
+                               .collect(),
+                           vec![command],
+                           false,
+                           false)
 }

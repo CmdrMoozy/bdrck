@@ -44,12 +44,12 @@ fn test_parse_and_execute_command() {
                 false)
                 .unwrap(),
     ];
-    let mut executable_commands = vec![
+    let executable_commands = vec![
         ExecutableCommand::new(&commands[0], callback),
     ];
 
     assert!(instrumentation.get_call_count() == 0);
-    assert!(parse_and_execute_command(program.as_ref(), &parameters, &mut executable_commands).is_ok());
+    assert!(parse_and_execute_command(program.as_ref(), &parameters, executable_commands).is_ok());
     assert!(instrumentation.get_call_count() == 1);
 }
 
@@ -88,6 +88,6 @@ fn test_parse_and_execute() {
     let executable_command = ExecutableCommand::new(&command, callback);
 
     assert!(instrumentation.get_call_count() == 0);
-    assert!(parse_and_execute(program.as_ref(), parameters, executable_command).is_ok());
+    assert!(parse_and_execute(program.as_ref(), &parameters, executable_command).is_ok());
     assert!(instrumentation.get_call_count() == 1);
 }

@@ -29,7 +29,7 @@ fn handle_result<E: error::Error>(r: Result<CommandResult<E>>) -> i32 {
     }
 }
 
-pub fn main_impl_multiple_commands<E: error::Error>(mut commands: Vec<ExecutableCommand<E>>) -> ! {
+pub fn main_impl_multiple_commands<E: error::Error>(commands: Vec<ExecutableCommand<E>>) -> ! {
     //! Parses command-line parameters and executes the specified command.
     //!
     //! This function exits this process with an appropriate exit code. Like
@@ -39,11 +39,9 @@ pub fn main_impl_multiple_commands<E: error::Error>(mut commands: Vec<Executable
     //! from the only thread, and that any destructors which need to be run are in
     //! the stack of the command callback.
 
-    let program = env::args().next().unwrap();
-    let parameters = get_program_parameters();
-    process::exit(handle_result(parse_and_execute_command(program.as_ref(),
-                                                          &parameters,
-                                                          &mut commands)));
+    process::exit(handle_result(parse_and_execute_command(env::args().next().unwrap().as_ref(),
+                                                          &get_program_parameters(),
+                                                          commands)));
 }
 
 pub fn main_impl_single_command<E: error::Error>(command: ExecutableCommand<E>) -> ! {
@@ -56,7 +54,7 @@ pub fn main_impl_single_command<E: error::Error>(command: ExecutableCommand<E>) 
     //! from the only thread, and that any destructors which need to be run are in
     //! the stack of the command callback.
 
-    let program = env::args().next().unwrap();
-    let parameters = get_program_parameters();
-    process::exit(handle_result(parse_and_execute(program.as_ref(), parameters, command)));
+    process::exit(handle_result(parse_and_execute(env::args().next().unwrap().as_ref(),
+                                                  &get_program_parameters(),
+                                                  command)));
 }
