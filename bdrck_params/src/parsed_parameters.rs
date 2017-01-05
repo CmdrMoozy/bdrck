@@ -70,20 +70,15 @@ fn next_option_parameters<'pl, 'cl, PI, OI>(parameters: &mut Peekable<PI>,
     //! position is not an option, return None. Otherwise, return either a valid
     //! option or an error.
 
-    let parameter: &'pl str;
-    {
-        let op: Optional<&&'pl String> = parameters.peek();
-        if op.is_none() {
-            return Ok(None);
-        }
-        parameter = op.unwrap();
-
-        // If the given option doesn't start with "-", assume it's an argument instead.
-        if !parameter.starts_with("-") {
-            return Ok(None);
-        }
-    }
-    // Since we got a valid option, advance the iterator.
+    let parameter: &'pl str = match parameters.peek() {
+        Some(p) => {
+            match p.starts_with("-") {
+                false => return Ok(None),
+                true => p,
+            }
+        },
+        None => return Ok(None),
+    };
     parameters.next();
 
     let (name, mut value) = find_option_name_and_value(parameter);
@@ -195,12 +190,11 @@ fn emplace_all_options<'pl, PI>(command: &Command,
     //! parameters structure is not modified.
 
     for parsed_option in &try!(parse_all_options(command, parameters)) {
-        if parsed_option.bool_value.is_none() {
+        if let Some(v) = parsed_option.bool_value {
+            parsed_parameters.flags.insert(parsed_option.name.to_owned(), v);
+        } else {
             parsed_parameters.options.insert(parsed_option.name.to_owned(),
                                              parsed_option.value.clone().unwrap());
-        } else {
-            parsed_parameters.flags.insert(parsed_option.name.to_owned(),
-                                           parsed_option.bool_value.unwrap());
         }
     }
 
