@@ -190,12 +190,11 @@ fn emplace_all_options<'pl, PI>(command: &Command,
     //! structure. An error is returned if one is encountered, and the parsed
     //! parameters structure is not modified.
 
-    for parsed_option in &try!(parse_all_options(command, parameters)) {
+    for parsed_option in try!(parse_all_options(command, parameters)) {
         if let Some(v) = parsed_option.bool_value {
-            parsed_parameters.flags.insert(parsed_option.name.to_owned(), v);
+            parsed_parameters.flags.insert(parsed_option.name, v);
         } else {
-            parsed_parameters.options.insert(parsed_option.name.to_owned(),
-                                             parsed_option.value.clone().unwrap());
+            parsed_parameters.options.insert(parsed_option.name, parsed_option.value.unwrap());
         }
     }
 
