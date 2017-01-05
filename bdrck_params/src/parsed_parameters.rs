@@ -1,7 +1,8 @@
 use ::argument::Argument;
-use ::command::{Command, CommandResult};
-use ::command::ExecutableCommand;
+use ::command::{Command, CommandResult, ExecutableCommand};
 use ::error::*;
+use ::help;
+use ::io::IoWriteAdapter;
 use ::option::Option;
 use ::option::find_option;
 use std::collections::HashMap;
@@ -287,32 +288,45 @@ fn all_options_are_present(command: &Command, options: &HashMap<String, String>)
     Ok(())
 }
 
-pub fn parse_command<'pl, 'cl, PI, CI>(parameters: &mut Peekable<PI>,
-                                       commands: &mut CI)
-                                       -> Result<&'cl Command>
-    where PI: Iterator<Item = &'pl String>,
-          CI: Iterator<Item = &'cl Command>
+pub fn parse_command<'pl, 'cbl, PI, E>(program: &str,
+                                       parameters: &mut Peekable<PI>,
+                                       mut commands: Vec<ExecutableCommand<'cbl, E>>,
+                                       print_program_help: bool)
+                                       -> Result<ExecutableCommand<'cbl, E>>
+    where PI: Iterator<Item = &'pl String>
 {
     //! Look up by name the command indicated by the first element of the given
     //! range of program parameters. If a matching command could not be found,
     //! return None instead.
 
-    if let Some(command_parameter) = parameters.next() {
-        return commands.find(|&command| command.name == **command_parameter)
-            .map_or(Err(Error::new(ErrorKind::UnrecognizedCommand {
-                        name: (*command_parameter).clone(),
-                    })),
-                    |command| Ok(command));
+    let idx: Result<usize> = match parameters.next() {
+        Some(command_parameter) => {
+            match commands.iter().position(|command| command.command.name == *command_parameter) {
+                Some(command) => Ok(command),
+                None => {
+                    Err(Error::new(ErrorKind::UnrecognizedCommand {
+                        name: command_parameter.clone(),
+                    }))
+                },
+            }
+        },
+        None => Err(Error::new(ErrorKind::NoCommandSpecified)),
+    };
+
+    if let Err(e) = idx {
+        if print_program_help {
+            try!(help::print_program_help(&mut IoWriteAdapter::new_stderr(), program, &commands));
+        }
+        return Err(e);
     }
 
-    Err(Error::new(ErrorKind::NoCommandSpecified))
+    Ok(commands.remove(idx.unwrap()))
 }
 
 /// This structure encapsulates the output from parsing the program's parameters
 /// according to a Command. It provides accessor functions to retrieve the
 /// values conveniently.
 pub struct ParsedParameters {
-    command_name: String,
     options: HashMap<String, String>,
     flags: HashMap<String, bool>,
     arguments: HashMap<String, Vec<String>>,
@@ -329,7 +343,6 @@ impl ParsedParameters {
         //! of program parameters.
 
         let mut parsed = ParsedParameters {
-            command_name: command.name.clone(),
             options: HashMap::new(),
             flags: HashMap::new(),
             arguments: HashMap::new(),
@@ -343,12 +356,8 @@ impl ParsedParameters {
         Ok(parsed)
     }
 
-    pub fn execute<'a, 'b, I, E>(self, mut commands: I) -> CommandResult<E>
-        where I: Iterator<Item = ExecutableCommand<'a, 'b, E>>
-    {
-        commands.find(|ec| ec.command.name == self.command_name)
-            .unwrap()
-            .execute(self.options, self.flags, self.arguments)
+    pub fn execute<'cbl, E>(self, mut command: ExecutableCommand<'cbl, E>) -> CommandResult<E> {
+        command.execute(self.options, self.flags, self.arguments)
     }
 }
 
@@ -357,8 +366,7 @@ mod test {
     use std::collections::HashMap;
     use std::iter::Peekable;
     use std::option::Option as Optional;
-    use std::string::String;
-    use std::vec::Vec;
+    use std::result;
     use super::ParsedOption;
     use super::ParsedParameters;
 
@@ -366,32 +374,49 @@ mod test {
     use super::parse_command;
     use super::parse_option;
     use super::super::argument::Argument;
-    use super::super::command::Command;
+    use super::super::command::{Command, ExecutableCommand};
     use super::super::error::*;
     use super::super::option::Option;
 
-    fn build_command_for_test(name: &str) -> Command {
-        Command::new(name, name, Vec::new(), Vec::new(), false).ok().unwrap()
+    fn build_command_for_test(name: &str,
+                              help: &str,
+                              options: Vec<Option>,
+                              arguments: Vec<Argument>,
+                              last_argument_is_variadic: bool)
+                              -> ExecutableCommand<'static, ()> {
+        ExecutableCommand::new(Command::new(name,
+                                            help,
+                                            options,
+                                            arguments,
+                                            last_argument_is_variadic)
+                                   .ok()
+                                   .unwrap(),
+                               Box::new(|_, _, _| -> result::Result<(), ()> { Ok(()) }))
     }
 
-    fn parse_command_works(program_parameters: &Vec<String>,
-                           commands: &Vec<Command>,
-                           expected_name: &str)
-                           -> bool {
-        return parse_command(&mut program_parameters.iter().peekable(),
-                             &mut commands.iter())
+    fn build_trivial_command_for_test(name: &str) -> ExecutableCommand<()> {
+        build_command_for_test(name, name, vec![], vec![], false)
+    }
+
+    fn parse_command_works<E>(program_parameters: &Vec<String>,
+                              commands: Vec<ExecutableCommand<E>>,
+                              expected_name: &str)
+                              -> bool {
+        return parse_command("foobar",
+                             &mut program_parameters.iter().peekable(),
+                             commands,
+                             false)
             .ok()
-            .map_or(false, |c| c.name == expected_name);
+            .map_or(false, |c| c.command.name == expected_name);
     }
 
-    fn parse_command_and_parameters<'a, PI, CI>(parameters: &mut Peekable<PI>,
-                                                commands: &mut CI)
-                                                -> Result<ParsedParameters>
-        where PI: Iterator<Item = &'a String>,
-              CI: Iterator<Item = &'a Command>
+    fn parse_command_and_parameters<'a, PI, E>(parameters: &mut Peekable<PI>,
+                                               commands: Vec<ExecutableCommand<E>>)
+                                               -> (String, ParsedParameters)
+        where PI: Iterator<Item = &'a String>
     {
-        let command = try!(parse_command(parameters, commands));
-        ParsedParameters::new(command, parameters)
+        let command = parse_command("foobar", parameters, commands, false).unwrap();
+        (command.command.name.clone(), ParsedParameters::new(&command.command, parameters).unwrap())
     }
 
     #[test]
@@ -404,15 +429,16 @@ mod test {
     	];
 
         let commands = vec![
-    		build_command_for_test("foo"),
-    		build_command_for_test("bar"),
-    		build_command_for_test("baz"),
+    		build_trivial_command_for_test("foo"),
+    		build_trivial_command_for_test("bar"),
+    		build_trivial_command_for_test("baz"),
     	];
 
-        assert!(parse_command(&mut program_parameters.iter().peekable(),
-                              &mut commands.iter())
-            .ok()
-            .is_none());
+        assert!(parse_command("foobar",
+                              &mut program_parameters.iter().peekable(),
+                              commands,
+                              false)
+            .is_err());
     }
 
     #[test]
@@ -422,12 +448,12 @@ mod test {
     	];
 
         let commands = vec![
-    		build_command_for_test("foo"),
-    		build_command_for_test("bar"),
-    		build_command_for_test("baz"),
+    		build_trivial_command_for_test("foo"),
+    		build_trivial_command_for_test("bar"),
+    		build_trivial_command_for_test("baz"),
     	];
 
-        assert!(parse_command_works(&program_parameters, &commands, "bar"));
+        assert!(parse_command_works(&program_parameters, commands, "bar"));
     }
 
     #[test]
@@ -440,12 +466,12 @@ mod test {
     	];
 
         let commands = vec![
-    		build_command_for_test("foo"),
-    		build_command_for_test("bar"),
-    		build_command_for_test("baz"),
+    		build_trivial_command_for_test("foo"),
+    		build_trivial_command_for_test("bar"),
+    		build_trivial_command_for_test("baz"),
     	];
 
-        assert!(parse_command_works(&program_parameters, &commands, "baz"));
+        assert!(parse_command_works(&program_parameters, commands, "baz"));
     }
 
     #[test]
@@ -468,7 +494,6 @@ mod test {
             .unwrap();
 
         let mut parsed = ParsedParameters {
-            command_name: command.name.clone(),
             options: HashMap::new(),
             flags: HashMap::new(),
             arguments: HashMap::new(),
@@ -593,7 +618,7 @@ mod test {
         ];
 
         let commands = vec![
-            Command::new(
+            build_command_for_test(
                 "foobar",
                 "foobar",
                 vec![
@@ -607,7 +632,7 @@ mod test {
                 ],
                 Vec::new(),
                 false
-            ).ok().unwrap(),
+            ),
         ];
 
         let mut expected_options = HashMap::new();
@@ -620,12 +645,10 @@ mod test {
         expected_flags.insert("optf".to_owned(), true);
         expected_flags.insert("optg".to_owned(), false);
 
-        let pr = parse_command_and_parameters(&mut parameters.iter().peekable(),
-                                              &mut commands.iter());
-        assert!(pr.is_ok());
-        let parsed = pr.ok().unwrap();
+        let (command_name, parsed) =
+            parse_command_and_parameters(&mut parameters.iter().peekable(), commands);
 
-        assert!(parsed.command_name == commands[0].name);
+        assert!(command_name == "foobar");
         assert!(parsed.options == expected_options);
         assert!(parsed.flags == expected_flags);
     }
@@ -641,7 +664,7 @@ mod test {
         ];
 
         let commands = vec![
-            Command::new(
+            build_command_for_test(
                 "foobar",
                 "foobar",
                 vec![
@@ -653,7 +676,7 @@ mod test {
                     Argument::new("argc", "argc", None),
                 ],
                 false
-            ).ok().unwrap(),
+            ),
         ];
 
         let mut expected_arguments = HashMap::new();
@@ -661,12 +684,10 @@ mod test {
         expected_arguments.insert("argb".to_owned(), vec!["bar".to_owned()]);
         expected_arguments.insert("argc".to_owned(), vec!["baz".to_owned()]);
 
-        let pr = parse_command_and_parameters(&mut parameters.iter().peekable(),
-                                              &mut commands.iter());
-        assert!(pr.is_ok());
-        let parsed = pr.ok().unwrap();
+        let (command_name, parsed) =
+            parse_command_and_parameters(&mut parameters.iter().peekable(), commands);
 
-        assert!(parsed.command_name == commands[0].name);
+        assert!(command_name == "foobar");
         assert!(parsed.arguments.len() == expected_arguments.len());
         assert!(parsed.arguments == expected_arguments);
     }
@@ -681,7 +702,7 @@ mod test {
         ];
 
         let commands = vec![
-            Command::new(
+            build_command_for_test(
                 "foobar",
                 "foobar",
                 vec![
@@ -693,7 +714,7 @@ mod test {
                     Argument::new("argc", "argc", None),
                 ],
                 true
-            ).ok().unwrap(),
+            ),
         ];
 
         let mut expected_arguments = HashMap::new();
@@ -701,12 +722,10 @@ mod test {
         expected_arguments.insert("argb".to_owned(), vec!["bar".to_owned()]);
         expected_arguments.insert("argc".to_owned(), Vec::new());
 
-        let pr = parse_command_and_parameters(&mut parameters.iter().peekable(),
-                                              &mut commands.iter());
-        assert!(pr.is_ok());
-        let parsed = pr.ok().unwrap();
+        let (command_name, parsed) =
+            parse_command_and_parameters(&mut parameters.iter().peekable(), commands);
 
-        assert!(parsed.command_name == commands[0].name);
+        assert!(command_name == "foobar");
         assert!(parsed.arguments.len() == expected_arguments.len());
         assert!(parsed.arguments == expected_arguments);
     }
@@ -723,7 +742,7 @@ mod test {
         ];
 
         let commands = vec![
-            Command::new(
+            build_command_for_test(
                 "foobar",
                 "foobar",
                 vec![
@@ -735,7 +754,7 @@ mod test {
                     Argument::new("argc", "argc", None),
                 ],
                 true
-            ).ok().unwrap(),
+            ),
         ];
 
         let mut expected_arguments = HashMap::new();
@@ -743,12 +762,10 @@ mod test {
         expected_arguments.insert("argb".to_owned(), vec!["bar".to_owned()]);
         expected_arguments.insert("argc".to_owned(), vec!["baz".to_owned(), "quux".to_owned()]);
 
-        let pr = parse_command_and_parameters(&mut parameters.iter().peekable(),
-                                              &mut commands.iter());
-        assert!(pr.is_ok());
-        let parsed = pr.ok().unwrap();
+        let (command_name, parsed) =
+            parse_command_and_parameters(&mut parameters.iter().peekable(), commands);
 
-        assert!(parsed.command_name == commands[0].name);
+        assert!(command_name == "foobar");
         assert!(parsed.arguments.len() == expected_arguments.len());
         assert!(parsed.arguments == expected_arguments);
     }
@@ -762,7 +779,7 @@ mod test {
         ];
 
         let commands = vec![
-            Command::new(
+            build_command_for_test(
                 "foobar",
                 "foobar",
                 vec![
@@ -774,7 +791,7 @@ mod test {
                     Argument::new("argc", "argc", Some(vec!["dvc".to_owned()])),
                 ],
                 false
-            ).ok().unwrap(),
+            ),
         ];
 
         let mut expected_arguments = HashMap::new();
@@ -782,12 +799,10 @@ mod test {
         expected_arguments.insert("argb".to_owned(), vec!["dvb".to_owned()]);
         expected_arguments.insert("argc".to_owned(), vec!["dvc".to_owned()]);
 
-        let pr = parse_command_and_parameters(&mut parameters.iter().peekable(),
-                                              &mut commands.iter());
-        assert!(pr.is_ok());
-        let parsed = pr.ok().unwrap();
+        let (command_name, parsed) =
+            parse_command_and_parameters(&mut parameters.iter().peekable(), commands);
 
-        assert!(parsed.command_name == commands[0].name);
+        assert!(command_name == "foobar");
         assert!(parsed.arguments.len() == expected_arguments.len());
         assert!(parsed.arguments == expected_arguments);
     }
@@ -801,7 +816,7 @@ mod test {
         ];
 
         let commands = vec![
-            Command::new(
+            build_command_for_test(
                 "foobar",
                 "foobar",
                 vec![
@@ -813,7 +828,7 @@ mod test {
                     Argument::new("argc", "argc", Some(vec!["dvc1".to_owned(), "dvc2".to_owned()])),
                 ],
                 true
-            ).ok().unwrap(),
+            ),
         ];
 
         let mut expected_arguments = HashMap::new();
@@ -822,12 +837,10 @@ mod test {
         expected_arguments.insert("argc".to_owned(),
                                   vec!["dvc1".to_owned(), "dvc2".to_owned()]);
 
-        let pr = parse_command_and_parameters(&mut parameters.iter().peekable(),
-                                              &mut commands.iter());
-        assert!(pr.is_ok());
-        let parsed = pr.ok().unwrap();
+        let (command_name, parsed) =
+            parse_command_and_parameters(&mut parameters.iter().peekable(), commands);
 
-        assert!(parsed.command_name == commands[0].name);
+        assert!(command_name == "foobar");
         assert!(parsed.arguments.len() == expected_arguments.len());
         assert!(parsed.arguments == expected_arguments);
     }
@@ -841,7 +854,7 @@ mod test {
         ];
 
         let commands = vec![
-            Command::new(
+            build_command_for_test(
                 "foobar",
                 "foobar",
                 vec![
@@ -851,7 +864,7 @@ mod test {
                     Argument::new("arga", "arga", None),
                 ],
                 false
-            ).ok().unwrap(),
+            ),
         ];
 
         let mut expected_flags = HashMap::new();
@@ -860,12 +873,10 @@ mod test {
         let mut expected_arguments = HashMap::new();
         expected_arguments.insert("arga".to_owned(), vec!["foo".to_owned()]);
 
-        let pr = parse_command_and_parameters(&mut parameters.iter().peekable(),
-                                              &mut commands.iter());
-        assert!(pr.is_ok());
-        let parsed = pr.ok().unwrap();
+        let (command_name, parsed) =
+            parse_command_and_parameters(&mut parameters.iter().peekable(), commands);
 
-        assert!(parsed.command_name == commands[0].name);
+        assert!(command_name == "foobar");
         assert!(parsed.options.len() == 0);
         assert!(parsed.flags.len() == expected_flags.len());
         assert!(parsed.flags == expected_flags);
@@ -882,7 +893,7 @@ mod test {
         ];
 
         let commands = vec![
-            Command::new(
+            build_command_for_test(
                 "foobar",
                 "foobar",
                 vec![
@@ -892,7 +903,7 @@ mod test {
                     Argument::new("arga", "arga", None),
                 ],
                 false
-            ).ok().unwrap(),
+            ),
         ];
 
         let mut expected_flags = HashMap::new();
@@ -901,12 +912,10 @@ mod test {
         let mut expected_arguments = HashMap::new();
         expected_arguments.insert("arga".to_owned(), vec!["foo".to_owned()]);
 
-        let pr = parse_command_and_parameters(&mut parameters.iter().peekable(),
-                                              &mut commands.iter());
-        assert!(pr.is_ok());
-        let parsed = pr.ok().unwrap();
+        let (command_name, parsed) =
+            parse_command_and_parameters(&mut parameters.iter().peekable(), commands);
 
-        assert!(parsed.command_name == commands[0].name);
+        assert!(command_name == "foobar");
         assert!(parsed.options.len() == 0);
         assert!(parsed.flags.len() == expected_flags.len());
         assert!(parsed.flags == expected_flags);

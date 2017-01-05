@@ -29,8 +29,8 @@ fn test_parse_and_execute_command() {
         "--flagb".to_owned(),
         "baz".to_owned(),
     ];
-    let commands = vec![
-        Command::new("foobar",
+    let executable_commands = vec![
+        ExecutableCommand::new(Command::new("foobar",
                 "foobar",
                 vec![
                     Option::required("opta", "opta", None, None),
@@ -42,10 +42,7 @@ fn test_parse_and_execute_command() {
                     Argument::new("arga", "arga", None),
                 ],
                 false)
-                .unwrap(),
-    ];
-    let executable_commands = vec![
-        ExecutableCommand::new(&commands[0], callback),
+                .unwrap(), callback),
     ];
 
     assert!(instrumentation.get_call_count() == 0);
@@ -72,7 +69,7 @@ fn test_parse_and_execute() {
         "--flagb".to_owned(),
         "baz".to_owned(),
     ];
-    let command = Command::new("foobar",
+    let executable_command = ExecutableCommand::new(Command::new("foobar",
                                "foobar",
                                vec![
             Option::required("opta", "opta", None, None),
@@ -84,8 +81,7 @@ fn test_parse_and_execute() {
                                    Argument::new("arga", "arga", None),
                             ],
                                false)
-        .unwrap();
-    let executable_command = ExecutableCommand::new(&command, callback);
+        .unwrap(), callback);
 
     assert!(instrumentation.get_call_count() == 0);
     assert!(parse_and_execute(program.as_ref(), &parameters, executable_command).is_ok());

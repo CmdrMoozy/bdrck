@@ -1,15 +1,17 @@
-use ::command::Command;
+use ::command::{Command, ExecutableCommand};
 use ::error::Result;
 use std::fmt::Write;
 
-pub fn print_program_help<'a, CI>(f: &mut Write, program: &str, mut commands: CI) -> Result<()>
-    where CI: Iterator<Item = &'a Command>
-{
+pub fn print_program_help<'cbl, E>(f: &mut Write,
+                                   program: &str,
+                                   commands: &Vec<ExecutableCommand<'cbl, E>>)
+                                   -> Result<()> {
     try!(f.write_str(format!(
         "Usage: {} command [options ...] [arguments ...]\n", program).as_ref()));
     try!(f.write_str("Available commands:\n"));
-    while let Some(command) = commands.next() {
-        try!(f.write_str(format!("\t{} - {}\n", command.name, command.help).as_ref()));
+    for command in commands.iter() {
+        try!(f.write_str(format!("\t{} - {}\n", command.command.name, command.command.help)
+            .as_ref()));
     }
     Ok(())
 }

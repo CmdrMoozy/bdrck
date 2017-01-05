@@ -78,26 +78,24 @@ pub type CommandCallback<'a, E> = Box<FnMut(HashMap<String, String>,
 
 /// An ExecutableCommand is a Command alongside a callback function which can
 /// be called to execute the command in question.
-pub struct ExecutableCommand<'a, 'b, E> {
-    pub command: &'a Command,
-    callback: CommandCallback<'b, E>,
+pub struct ExecutableCommand<'a, E> {
+    pub command: Command,
+    callback: CommandCallback<'a, E>,
 }
 
-impl<'a, 'b, E> fmt::Debug for ExecutableCommand<'a, 'b, E> {
+impl<'a, E> fmt::Debug for ExecutableCommand<'a, E> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         try!(f.write_str(format!("{:#?}", self.command).as_ref()));
         Ok(())
     }
 }
 
-impl<'a, 'b, E> PartialEq<Command> for ExecutableCommand<'a, 'b, E> {
-    fn eq(&self, other: &Command) -> bool { self.command == other }
+impl<'a, E> PartialEq<Command> for ExecutableCommand<'a, E> {
+    fn eq(&self, other: &Command) -> bool { self.command == *other }
 }
 
-impl<'a, 'b, E> ExecutableCommand<'a, 'b, E> {
-    pub fn new(command: &'a Command,
-               callback: CommandCallback<'b, E>)
-               -> ExecutableCommand<'a, 'b, E> {
+impl<'a, E> ExecutableCommand<'a, E> {
+    pub fn new(command: Command, callback: CommandCallback<'a, E>) -> ExecutableCommand<'a, E> {
         ExecutableCommand {
             command: command,
             callback: callback,
