@@ -21,12 +21,12 @@ pub fn get_program_parameters() -> Vec<String> {
         .collect()
 }
 
-fn build_default_options(parsed: &mut ParsedParameters) {
+fn build_default_options(command: &Command, parsed: &mut ParsedParameters) {
     //! Constructs maps for options and flags which contain the default values (if
     //! any) for each of the given command's options. Note that all flags have a
     //! default value of false.
 
-    for o in &parsed.command.options {
+    for o in &command.options {
         if let Some(ref dv) = o.default_value {
             parsed.options.insert(o.name.clone(), dv.clone());
         } else if o.is_flag {
@@ -168,9 +168,9 @@ fn parse_option<'pl, 'cl, PI, OI>(parameters: &mut Peekable<PI>,
     }))
 }
 
-fn parse_all_options<'pl, 'cl, PI>(parameters: &mut Peekable<PI>,
-                                   parsed_parameters: &ParsedParameters<'cl>)
-                                   -> Result<Vec<ParsedOption>>
+fn parse_all_options<'pl, PI>(command: &Command,
+                              parameters: &mut Peekable<PI>)
+                              -> Result<Vec<ParsedOption>>
     where PI: Iterator<Item = &'pl String>
 {
     //! Call parse_option repeatedly on the given iterator until an error is
@@ -178,23 +178,23 @@ fn parse_all_options<'pl, 'cl, PI>(parameters: &mut Peekable<PI>,
     //! vector of parsed options, or an error if one was encountered.
 
     let mut parsed: Vec<ParsedOption> = Vec::new();
-    while let Some(parsed_option) = try!(parse_option(parameters,
-                                                      parsed_parameters.command.options.iter())) {
+    while let Some(parsed_option) = try!(parse_option(parameters, command.options.iter())) {
         parsed.push(parsed_option);
     }
     Ok(parsed)
 }
 
-fn emplace_all_options<'pl, 'cl, PI>(parameters: &mut Peekable<PI>,
-                                     parsed_parameters: &mut ParsedParameters<'cl>)
-                                     -> Result<()>
+fn emplace_all_options<'pl, PI>(command: &Command,
+                                parameters: &mut Peekable<PI>,
+                                parsed_parameters: &mut ParsedParameters)
+                                -> Result<()>
     where PI: Iterator<Item = &'pl String>
 {
     //! Calls parse_all_options, and adds the result to the given parsed parameters
     //! structure. An error is returned if one is encountered, and the parsed
     //! parameters structure is not modified.
 
-    for parsed_option in &try!(parse_all_options(parameters, parsed_parameters)) {
+    for parsed_option in &try!(parse_all_options(command, parameters)) {
         if parsed_option.bool_value.is_none() {
             parsed_parameters.options.insert(parsed_option.name.to_owned(),
                                              parsed_option.value.clone().unwrap());
@@ -257,9 +257,10 @@ fn parse_all_arguments<'pl, 'cl, PI>(parameters: &mut Peekable<PI>,
     Ok(parsed)
 }
 
-fn emplace_all_arguments<'pl, 'cl, PI>(parameters: &mut Peekable<PI>,
-                                       parsed_parameters: &mut ParsedParameters<'cl>)
-                                       -> Result<()>
+fn emplace_all_arguments<'pl, PI>(command: &Command,
+                                  parameters: &mut Peekable<PI>,
+                                  parsed_parameters: &mut ParsedParameters)
+                                  -> Result<()>
     where PI: Iterator<Item = &'pl String>
 {
     //! Parses all of the positional arguments from the given iterator over program
@@ -268,9 +269,8 @@ fn emplace_all_arguments<'pl, 'cl, PI>(parameters: &mut Peekable<PI>,
     //! structure is not modified.
 
     parsed_parameters.arguments = try!(parse_all_arguments(parameters,
-                                                           &parsed_parameters.command.arguments,
-                                                           parsed_parameters.command
-                                                               .last_argument_is_variadic));
+                                                           &command.arguments,
+                                                           command.last_argument_is_variadic));
 
     Ok(())
 }
@@ -317,17 +317,17 @@ pub fn parse_command<'pl, 'cl, PI, CI>(parameters: &mut Peekable<PI>,
 /// This structure encapsulates the output from parsing the program's parameters
 /// according to a Command. It provides accessor functions to retrieve the
 /// values conveniently.
-pub struct ParsedParameters<'cl> {
-    command: &'cl Command,
+pub struct ParsedParameters {
+    command_name: String,
     options: HashMap<String, String>,
     flags: HashMap<String, bool>,
     arguments: HashMap<String, Vec<String>>,
 }
 
-impl<'cl> ParsedParameters<'cl> {
-    pub fn new<'pl, PI>(command: &'cl Command,
+impl ParsedParameters {
+    pub fn new<'pl, PI>(command: &Command,
                         parameters: &mut Peekable<PI>)
-                        -> Result<ParsedParameters<'cl>>
+                        -> Result<ParsedParameters>
         where PI: Iterator<Item = &'pl String>
     {
         //! Construct a new ParsedParameters instance by parsing the command,
@@ -335,26 +335,26 @@ impl<'cl> ParsedParameters<'cl> {
         //! of program parameters.
 
         let mut parsed = ParsedParameters {
-            command: command,
+            command_name: command.name.clone(),
             options: HashMap::new(),
             flags: HashMap::new(),
             arguments: HashMap::new(),
         };
 
-        build_default_options(&mut parsed);
-        try!(emplace_all_options(parameters, &mut parsed));
-        try!(emplace_all_arguments(parameters, &mut parsed));
-        try!(all_options_are_present(parsed.command, &parsed.options));
+        build_default_options(command, &mut parsed);
+        try!(emplace_all_options(command, parameters, &mut parsed));
+        try!(emplace_all_arguments(command, parameters, &mut parsed));
+        try!(all_options_are_present(command, &parsed.options));
 
         Ok(parsed)
     }
 
-    pub fn get_command(&self) -> &Command { self.command }
-
-    pub fn execute<'cbl, E>(self,
-                            executable_command: &mut ExecutableCommand<'cl, 'cbl, E>)
-                            -> CommandResult<E> {
-        executable_command.execute(self.options, self.flags, self.arguments)
+    pub fn execute<'a, 'b, I, E>(self, mut commands: I) -> CommandResult<E>
+        where I: Iterator<Item = ExecutableCommand<'a, 'b, E>>
+    {
+        commands.find(|ec| ec.command.name == self.command_name)
+            .unwrap()
+            .execute(self.options, self.flags, self.arguments)
     }
 }
 
@@ -392,7 +392,7 @@ mod test {
 
     fn parse_command_and_parameters<'a, PI, CI>(parameters: &mut Peekable<PI>,
                                                 commands: &mut CI)
-                                                -> Result<ParsedParameters<'a>>
+                                                -> Result<ParsedParameters>
         where PI: Iterator<Item = &'a String>,
               CI: Iterator<Item = &'a Command>
     {
@@ -474,13 +474,13 @@ mod test {
             .unwrap();
 
         let mut parsed = ParsedParameters {
-            command: &command,
+            command_name: command.name.clone(),
             options: HashMap::new(),
             flags: HashMap::new(),
             arguments: HashMap::new(),
         };
 
-        build_default_options(&mut parsed);
+        build_default_options(&command, &mut parsed);
 
         assert!(parsed.options.len() == 2);
         assert!(parsed.options.get("b").map_or(false, |v| *v == "b"));
@@ -631,7 +631,7 @@ mod test {
         assert!(pr.is_ok());
         let parsed = pr.ok().unwrap();
 
-        assert!(parsed.command.name == commands[0].name);
+        assert!(parsed.command_name == commands[0].name);
         assert!(parsed.options == expected_options);
         assert!(parsed.flags == expected_flags);
     }
@@ -672,7 +672,7 @@ mod test {
         assert!(pr.is_ok());
         let parsed = pr.ok().unwrap();
 
-        assert!(parsed.command.name == commands[0].name);
+        assert!(parsed.command_name == commands[0].name);
         assert!(parsed.arguments.len() == expected_arguments.len());
         assert!(parsed.arguments == expected_arguments);
     }
@@ -712,7 +712,7 @@ mod test {
         assert!(pr.is_ok());
         let parsed = pr.ok().unwrap();
 
-        assert!(parsed.command.name == commands[0].name);
+        assert!(parsed.command_name == commands[0].name);
         assert!(parsed.arguments.len() == expected_arguments.len());
         assert!(parsed.arguments == expected_arguments);
     }
@@ -754,7 +754,7 @@ mod test {
         assert!(pr.is_ok());
         let parsed = pr.ok().unwrap();
 
-        assert!(parsed.command.name == commands[0].name);
+        assert!(parsed.command_name == commands[0].name);
         assert!(parsed.arguments.len() == expected_arguments.len());
         assert!(parsed.arguments == expected_arguments);
     }
@@ -793,7 +793,7 @@ mod test {
         assert!(pr.is_ok());
         let parsed = pr.ok().unwrap();
 
-        assert!(parsed.command.name == commands[0].name);
+        assert!(parsed.command_name == commands[0].name);
         assert!(parsed.arguments.len() == expected_arguments.len());
         assert!(parsed.arguments == expected_arguments);
     }
@@ -833,7 +833,7 @@ mod test {
         assert!(pr.is_ok());
         let parsed = pr.ok().unwrap();
 
-        assert!(parsed.command.name == commands[0].name);
+        assert!(parsed.command_name == commands[0].name);
         assert!(parsed.arguments.len() == expected_arguments.len());
         assert!(parsed.arguments == expected_arguments);
     }
@@ -871,7 +871,7 @@ mod test {
         assert!(pr.is_ok());
         let parsed = pr.ok().unwrap();
 
-        assert!(parsed.command.name == commands[0].name);
+        assert!(parsed.command_name == commands[0].name);
         assert!(parsed.options.len() == 0);
         assert!(parsed.flags.len() == expected_flags.len());
         assert!(parsed.flags == expected_flags);
@@ -912,7 +912,7 @@ mod test {
         assert!(pr.is_ok());
         let parsed = pr.ok().unwrap();
 
-        assert!(parsed.command.name == commands[0].name);
+        assert!(parsed.command_name == commands[0].name);
         assert!(parsed.options.len() == 0);
         assert!(parsed.flags.len() == expected_flags.len());
         assert!(parsed.flags == expected_flags);

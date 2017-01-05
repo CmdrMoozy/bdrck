@@ -30,43 +30,45 @@ impl fmt::Write for IoWriteAdapter {
     }
 }
 
-fn execute_command<'cl, 'cbl, E>(parsed_parameters: ParsedParameters<'cl>,
-                                 commands: &mut Vec<ExecutableCommand<'cl, 'cbl, E>>)
+fn execute_command<'cl, 'cbl, E>(parsed_parameters: ParsedParameters,
+                                 commands: Vec<ExecutableCommand<'cl, 'cbl, E>>)
                                  -> CommandResult<E> {
-    let executable_command =
-        commands.iter_mut().skip_while(|ec| *ec != parsed_parameters.get_command()).next().unwrap();
-    parsed_parameters.execute(executable_command)
+    parsed_parameters.execute(commands.into_iter())
 }
 
 fn parse_and_execute_impl<E>(program: &str,
                              parameters: &Vec<String>,
-                             mut commands: Vec<ExecutableCommand<E>>,
+                             commands: Vec<ExecutableCommand<E>>,
                              print_program_help: bool,
                              print_command_name: bool)
                              -> Result<CommandResult<E>> {
     let mut parameters_iterator = parameters.iter().peekable();
 
-    let cr = parse_command(&mut parameters_iterator,
-                           &mut commands.iter().map(|ec| ec.command));
-    if cr.is_err() {
-        if print_program_help {
-            try!(help::print_program_help(&mut IoWriteAdapter::new_stderr(),
+    let command = match parse_command(&mut parameters_iterator,
+                                      &mut commands.iter().map(|ec| ec.command)) {
+        Ok(c) => c,
+        Err(e) => {
+            if print_program_help {
+                try!(help::print_program_help(&mut IoWriteAdapter::new_stderr(),
+                                              program,
+                                              &mut commands.iter().map(|ec| ec.command)));
+            }
+            return Err(e);
+        },
+    };
+
+    let parsed_parameters = match ParsedParameters::new(command, &mut parameters_iterator) {
+        Ok(p) => p,
+        Err(e) => {
+            try!(help::print_command_help(&mut IoWriteAdapter::new_stderr(),
                                           program,
-                                          &mut commands.iter().map(|ec| ec.command)));
-        }
-        return Err(cr.err().unwrap());
-    }
-    let command = cr.ok().unwrap();
+                                          command,
+                                          print_command_name));
+            return Err(e);
+        },
+    };
 
-    let ppr = ParsedParameters::new(command, &mut parameters_iterator);
-    if ppr.is_err() {
-        let mut stderr = IoWriteAdapter::new_stderr();
-        help::print_command_help(&mut stderr, program, command, print_command_name).unwrap();
-        return Err(ppr.err().unwrap());
-    }
-    let parsed_parameters = ppr.unwrap();
-
-    Ok(execute_command(parsed_parameters, &mut commands))
+    Ok(execute_command(parsed_parameters, commands))
 }
 
 pub fn parse_and_execute_command<E>(program: &str,
