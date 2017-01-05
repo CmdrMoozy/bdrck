@@ -1,6 +1,5 @@
-extern crate bdrck_params;
-use self::bdrck_params::option::Option;
-use self::bdrck_params::option::find_option;
+use ::option::Option;
+use ::option::find_option;
 
 fn find_option_works(options: &Vec<Option>, query: &str, expected_name: &str) -> bool {
     return find_option(options.iter(), query).map_or(false, |o| o.name == expected_name);

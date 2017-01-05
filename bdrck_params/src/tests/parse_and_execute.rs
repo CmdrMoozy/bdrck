@@ -1,13 +1,10 @@
-extern crate bdrck_test;
-use self::bdrck_test::fn_instrumentation::FnInstrumentation;
-
-extern crate bdrck_params;
-use self::bdrck_params::parse_and_execute::parse_and_execute;
-use self::bdrck_params::parse_and_execute::parse_and_execute_command;
-use self::bdrck_params::argument::Argument;
-use self::bdrck_params::command::{Command, CommandCallback};
-use self::bdrck_params::command::ExecutableCommand;
-use self::bdrck_params::option::Option;
+use ::argument::Argument;
+use ::command::{Command, CommandCallback};
+use ::command::ExecutableCommand;
+use ::option::Option;
+use ::parse_and_execute::parse_and_execute;
+use ::parse_and_execute::parse_and_execute_command;
+use ::tests::bdrck_test::fn_instrumentation::FnInstrumentation;
 
 #[test]
 fn test_parse_and_execute_command() {
@@ -70,18 +67,19 @@ fn test_parse_and_execute() {
         "baz".to_owned(),
     ];
     let executable_command = ExecutableCommand::new(Command::new("foobar",
-                               "foobar",
-                               vec![
+                                                                 "foobar",
+                                                                 vec![
             Option::required("opta", "opta", None, None),
             Option::required("optb", "optb", None, Some("oof")),
             Option::flag("flaga", "flaga", None),
             Option::flag("flagb", "flagb", None),
         ],
-                               vec![
-                                   Argument::new("arga", "arga", None),
-                            ],
-                               false)
-        .unwrap(), callback);
+                                                                 vec![
+            Argument::new("arga", "arga", None),
+        ],
+                                                                 false)
+                                                        .unwrap(),
+                                                    callback);
 
     assert!(instrumentation.get_call_count() == 0);
     assert!(parse_and_execute(program.as_ref(), &parameters, executable_command).is_ok());

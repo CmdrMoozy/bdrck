@@ -13,6 +13,9 @@ pub mod parse_and_execute;
 mod io;
 mod parsed_parameters;
 
+#[cfg(test)]
+mod tests;
+
 // Re-export most commonly used symbols, to allow using this library with just
 // one "use".
 
