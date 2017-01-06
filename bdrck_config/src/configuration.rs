@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use std::env;
 use std::fs;
 use std::io;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::{Mutex, MutexGuard};
 
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
@@ -53,7 +53,7 @@ fn get_configuration_directory(application: &str) -> Result<PathBuf> {
     Ok(path)
 }
 
-fn get_configuration_path(id: &Identifier, custom_path: Option<&str>) -> Result<PathBuf> {
+fn get_configuration_path(id: &Identifier, custom_path: Option<&Path>) -> Result<PathBuf> {
     custom_path.map_or({
                            let mut path = PathBuf::new();
                            path.push(try!(get_configuration_directory(id.application.as_str()))
@@ -61,7 +61,7 @@ fn get_configuration_path(id: &Identifier, custom_path: Option<&str>) -> Result<
                            path.push(id.name.clone() + ".mp");
                            Ok(path)
                        },
-                       |custom_path| Ok(PathBuf::from(custom_path.to_owned())))
+                       |custom_path| Ok(PathBuf::from(custom_path)))
 }
 
 fn serialize<T: Serialize>(v: &T) -> Result<Vec<u8>> {
@@ -92,7 +92,7 @@ pub struct Configuration<T> {
 }
 
 impl<T: Clone + Serialize + Deserialize> Configuration<T> {
-    pub fn new(id: Identifier, default: T, custom_path: Option<&str>) -> Result<Configuration<T>> {
+    pub fn new(id: Identifier, default: T, custom_path: Option<&Path>) -> Result<Configuration<T>> {
         let path: PathBuf = try!(get_configuration_path(&id, custom_path));
         let current: T = try!(deserialize(&path, &default));
 
@@ -135,7 +135,7 @@ fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<T> {
 
 pub fn new<T: Clone + Serialize + Deserialize + Send + 'static>(id: Identifier,
                                                                 default: T,
-                                                                custom_path: Option<&str>)
+                                                                custom_path: Option<&Path>)
                                                                 -> Result<()> {
     use std::ops::DerefMut;
     let config: Configuration<T> = try!(Configuration::new(id.clone(), default, custom_path));

@@ -25,7 +25,7 @@ fn test_persistence() {
     let default = TestConfiguration { foo: "this is test data".to_owned() };
     configuration::new(TEST_IDENTIFIER.clone(),
                        default.clone(),
-                       Some(path.to_str().unwrap()))
+                       Some(path.as_path()))
         .ok()
         .unwrap();
     assert_eq!(default, configuration::get(&TEST_IDENTIFIER).ok().unwrap());
@@ -38,7 +38,7 @@ fn test_persistence() {
     configuration::remove::<TestConfiguration>(&TEST_IDENTIFIER).ok().unwrap();
     configuration::new(TEST_IDENTIFIER.clone(),
                        default.clone(),
-                       Some(path.to_str().unwrap()))
+                       Some(path.as_path()))
         .ok()
         .unwrap();
     assert_eq!(updated, configuration::get(&TEST_IDENTIFIER).ok().unwrap());
