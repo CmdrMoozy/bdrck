@@ -30,6 +30,10 @@ impl log::Log for CliLogger {
     }
 }
 
+/// Initialize a command-line-interface logger instance. This logger is
+/// intended to be used by command-line programs which use info!/warn!/error!
+/// in order to display information to the user (instead of just, e.g.,
+/// println!).
 pub fn init_cli_logger() -> Result<(), log::SetLoggerError> {
     log::set_logger(|max_log_level| {
         max_log_level.set(log::LogLevelFilter::Debug);
