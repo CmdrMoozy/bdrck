@@ -2,6 +2,10 @@
 name = "bdrck_log"
 version = "0.2.0"
 authors = ["Axel Rasmussen <axel.rasmussen1@gmail.com>"]
+description = "Utilities for logging."
+homepage = "https://github.com/CmdrMoozy/bdrck/tree/master/bdrck_log"
+repository = "https://github.com/CmdrMoozy/bdrck/tree/master/bdrck_log"
+license = "MIT"
 
 [dependencies]
 log = "0.3"
