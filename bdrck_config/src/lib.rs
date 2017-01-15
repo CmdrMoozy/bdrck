@@ -1,5 +1,3 @@
-#![feature(proc_macro)]
-
 extern crate backtrace;
 #[macro_use]
 extern crate lazy_static;
