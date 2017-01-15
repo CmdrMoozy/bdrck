@@ -1,10 +1,17 @@
+use chrono;
 use log;
-use std::boxed::Box;
 use std::io;
 
-use super::format;
+fn format_log_record(record: &log::LogRecord) -> String {
+    format!("[{} {}:{}] {} - {}",
+            chrono::offset::utc::UTC::now().format("%Y-%m-%d %H:%M:%S UTC"),
+            record.location().file(),
+            record.location().line(),
+            record.level(),
+            record.args())
+}
 
-struct DebugLogger;
+pub struct DebugLogger;
 
 impl log::Log for DebugLogger {
     fn enabled(&self, _: &log::LogMetadata) -> bool { true }
@@ -12,7 +19,7 @@ impl log::Log for DebugLogger {
     fn log(&self, record: &log::LogRecord) {
         use std::io::Write;
         if self.enabled(record.metadata()) {
-            writeln!(&mut io::stderr(), "{}", format::format_log_record(record)).unwrap();
+            writeln!(&mut io::stderr(), "{}", format_log_record(record)).unwrap();
         }
     }
 }

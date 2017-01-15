@@ -2,5 +2,6 @@ extern crate chrono;
 #[macro_use]
 extern crate log;
 
-pub mod debug;
-pub mod format;
+mod debug;
+
+pub use ::debug::init_debug_logger;
