@@ -2,10 +2,14 @@
 name = "bdrck_params"
 version = "0.2.0"
 authors = ["Axel Rasmussen <axel.rasmussen1@gmail.com>"]
+description = "Command-line argument parsing."
+homepage = "https://github.com/CmdrMoozy/bdrck/tree/master/bdrck_params"
+repository = "https://github.com/CmdrMoozy/bdrck/tree/master/bdrck_params"
+license = "MIT"
 
 [dependencies]
 backtrace = "0.2"
 log = "0.3"
 
-[dev-dependencies.bdrck_test]
-path = "../bdrck_test"
+[dev-dependencies]
+bdrck_test = "0.1"
