@@ -2,6 +2,10 @@
 name = "bdrck_config"
 version = "0.1.0"
 authors = ["Axel Rasmussen <axel.rasmussen1@gmail.com>"]
+description = "Application configuration tooling."
+homepage = "https://github.com/CmdrMoozy/bdrck/tree/master/bdrck_config"
+repository = "https://github.com/CmdrMoozy/bdrck/tree/master/bdrck_config"
+license = "MIT"
 
 [dependencies]
 backtrace = "0.2"
