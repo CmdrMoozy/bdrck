@@ -1,4 +1,4 @@
-use ::debug::DebugLogger;
+use debug::DebugLogger;
 use log;
 use std::io;
 
@@ -20,8 +20,10 @@ impl log::Log for CliLogger {
     fn log(&self, record: &log::LogRecord) {
         use std::io::Write;
         if self.enabled(record.metadata()) {
-            if record.level() == log::LogLevel::Error || record.level() == log::LogLevel::Warn ||
-               record.level() == log::LogLevel::Info {
+            if record.level() == log::LogLevel::Info {
+                writeln!(&mut io::stdout(), "{}", format_log_record(record)).unwrap();
+            } else if record.level() == log::LogLevel::Error ||
+                      record.level() == log::LogLevel::Warn {
                 writeln!(&mut io::stderr(), "{}", format_log_record(record)).unwrap();
             } else {
                 self.debug_logger.log(record);
