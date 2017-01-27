@@ -1,5 +1,5 @@
-use ::option::Option;
-use ::option::find_option;
+use option::Option;
+use option::find_option;
 
 fn find_option_works(options: &Vec<Option>, query: &str, expected_name: &str) -> bool {
     return find_option(options.iter(), query).map_or(false, |o| o.name == expected_name);
@@ -7,18 +7,16 @@ fn find_option_works(options: &Vec<Option>, query: &str, expected_name: &str) ->
 
 #[test]
 fn test_find_option() {
-    let options = vec![
-		Option::required("foo", "", Some('o'), None),
-		Option::required("bar", "", Some('r'), None),
-		Option::flag("baz", "", Some('z')),
-		Option::flag("zab", "", Some('Z')),
-		Option::required("rab", "", Some('R'), None),
-		Option::required("oof", "", Some('O'), None),
-		Option::required("foobar", "", Some('f'), None),
-		Option::flag("barbaz", "", Some('b')),
-		Option::flag("zabrab", "", Some('B')),
-		Option::required("raboof", "", Some('F'), None),
-	];
+    let options = vec![Option::required("foo", "", Some('o'), None),
+                       Option::required("bar", "", Some('r'), None),
+                       Option::flag("baz", "", Some('z')),
+                       Option::flag("zab", "", Some('Z')),
+                       Option::required("rab", "", Some('R'), None),
+                       Option::required("oof", "", Some('O'), None),
+                       Option::required("foobar", "", Some('f'), None),
+                       Option::flag("barbaz", "", Some('b')),
+                       Option::flag("zabrab", "", Some('B')),
+                       Option::required("raboof", "", Some('F'), None)];
 
     assert!(find_option_works(&options, "foo", "foo"));
     assert!(find_option_works(&options, "o", "foo"));

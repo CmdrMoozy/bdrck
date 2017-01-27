@@ -1,10 +1,10 @@
-use ::argument::Argument;
-use ::command::{Command, CommandResult, ExecutableCommand};
+use argument::Argument;
+use command::{Command, CommandResult, ExecutableCommand};
 use ::error::*;
-use ::help;
-use ::io::IoWriteAdapter;
-use ::option::Option;
-use ::option::find_option;
+use help;
+use io::IoWriteAdapter;
+use option::Option;
+use option::find_option;
 use std::collections::HashMap;
 use std::env;
 use std::iter::Peekable;

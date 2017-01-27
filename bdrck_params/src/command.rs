@@ -1,12 +1,13 @@
+
+
+use super::argument::Argument;
+use super::error::*;
+use super::option::Option;
 use std::collections::HashMap;
 use std::fmt;
 use std::result;
 use std::string::String;
 use std::vec::Vec;
-
-use super::argument::Argument;
-use super::error::*;
-use super::option::Option;
 
 /// A command is a single sub-command for a given program. Each command has
 /// its own description as well as sets of options and arguments that it
@@ -72,9 +73,9 @@ impl PartialEq for Command {
 pub type CommandResult<E> = result::Result<(), E>;
 
 pub type CommandCallback<'a, E> = Box<FnMut(HashMap<String, String>,
-    HashMap<String, bool>,
-    HashMap<String, Vec<String>>)
-    -> CommandResult<E> + 'a>;
+                                            HashMap<String, bool>,
+                                            HashMap<String, Vec<String>>)
+                                            -> CommandResult<E> + 'a>;
 
 /// An ExecutableCommand is a Command alongside a callback function which can
 /// be called to execute the command in question.

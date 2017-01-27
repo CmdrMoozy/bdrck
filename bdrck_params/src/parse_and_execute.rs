@@ -1,9 +1,9 @@
-use ::command::{CommandResult, ExecutableCommand};
-use ::error::Result;
-use ::help;
-use ::io::IoWriteAdapter;
-use ::parsed_parameters::ParsedParameters;
-use ::parsed_parameters::parse_command;
+use command::{CommandResult, ExecutableCommand};
+use error::Result;
+use help;
+use io::IoWriteAdapter;
+use parsed_parameters::ParsedParameters;
+use parsed_parameters::parse_command;
 use std::string::String;
 use std::vec::Vec;
 

@@ -1,8 +1,8 @@
-use ::command::{CommandResult, ExecutableCommand};
-use ::error::Result;
-use ::parse_and_execute::parse_and_execute;
-use ::parse_and_execute::parse_and_execute_command;
-use ::parsed_parameters::get_program_parameters;
+use command::{CommandResult, ExecutableCommand};
+use error::Result;
+use parse_and_execute::parse_and_execute;
+use parse_and_execute::parse_and_execute_command;
+use parsed_parameters::get_program_parameters;
 use std::env;
 use std::error;
 use std::process;
