@@ -1,5 +1,6 @@
 use argument::Argument;
 use command::{Command, CommandCallback, CommandResult, ExecutableCommand};
+use io::*;
 use option::Option;
 use parse_and_execute::{parse_and_execute, parse_and_execute_command};
 use std::collections::HashMap;
@@ -57,6 +58,9 @@ fn parse_and_execute_test_impl(parameters: Vec<&str>,
 
 #[test]
 fn test_parse_and_execute() {
+    // Do not write any output from unit tests.
+    set_writer_impl(WriterImpl::Noop);
+
     let instrumentation = FnInstrumentation::new();
     let callback: CommandCallback<()> = Box::new(|options, flags, arguments| {
         instrumentation.record_call();
@@ -93,6 +97,9 @@ fn test_parse_and_execute() {
 #[test]
 #[should_panic(expected = "Unrecognized command 'biff'")]
 fn test_parse_invalid_command() {
+    // Do not write any output from unit tests.
+    set_writer_impl(WriterImpl::Noop);
+
     parse_and_execute_test_impl(vec!["biff", "foo", "bar", "baz"],
                                 vec![build_trivial_command_for_test("foo"),
                                      build_trivial_command_for_test("bar"),
@@ -103,6 +110,9 @@ fn test_parse_invalid_command() {
 
 #[test]
 fn test_parse_command_no_arguments() {
+    // Do not write any output from unit tests.
+    set_writer_impl(WriterImpl::Noop);
+
     parse_and_execute_test_impl(vec!["bar"],
                                 vec![build_trivial_command_for_test("foo"),
                                      build_trivial_command_for_test("bar"),
@@ -117,6 +127,9 @@ fn test_parse_command_no_arguments() {
 
 #[test]
 fn test_parse_command_with_unused_arguments() {
+    // Do not write any output from unit tests.
+    set_writer_impl(WriterImpl::Noop);
+
     parse_and_execute_test_impl(vec!["baz", "foo", "bar", "baz"],
                                 vec![build_trivial_command_for_test("foo"),
                                      build_trivial_command_for_test("bar"),
@@ -131,6 +144,9 @@ fn test_parse_command_with_unused_arguments() {
 
 #[test]
 fn test_default_options() {
+    // Do not write any output from unit tests.
+    set_writer_impl(WriterImpl::Noop);
+
     parse_and_execute_test_impl(vec!["foo"],
                                 vec![Command::new("foo",
                                                   "foo",
@@ -168,6 +184,9 @@ fn test_default_options() {
 #[test]
 #[should_panic(expected = "No default or specified value for option '--a'")]
 fn test_missing_required_option() {
+    // Do not write any output from unit tests.
+    set_writer_impl(WriterImpl::Noop);
+
     parse_and_execute_test_impl(vec!["foo"],
                                 vec![Command::new("foo",
                                                   "foo",
@@ -190,6 +209,9 @@ fn test_missing_required_option() {
 #[test]
 #[should_panic(expected = "Unrecognized option 'foo'")]
 fn test_parse_invalid_option() {
+    // Do not write any output from unit tests.
+    set_writer_impl(WriterImpl::Noop);
+
     parse_and_execute_test_impl(vec!["foo", "--foo=bar"],
                                 vec![Command::new("foo", "foo", vec![], vec![], false).unwrap()],
                                 "foo",
@@ -199,6 +221,9 @@ fn test_parse_invalid_option() {
 #[test]
 #[should_panic(expected = "No default or specified value for option '--foobar'")]
 fn test_parse_missing_option_value() {
+    // Do not write any output from unit tests.
+    set_writer_impl(WriterImpl::Noop);
+
     parse_and_execute_test_impl(vec!["foo", "--foobar", "--barbaz"],
                                 vec![Command::new("foo",
                                                   "foo",
@@ -219,6 +244,9 @@ fn test_parse_missing_option_value() {
 
 #[test]
 fn test_parse_option_format_variations() {
+    // Do not write any output from unit tests.
+    set_writer_impl(WriterImpl::Noop);
+
     let mut expected_options = HashMap::new();
     expected_options.insert("opta".to_owned(), "a".to_owned());
     expected_options.insert("optb".to_owned(), "b".to_owned());
@@ -255,6 +283,9 @@ fn test_parse_option_format_variations() {
 
 #[test]
 fn test_parse_flag_format_variations() {
+    // Do not write any output from unit tests.
+    set_writer_impl(WriterImpl::Noop);
+
     let mut expected_flags = HashMap::new();
     expected_flags.insert("flaga".to_owned(), true);
     expected_flags.insert("flagb".to_owned(), true);
@@ -287,6 +318,9 @@ fn test_parse_flag_format_variations() {
 
 #[test]
 fn test_parse_options() {
+    // Do not write any output from unit tests.
+    set_writer_impl(WriterImpl::Noop);
+
     let mut expected_options = HashMap::new();
     expected_options.insert("opta".to_owned(), "foo".to_owned());
     expected_options.insert("optb".to_owned(), "defaultb".to_owned());
@@ -341,6 +375,9 @@ fn test_parse_options() {
 
 #[test]
 fn test_parse_arguments() {
+    // Do not write any output from unit tests.
+    set_writer_impl(WriterImpl::Noop);
+
     let mut expected_options = HashMap::new();
     expected_options.insert("opta".to_owned(), "oof".to_owned());
     expected_options.insert("optb".to_owned(), "rab".to_owned());
@@ -389,6 +426,9 @@ fn test_parse_arguments() {
 
 #[test]
 fn test_parse_variadic_last_argument_empty() {
+    // Do not write any output from unit tests.
+    set_writer_impl(WriterImpl::Noop);
+
     let mut expected_options = HashMap::new();
     expected_options.insert("opta".to_owned(), "oof".to_owned());
 
@@ -418,6 +458,9 @@ fn test_parse_variadic_last_argument_empty() {
 
 #[test]
 fn test_parse_variadic_last_argument_many() {
+    // Do not write any output from unit tests.
+    set_writer_impl(WriterImpl::Noop);
+
     let mut expected_options = HashMap::new();
     expected_options.insert("opta".to_owned(), "oof".to_owned());
 
@@ -447,6 +490,9 @@ fn test_parse_variadic_last_argument_many() {
 
 #[test]
 fn test_parse_default_arguments() {
+    // Do not write any output from unit tests.
+    set_writer_impl(WriterImpl::Noop);
+
     let mut expected_options = HashMap::new();
     expected_options.insert("opta".to_owned(), "oof".to_owned());
 
@@ -478,6 +524,9 @@ fn test_parse_default_arguments() {
 
 #[test]
 fn test_parse_default_variadic_arguments() {
+    // Do not write any output from unit tests.
+    set_writer_impl(WriterImpl::Noop);
+
     let mut expected_options = HashMap::new();
     expected_options.insert("opta".to_owned(), "oof".to_owned());
 

@@ -1,3 +1,4 @@
+use io::*;
 use option::Option;
 use option::find_option;
 
@@ -7,6 +8,9 @@ fn find_option_works(options: &Vec<Option>, query: &str, expected_name: &str) ->
 
 #[test]
 fn test_find_option() {
+    // Do not write any output from unit tests.
+    set_writer_impl(WriterImpl::Noop);
+
     let options = vec![Option::required("foo", "", Some('o'), None),
                        Option::required("bar", "", Some('r'), None),
                        Option::flag("baz", "", Some('z')),
