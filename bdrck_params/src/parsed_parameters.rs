@@ -2,7 +2,7 @@ use argument::Argument;
 use command::{Command, CommandResult, ExecutableCommand};
 use ::error::*;
 use help;
-use io::IoWriteAdapter;
+use io::get_writer_impl;
 use option::Option;
 use option::find_option;
 use std::collections::HashMap;
@@ -314,7 +314,7 @@ pub fn parse_command<'pl, 'cbl, PI, E>(program: &str,
 
     if let Err(e) = idx {
         if print_program_help {
-            try!(help::print_program_help(&mut IoWriteAdapter::new_stderr(), program, &commands));
+            try!(help::print_program_help(&mut get_writer_impl(), program, &commands));
         }
         return Err(e);
     }

@@ -1,7 +1,7 @@
 use command::{CommandResult, ExecutableCommand};
 use error::Result;
 use help;
-use io::IoWriteAdapter;
+use io::get_writer_impl;
 use parsed_parameters::ParsedParameters;
 use parsed_parameters::parse_command;
 use std::string::String;
@@ -23,7 +23,7 @@ fn parse_and_execute_impl<E>(program: &str,
                                                         &mut parameters_iterator) {
         Ok(p) => p,
         Err(e) => {
-            try!(help::print_command_help(&mut IoWriteAdapter::new_stderr(),
+            try!(help::print_command_help(&mut get_writer_impl(),
                                           program,
                                           &command.command,
                                           print_command_name));

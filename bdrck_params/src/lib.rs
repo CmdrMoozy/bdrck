@@ -1,16 +1,18 @@
 extern crate backtrace;
 #[macro_use]
+extern crate lazy_static;
+#[macro_use]
 extern crate log;
 
 pub mod argument;
 pub mod command;
 pub mod error;
+pub mod io;
 pub mod main_impl;
 pub mod option;
 pub mod parse_and_execute;
 
 mod help;
-mod io;
 mod parsed_parameters;
 
 #[cfg(test)]
