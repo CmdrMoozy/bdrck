@@ -6,13 +6,17 @@ pub fn print_program_help<'cbl, E>(f: &mut Write,
                                    program: &str,
                                    commands: &Vec<ExecutableCommand<'cbl, E>>)
                                    -> Result<()> {
-    write!(f,
+    let mut s = String::new();
+
+    write!(s,
            "Usage: {} command [options ...] [arguments ...]\n",
            program)?;
-    write!(f, "Available commands:\n")?;
+    write!(s, "Available commands:\n")?;
     for command in commands.iter() {
-        write!(f, "\t{} - {}\n", command.command.name, command.command.help)?;
+        write!(s, "\t{} - {}\n", command.command.name, command.command.help)?;
     }
+
+    write!(f, "{}", s)?;
     Ok(())
 }
 
@@ -21,41 +25,44 @@ pub fn print_command_help(f: &mut Write,
                           command: &Command,
                           print_command_name: bool)
                           -> Result<()> {
-    write!(f, "Usage: {} ", program)?;
+    let mut s = String::new();
+
+    write!(s, "Usage: {} ", program)?;
     if print_command_name {
-        write!(f, "{} ", command.name)?;
+        write!(s, "{} ", command.name)?;
     }
-    write!(f, "[options ...] [arguments ...]\n")?;
+    write!(s, "[options ...] [arguments ...]\n")?;
 
     if !command.options.is_empty() {
-        write!(f, "\nOptions:\n")?;
+        write!(s, "\nOptions:\n")?;
         for option in &command.options {
-            write!(f, "\t--{}", option.name)?;
+            write!(s, "\t--{}", option.name)?;
             if let Some(short_name) = option.short_name.as_ref() {
-                write!(f, ", -{}", short_name)?;
+                write!(s, ", -{}", short_name)?;
             }
-            write!(f, " - {}", option.help)?;
+            write!(s, " - {}", option.help)?;
 
             if option.is_flag {
-                write!(f, " [Flag, default: off]")?;
+                write!(s, " [Flag, default: off]")?;
             } else if let Some(default_value) = option.default_value.as_ref() {
-                write!(f, " [Default: {}]", default_value)?;
+                write!(s, " [Default: {}]", default_value)?;
             }
 
-            write!(f, "\n")?;
+            write!(s, "\n")?;
         }
     }
 
     if !command.arguments.is_empty() {
-        write!(f, "\nPositional arguments:")?;
+        write!(s, "\nPositional arguments:")?;
         for argument in &command.arguments {
-            write!(f, "\n\t{}", argument)?;
+            write!(s, "\n\t{}", argument)?;
         }
         if command.last_argument_is_variadic {
-            write!(f, " [One or more]")?;
+            write!(s, " [One or more]")?;
         }
-        write!(f, "\n")?;
+        write!(s, "\n")?;
     }
 
+    write!(f, "{}", s)?;
     Ok(())
 }
