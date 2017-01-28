@@ -15,4 +15,4 @@ This project adheres to [Semantic Versioning](http://semver.org/). However, prio
 
 - Any API/ABI breaking changes will result in a minor version bump.
 - Any API extending features will result in a patch version bump.
-- Any non-breaking bug fixes and performance improvements will be comitted without a version change.
+- Any non-breaking bug fixes and performance improvements will result in a patch version bump.
