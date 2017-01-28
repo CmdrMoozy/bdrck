@@ -1,4 +1,5 @@
 use ::configuration;
+use std::fs;
 use std::path;
 
 extern crate tempfile;
@@ -19,7 +20,8 @@ lazy_static! {
 fn test_persistence() {
     let file = tempfile::NamedTempFile::new().ok().unwrap();
     let path: path::PathBuf = file.path().to_owned();
-    file.close().ok().unwrap();
+    // Remove the file: an empty file isn't a valid serialized configuration struct.
+    fs::remove_file(path.as_path()).unwrap();
 
     // Test that creating a configuration with an nonexistent file uses the default.
     let default = TestConfiguration { foo: "this is test data".to_owned() };

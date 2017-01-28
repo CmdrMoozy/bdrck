@@ -118,6 +118,7 @@ impl<T: Clone + Serialize + Deserialize> Configuration<T> {
         let data = try!(serialize(&self.current));
         let mut file = try!(fs::File::create(self.path.as_path()));
         try!(file.write_all(data.as_slice()));
+        try!(file.flush());
         Ok(())
     }
 }
