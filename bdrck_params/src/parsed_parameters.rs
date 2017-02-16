@@ -87,7 +87,7 @@ fn next_option_parameters<'pl, 'cl, PI, OI>(parameters: &mut Peekable<PI>,
     // Lookup the option by name.
     let option_obj: &Option = match find_option(options, name) {
         Some(oo) => oo,
-        None => return Err(Error::new(ErrorKind::UnrecognizedOption { name: name.to_owned() })),
+        None => bail!("Unrecognized option '{}'", name),
     };
 
     // Search for the value in the next parameter, if this option is not a flag.
@@ -121,7 +121,7 @@ fn parse_bool(value: &str) -> Result<bool> {
     match value.trim().to_lowercase().as_ref() {
         "true" => Ok(true),
         "false" => Ok(false),
-        _ => Err(Error::new(ErrorKind::InvalidBooleanValue { value: value.to_owned() })),
+        _ => bail!("Invalid boolean value '{}'", value),
     }
 }
 
@@ -142,9 +142,8 @@ fn parse_option<'pl, 'cl, PI, OI>(parameters: &mut Peekable<PI>,
     };
 
     if !option_parameters.option_obj.is_flag && option_parameters.value.is_none() {
-        return Err(Error::new(ErrorKind::MissingOptionValue {
-            name: option_parameters.option_obj.name.clone(),
-        }));
+        bail!("No default or specified value for option '{}'",
+              option_parameters.option_obj.name);
     }
 
     let bool_value: Optional<bool> = match option_parameters.option_obj.is_flag {
@@ -223,9 +222,7 @@ fn parse_all_arguments<'pl, 'cl, PI>(parameters: &mut Peekable<PI>,
                 .map(|dv| dv.first())
                 .map_or(None, |dv| Some(dv.unwrap())));
             if v.is_none() {
-                return Err(Error::new(ErrorKind::MissingArgumentValue {
-                    name: argument.name.clone(),
-                }));
+                bail!("Missing value for argument '{}'", argument.name);
             }
             parsed.insert(argument.name.clone(), vec![v.unwrap().clone()]);
         }
@@ -241,9 +238,9 @@ fn parse_all_arguments<'pl, 'cl, PI>(parameters: &mut Peekable<PI>,
         parsed.insert(last_argument.name.clone(), last_argument_values);
     } else {
         if last_argument_values.len() != 1 {
-            return Err(Error::new(ErrorKind::WrongNumberOfArgumentValues {
-                count: last_argument_values.len(),
-            }));
+            bail!("Wrong number of values ({}) for argument '{}'",
+                  last_argument_values.len(),
+                  last_argument.name);
         }
         parsed.insert(last_argument.name.clone(), last_argument_values);
     }
@@ -280,7 +277,7 @@ fn all_options_are_present(command: &Command, options: &HashMap<String, String>)
         }
 
         if options.get(o.name.as_str()).is_none() {
-            return Err(Error::new(ErrorKind::MissingOptionValue { name: o.name.clone() }));
+            bail!("No default or specified value for option '{}'", o.name);
         }
     }
 
@@ -302,14 +299,10 @@ pub fn parse_command<'pl, 'cbl, PI, E>(program: &str,
         Some(command_parameter) => {
             match commands.iter().position(|command| command.command.name == *command_parameter) {
                 Some(command) => Ok(command),
-                None => {
-                    Err(Error::new(ErrorKind::UnrecognizedCommand {
-                        name: command_parameter.clone(),
-                    }))
-                },
+                None => Err(format!("Unrecognized command '{}'", command_parameter).into()),
             }
         },
-        None => Err(Error::new(ErrorKind::NoCommandSpecified)),
+        None => Err("No command specified".into()),
     };
 
     if let Err(e) = idx {

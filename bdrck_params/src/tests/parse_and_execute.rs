@@ -182,7 +182,7 @@ fn test_default_options() {
 }
 
 #[test]
-#[should_panic(expected = "No default or specified value for option '--a'")]
+#[should_panic(expected = "No default or specified value for option 'a'")]
 fn test_missing_required_option() {
     // Do not write any output from unit tests.
     set_writer_impl(WriterImpl::Noop);
@@ -219,7 +219,7 @@ fn test_parse_invalid_option() {
 }
 
 #[test]
-#[should_panic(expected = "No default or specified value for option '--foobar'")]
+#[should_panic(expected = "No default or specified value for option 'foobar'")]
 fn test_parse_missing_option_value() {
     // Do not write any output from unit tests.
     set_writer_impl(WriterImpl::Noop);

@@ -36,7 +36,7 @@ impl Command {
         if !arguments.iter()
             .skip_while(|a| a.default_value.is_none())
             .all(|a| a.default_value.is_some()) {
-            return Err(Error::new(ErrorKind::MissingDefaultArgumentValue));
+            bail!("Missing default argument value");
         }
 
         // All arguments other than the last one must have at most one default value.
@@ -44,7 +44,7 @@ impl Command {
            !&arguments[..arguments.len() - 1]
             .iter()
             .all(|a| a.default_value.as_ref().map_or(0, |dv| dv.len()) <= 1) {
-            return Err(Error::new(ErrorKind::TooManyDefaultArgumentValues));
+            bail!("Too many default argument values");
         }
 
         // The last argument can have more than one default value only if it is
@@ -53,7 +53,7 @@ impl Command {
            arguments.iter().last().map_or(false, |a| {
             a.default_value.as_ref().map_or(false, |dv| dv.len() > 1)
         }) {
-            return Err(Error::new(ErrorKind::TooManyDefaultArgumentValues));
+            bail!("Too many default argument values");
         }
 
         Ok(Command {
