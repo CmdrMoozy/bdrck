@@ -29,31 +29,29 @@ fn handle_result<E: error::Error>(r: Result<CommandResult<E>>) -> i32 {
     }
 }
 
+/// Parses command-line parameters and executes the specified command.
+///
+/// This function exits this process with an appropriate exit code. Like
+/// `std::process::exit`, because this function never returns and it terminates
+/// the process, no destructors on the current stack or any other thread's
+/// stack will be run. The caller should ensure that this function is called
+/// from the only thread, and that any destructors which need to be run are in
+/// the stack of the command callback.
 pub fn main_impl_multiple_commands<E: error::Error>(commands: Vec<ExecutableCommand<E>>) -> ! {
-    //! Parses command-line parameters and executes the specified command.
-    //!
-    //! This function exits this process with an appropriate exit code. Like
-    //! std::process::exit, because this function never returns and it terminates
-    //! the process, no destructors on the current stack or any other thread's
-    //! stack will be run. The caller should ensure that this function is called
-    //! from the only thread, and that any destructors which need to be run are in
-    //! the stack of the command callback.
-
     process::exit(handle_result(parse_and_execute_command(env::args().next().unwrap().as_ref(),
                                                           &get_program_parameters(),
                                                           commands)));
 }
 
+/// Parses command-line parameters and executes the given command.
+///
+/// This function exits this process with an appropriate exit code. Like
+/// `std::process::exit`, because this function never returns and it terminates
+/// the process, no destructors on the current stack or any other thread's
+/// stack will be run. The caller should ensure that this function is called
+/// from the only thread, and that any destructors which need to be run are in
+/// the stack of the command callback.
 pub fn main_impl_single_command<E: error::Error>(command: ExecutableCommand<E>) -> ! {
-    //! Parses command-line parameters and executes the given command.
-    //!
-    //! This function exits this process with an appropriate exit code. Like
-    //! std::process::exit, because this function never returns and it terminates
-    //! the process, no destructors on the current stack or any other thread's
-    //! stack will be run. The caller should ensure that this function is called
-    //! from the only thread, and that any destructors which need to be run are in
-    //! the stack of the command callback.
-
     process::exit(handle_result(parse_and_execute(env::args().next().unwrap().as_ref(),
                                                   &get_program_parameters(),
                                                   command)));

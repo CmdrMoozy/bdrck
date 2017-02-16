@@ -40,7 +40,7 @@ impl Command {
         }
 
         // All arguments other than the last one must have at most one default value.
-        if arguments.len() > 0 &&
+        if !arguments.is_empty() &&
            !&arguments[..arguments.len() - 1]
             .iter()
             .all(|a| a.default_value.as_ref().map_or(0, |dv| dv.len()) <= 1) {
@@ -77,7 +77,7 @@ pub type CommandCallback<'a, E> = Box<FnMut(HashMap<String, String>,
                                             HashMap<String, Vec<String>>)
                                             -> CommandResult<E> + 'a>;
 
-/// An ExecutableCommand is a Command alongside a callback function which can
+/// An `ExecutableCommand` is a Command alongside a callback function which can
 /// be called to execute the command in question.
 pub struct ExecutableCommand<'a, E> {
     pub command: Command,

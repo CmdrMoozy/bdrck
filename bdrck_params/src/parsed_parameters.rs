@@ -12,21 +12,19 @@ use std::option::Option as Optional;
 use std::string::String;
 use std::vec::Vec;
 
+/// Returns the current program's parameters (accessed essentialy via
+/// `std::env::args`) collected into a Vec. The 0'th parameter (the executable)
+/// is omitted.
 pub fn get_program_parameters() -> Vec<String> {
-    //! Returns the current program's parameters (accessed essentialy via
-    //! std::env::args()) collected into a Vec. The 0'th parameter (the executable)
-    //! is omitted.
-
     env::args()
         .skip(1) // Skip the first argument, which is our executable.
         .collect()
 }
 
+/// Constructs maps for options and flags which contain the default values (if
+/// any) for each of the given command's options. Note that all flags have a
+/// default value of false.
 fn build_default_options(command: &Command, parsed: &mut ParsedParameters) {
-    //! Constructs maps for options and flags which contain the default values (if
-    //! any) for each of the given command's options. Note that all flags have a
-    //! default value of false.
-
     for o in &command.options {
         if let Some(ref dv) = o.default_value {
             parsed.options.insert(o.name.clone(), dv.clone());
@@ -43,15 +41,15 @@ struct OptionParameters<'cl> {
     option_obj: &'cl Option,
 }
 
+/// Extracts the option name (and, if one is present, the option value) from
+/// the given single option parameter. This involves stripping off the leading
+/// "-" or "--" prefix, and splitting the given parameter on its "=" character
+/// (if any).
 fn find_option_name_and_value(option_parameter: &str) -> (&str, Optional<&str>) {
-    //! Extracts the option name (and, if one is present, the option value) from
-    //! the given single option parameter. This involves stripping off the leading
-    //! "-" or "--" prefix, and splitting the given parameter on its "=" character
-    //! (if any).
-
-    let trimmed: &str = match option_parameter.starts_with("--") {
-        false => &option_parameter[1..],
-        true => &option_parameter[2..],
+    let trimmed: &str = if option_parameter.starts_with("--") {
+        &option_parameter[2..]
+    } else {
+        &option_parameter[1..]
     };
     let equals_idx = trimmed.rfind('=');
     let name = equals_idx.map_or(trimmed, |ei| &trimmed[0..ei]);
@@ -60,22 +58,22 @@ fn find_option_name_and_value(option_parameter: &str) -> (&str, Optional<&str>) 
     (name, value)
 }
 
+/// Parse an option name and value from the given iterator's current position.
+/// If the given iterator is already at the end or the string at its current
+/// position is not an option, return None. Otherwise, return either a valid
+/// option or an error.
 fn next_option_parameters<'pl, 'cl, PI, OI>(parameters: &mut Peekable<PI>,
                                             options: OI)
                                             -> Result<Optional<OptionParameters<'cl>>>
     where PI: Iterator<Item = &'pl String>,
           OI: Iterator<Item = &'cl Option>
 {
-    //! Parse an option name and value from the given iterator's current position.
-    //! If the given iterator is already at the end or the string at its current
-    //! position is not an option, return None. Otherwise, return either a valid
-    //! option or an error.
-
     let parameter: &'pl str = match parameters.peek() {
         Some(p) => {
-            match p.starts_with("-") {
-                false => return Ok(None),
-                true => p,
+            if p.starts_with('-') {
+                p
+            } else {
+                return Ok(None);
             }
         },
         None => return Ok(None),
@@ -95,7 +93,7 @@ fn next_option_parameters<'pl, 'cl, PI, OI>(parameters: &mut Peekable<PI>,
     // not the next parameter is a flag value or an argument.
     if !option_obj.is_flag {
         let next_parameter_is_value: bool = parameters.peek()
-            .map_or(false, |v| !v.starts_with("-"));
+            .map_or(false, |v| !v.starts_with('-'));
         if next_parameter_is_value && value.is_none() {
             value = Some(parameters.next().unwrap().as_str());
         }
@@ -114,10 +112,9 @@ struct ParsedOption {
     bool_value: Optional<bool>,
 }
 
+/// Return the boolean interpretation of a string, or an error if the string
+/// isn't recognized as a valid boolean value.
 fn parse_bool(value: &str) -> Result<bool> {
-    //! Return the boolean interpretation of a string, or an error if the string
-    //! isn't recognized as a valid boolean value.
-
     match value.trim().to_lowercase().as_ref() {
         "true" => Ok(true),
         "false" => Ok(false),
@@ -125,16 +122,15 @@ fn parse_bool(value: &str) -> Result<bool> {
     }
 }
 
+/// Parse the next option from the given iterator over program parameters. If
+/// there are no more option parameters, returns None. If an option argument is
+/// found but some error occurs, then an error is returned instead.
 fn parse_option<'pl, 'cl, PI, OI>(parameters: &mut Peekable<PI>,
                                   options: OI)
                                   -> Result<Optional<ParsedOption>>
     where PI: Iterator<Item = &'pl String>,
           OI: Iterator<Item = &'cl Option>
 {
-    //! Parse the next option from the given iterator over program parameters. If
-    //! there are no more option parameters, returns None. If an option argument is
-    //! found but some error occurs, then an error is returned instead.
-
     let option_parameters: OptionParameters<'cl> = match try!(next_option_parameters(parameters,
                                                                                      options)) {
         Some(op) => op,
@@ -146,14 +142,13 @@ fn parse_option<'pl, 'cl, PI, OI>(parameters: &mut Peekable<PI>,
               option_parameters.option_obj.name);
     }
 
-    let bool_value: Optional<bool> = match option_parameters.option_obj.is_flag {
-        false => None,
-        true => {
-            Some(match option_parameters.value.as_ref() {
-                Some(v) => try!(parse_bool(v.as_str())),
-                None => true,
-            })
-        },
+    let bool_value: Optional<bool> = if option_parameters.option_obj.is_flag {
+        Some(match option_parameters.value.as_ref() {
+            Some(v) => try!(parse_bool(v.as_str())),
+            None => true,
+        })
+    } else {
+        None
     };
 
     Ok(Some(ParsedOption {
@@ -163,15 +158,14 @@ fn parse_option<'pl, 'cl, PI, OI>(parameters: &mut Peekable<PI>,
     }))
 }
 
+/// Call `parse_option` repeatedly on the given iterator until an error is
+/// encountered or there are no more options to parse. Returns a possibly empty
+/// vector of parsed options, or an error if one was encountered.
 fn parse_all_options<'pl, PI>(command: &Command,
                               parameters: &mut Peekable<PI>)
                               -> Result<Vec<ParsedOption>>
     where PI: Iterator<Item = &'pl String>
 {
-    //! Call parse_option repeatedly on the given iterator until an error is
-    //! encountered or there are no more options to parse. Returns a possibly empty
-    //! vector of parsed options, or an error if one was encountered.
-
     let mut parsed: Vec<ParsedOption> = Vec::new();
     while let Some(parsed_option) = try!(parse_option(parameters, command.options.iter())) {
         parsed.push(parsed_option);
@@ -179,15 +173,15 @@ fn parse_all_options<'pl, PI>(command: &Command,
     Ok(parsed)
 }
 
+/// Calls `parse_all_options`, and adds the result to the given parsed
+/// parameters structure. An error is returned if one is encountered, and the
+/// parsed parameters structure is not modified.
 fn emplace_all_options<'pl, PI>(command: &Command,
                                 parameters: &mut Peekable<PI>,
                                 parsed_parameters: &mut ParsedParameters)
                                 -> Result<()>
     where PI: Iterator<Item = &'pl String>
 {
-    //! Calls parse_all_options, and adds the result to the given parsed parameters
-    //! structure. An error is returned if one is encountered, and the parsed
-    //! parameters structure is not modified.
 
     for parsed_option in try!(parse_all_options(command, parameters)) {
         if let Some(v) = parsed_option.bool_value {
@@ -200,16 +194,15 @@ fn emplace_all_options<'pl, PI>(command: &Command,
     Ok(())
 }
 
+/// Parses all of the positional arguments from the given iterator over program
+/// parameters, and returns either a possibly empty `HashMap` of parsed
+/// arguments or an error, if one is encountered.
 fn parse_all_arguments<'pl, 'cl, PI>(parameters: &mut Peekable<PI>,
                                      arguments: &'cl Vec<Argument>,
                                      last_argument_is_variadic: bool)
                                      -> Result<HashMap<String, Vec<String>>>
     where PI: Iterator<Item = &'pl String>
 {
-    //! Parses all of the positional arguments from the given iterator over program
-    //! parameters, and returns either a possibly empty HashMap of parsed arguments
-    //! or an error, if one is encountered.
-
     let mut parsed: HashMap<String, Vec<String>> = HashMap::new();
     if arguments.is_empty() {
         return Ok(parsed);
@@ -229,10 +222,10 @@ fn parse_all_arguments<'pl, 'cl, PI>(parameters: &mut Peekable<PI>,
     }
 
     let last_argument: &Argument = &arguments[arguments.len() - 1];
-    let mut last_argument_values: Vec<String> = parameters.map(|v| v.clone()).collect();
+    let mut last_argument_values: Vec<String> = parameters.cloned().collect();
     if last_argument_values.is_empty() && last_argument.default_value.is_some() {
         last_argument_values =
-            last_argument.default_value.as_ref().unwrap().iter().map(|v| v.clone()).collect();
+            last_argument.default_value.as_ref().unwrap().iter().cloned().collect();
     }
     if last_argument_is_variadic {
         parsed.insert(last_argument.name.clone(), last_argument_values);
@@ -248,17 +241,16 @@ fn parse_all_arguments<'pl, 'cl, PI>(parameters: &mut Peekable<PI>,
     Ok(parsed)
 }
 
+/// Parses all of the positional arguments from the given iterator over program
+/// parameters, and adds the result to the given parsed parameters structure.
+/// An error is returned if one is encountered, and the parsed parameters
+/// structure is not modified.
 fn emplace_all_arguments<'pl, PI>(command: &Command,
                                   parameters: &mut Peekable<PI>,
                                   parsed_parameters: &mut ParsedParameters)
                                   -> Result<()>
     where PI: Iterator<Item = &'pl String>
 {
-    //! Parses all of the positional arguments from the given iterator over program
-    //! parameters, and adds the result to the given parsed parameters structure.
-    //! An error is returned if one is encountered, and the parsed parameters
-    //! structure is not modified.
-
     parsed_parameters.arguments = try!(parse_all_arguments(parameters,
                                                            &command.arguments,
                                                            command.last_argument_is_variadic));
@@ -266,11 +258,10 @@ fn emplace_all_arguments<'pl, PI>(command: &Command,
     Ok(())
 }
 
+/// Checks if all of the given command's options are present in the given map
+/// of option names to values. If an option is missing, returns an error with
+/// more detailed information. Otherwise, returns None.
 fn all_options_are_present(command: &Command, options: &HashMap<String, String>) -> Result<()> {
-    //! Checks if all of the given command's options are present in the given map
-    //! of option names to values. If an option is missing, returns an error with
-    //! more detailed information. Otherwise, returns None.
-
     for o in &command.options {
         if o.is_optional || o.is_flag {
             continue;
@@ -284,6 +275,9 @@ fn all_options_are_present(command: &Command, options: &HashMap<String, String>)
     Ok(())
 }
 
+/// Look up by name the command indicated by the first element of the given
+/// range of program parameters. If a matching command could not be found,
+/// return None instead.
 pub fn parse_command<'pl, 'cbl, PI, E>(program: &str,
                                        parameters: &mut Peekable<PI>,
                                        mut commands: Vec<ExecutableCommand<'cbl, E>>,
@@ -291,10 +285,6 @@ pub fn parse_command<'pl, 'cbl, PI, E>(program: &str,
                                        -> Result<ExecutableCommand<'cbl, E>>
     where PI: Iterator<Item = &'pl String>
 {
-    //! Look up by name the command indicated by the first element of the given
-    //! range of program parameters. If a matching command could not be found,
-    //! return None instead.
-
     let idx: Result<usize> = match parameters.next() {
         Some(command_parameter) => {
             match commands.iter().position(|command| command.command.name == *command_parameter) {
@@ -325,14 +315,14 @@ pub struct ParsedParameters {
 }
 
 impl ParsedParameters {
+    /// Construct a new ParsedParameters instance by parsing the command,
+    /// options, flags, and arguments from the given iterator over the set of
+    /// program parameters.
     pub fn new<'pl, PI>(command: &Command,
                         parameters: &mut Peekable<PI>)
                         -> Result<ParsedParameters>
         where PI: Iterator<Item = &'pl String>
     {
-        //! Construct a new ParsedParameters instance by parsing the command,
-        //! options, flags, and arguments from the given iterator over the set
-        //! of program parameters.
 
         let mut parsed = ParsedParameters {
             options: HashMap::new(),
@@ -348,7 +338,7 @@ impl ParsedParameters {
         Ok(parsed)
     }
 
-    pub fn execute<'cbl, E>(self, mut command: ExecutableCommand<'cbl, E>) -> CommandResult<E> {
+    pub fn execute<E>(self, mut command: ExecutableCommand<E>) -> CommandResult<E> {
         command.execute(self.options, self.flags, self.arguments)
     }
 }
