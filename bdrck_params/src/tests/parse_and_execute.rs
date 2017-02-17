@@ -48,9 +48,8 @@ fn parse_and_execute_test_impl(parameters: Vec<&str>,
     }
 
     assert!(instrumentation.get_call_count() == 0);
-    let res = parse_and_execute_command("program",
-                                        &parameters.into_iter().map(|p| p.to_owned()).collect(),
-                                        executable_commands);
+    let parameters: Vec<String> = parameters.into_iter().map(|p| p.to_owned()).collect();
+    let res = parse_and_execute_command("program", parameters.as_slice(), executable_commands);
     assert!(res.is_ok(), "{}", res.err().unwrap());
     assert!(res.unwrap().is_ok());
     assert!(instrumentation.get_call_count() == 1);

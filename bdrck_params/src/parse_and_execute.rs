@@ -8,7 +8,7 @@ use std::string::String;
 use std::vec::Vec;
 
 fn parse_and_execute_impl<E>(program: &str,
-                             parameters: &Vec<String>,
+                             parameters: &[String],
                              commands: Vec<ExecutableCommand<E>>,
                              print_program_help: bool,
                              print_command_name: bool)
@@ -34,37 +34,30 @@ fn parse_and_execute_impl<E>(program: &str,
     Ok(parsed_parameters.execute(command))
 }
 
+/// This function parses the given program parameters, and calls the appropriate
+/// command callback. It prints out usage information if the parameters are
+/// invalid, and returns a reasonable exit code for the process.
+///
+/// This is the function which should be used for typical multi-command
+/// programs.
 pub fn parse_and_execute_command<E>(program: &str,
-                                    parameters: &Vec<String>,
+                                    parameters: &[String],
                                     commands: Vec<ExecutableCommand<E>>)
                                     -> Result<CommandResult<E>> {
-    //! This function parses the given program parameters, and calls the
-    //! appropriate command callback. It prints out usage information if the
-    //! parameters are invalid, and returns a reasonable exit code for the process.
-    //!
-    //! This is the function which should be used for typical multi-command
-    //! programs.
-
     parse_and_execute_impl(program, parameters, commands, true, true)
 }
 
+/// This function parses the given program parameters and calls the given
+/// command's callback. It prints out usage information if the parameters are
+/// invalid, and returns a reasonable exit code for the process.
+///
+/// This is the function which should be used for typical single-command
+/// programs.
 pub fn parse_and_execute<E>(program: &str,
-                            parameters: &Vec<String>,
+                            parameters: &[String],
                             command: ExecutableCommand<E>)
                             -> Result<CommandResult<E>> {
-    //! This function parses the given program parameters and calls the given
-    //! command's callback. It prints out usage information if the parameters are
-    //! invalid, and returns a reasonable exit code for the process.
-    //!
-    //! This is the function which should be used for typical single-command
-    //! programs.
-
-    parse_and_execute_impl(program,
-                           &Some(command.command.name.clone())
-                               .into_iter()
-                               .chain(parameters.iter().cloned())
-                               .collect(),
-                           vec![command],
-                           false,
-                           false)
+    let parameters: Vec<String> =
+        Some(command.command.name.clone()).into_iter().chain(parameters.iter().cloned()).collect();
+    parse_and_execute_impl(program, parameters.as_slice(), vec![command], false, false)
 }

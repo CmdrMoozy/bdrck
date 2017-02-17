@@ -49,10 +49,10 @@ impl Command {
 
         // The last argument can have more than one default value only if it is
         // variadic.
-        if !last_argument_is_variadic &&
-           arguments.iter().last().map_or(false, |a| {
+        let has_multiple_defaults = arguments.iter().last().map_or(false, |a| {
             a.default_value.as_ref().map_or(false, |dv| dv.len() > 1)
-        }) {
+        });
+        if !last_argument_is_variadic && has_multiple_defaults {
             bail!("Too many default argument values");
         }
 

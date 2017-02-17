@@ -198,7 +198,7 @@ fn emplace_all_options<'pl, PI>(command: &Command,
 /// parameters, and returns either a possibly empty `HashMap` of parsed
 /// arguments or an error, if one is encountered.
 fn parse_all_arguments<'pl, 'cl, PI>(parameters: &mut Peekable<PI>,
-                                     arguments: &'cl Vec<Argument>,
+                                     arguments: &'cl [Argument],
                                      last_argument_is_variadic: bool)
                                      -> Result<HashMap<String, Vec<String>>>
     where PI: Iterator<Item = &'pl String>
@@ -210,10 +210,12 @@ fn parse_all_arguments<'pl, 'cl, PI>(parameters: &mut Peekable<PI>,
 
     if arguments.len() >= 2 {
         for argument in &arguments[..arguments.len() - 1] {
-            let v = parameters.next().or(argument.default_value
-                .as_ref()
-                .map(|dv| dv.first())
-                .map_or(None, |dv| Some(dv.unwrap())));
+            let v = parameters.next().or_else(|| {
+                argument.default_value
+                    .as_ref()
+                    .map(|dv| dv.first())
+                    .map_or(None, |dv| Some(dv.unwrap()))
+            });
             if v.is_none() {
                 bail!("Missing value for argument '{}'", argument.name);
             }

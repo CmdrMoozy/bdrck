@@ -4,7 +4,7 @@ use std::fmt::Write;
 
 pub fn print_program_help<'cbl, E>(f: &mut Write,
                                    program: &str,
-                                   commands: &Vec<ExecutableCommand<'cbl, E>>)
+                                   commands: &[ExecutableCommand<'cbl, E>])
                                    -> Result<()> {
     let mut s = String::new();
 

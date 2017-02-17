@@ -76,7 +76,7 @@ pub fn find_option<'a, I>(options: I, name: &str) -> Optional<&'a Option>
             break;
         } else if let Some(sn) = o.short_name {
             if name.starts_with(sn) {
-                result = result.or(Some(o));
+                result = result.or_else(|| Some(o));
             }
         }
     }
