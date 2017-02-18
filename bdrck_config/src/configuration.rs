@@ -35,7 +35,7 @@ fn get_configuration_directory(application: &str) -> Result<PathBuf> {
 fn get_configuration_directory(application: &str) -> Result<PathBuf> {
     let mut path = PathBuf::new();
     path.push(try!(env::var("XDG_CONFIG_HOME")
-        .map(|config_home| PathBuf::from(config_home))
+        .map(PathBuf::from)
         .or(env::var("HOME").map(|home| {
             let mut home = PathBuf::from(home);
             home.push(".config");
@@ -112,7 +112,7 @@ impl<T: Clone + Serialize + Deserialize> Configuration<T> {
 
         try!(self.path.parent().map_or(Err(io::Error::new(io::ErrorKind::InvalidInput,
                                                           "Invalid configuration path")),
-                                       |dir| fs::create_dir_all(dir)));
+                                       fs::create_dir_all));
         let data = try!(serialize(&self.current));
         let mut file = try!(fs::File::create(self.path.as_path()));
         try!(file.write_all(data.as_slice()));
