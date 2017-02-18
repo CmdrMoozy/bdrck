@@ -1,4 +1,4 @@
-use ::configuration;
+use configuration;
 use std::fs;
 use std::path;
 

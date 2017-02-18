@@ -1,4 +1,4 @@
-use ::error::{Error, ErrorKind, Result};
+use error::{Error, Result};
 use msgpack::{Deserializer, Serializer};
 use serde::{Deserialize, Serialize};
 use std::any::Any;
@@ -45,9 +45,7 @@ fn get_configuration_directory(application: &str) -> Result<PathBuf> {
 
     try!(fs::create_dir_all(path.as_path()));
     if !path.is_dir() {
-        return Err(Error::new(ErrorKind::Io {
-            cause: "Configuration directory is not a directory".to_owned(),
-        }));
+        bail!("Configuration directory is not a directory");
     }
 
     Ok(path)
@@ -152,13 +150,13 @@ pub fn remove<T: Clone + Serialize + Deserialize + 'static>(id: &Identifier) -> 
         if let Some(config) = instance.downcast_ref::<Configuration<T>>() {
             try!(config.persist());
         } else {
-            return Err(Error::new(ErrorKind::IdentifierTypeMismatch));
+            bail!("Wrong type specified for configuration with the given identifier");
         }
     }
 
     match guard.remove(id) {
         Some(_) => Ok(()),
-        None => Err(Error::new(ErrorKind::UnrecognizedIdentifier)),
+        None => bail!("Unrecognized configuration identifier"),
     }
 }
 
@@ -169,10 +167,10 @@ pub fn instance_apply<T: 'static, R, F: FnOnce(&Configuration<T>) -> R>(id: &Ide
         Some(instance) => {
             match instance.downcast_ref() {
                 Some(config) => Ok(f(config)),
-                None => Err(Error::new(ErrorKind::IdentifierTypeMismatch)),
+                None => bail!("Wrong type specified for configuration with the given identifier"),
             }
         },
-        None => Err(Error::new(ErrorKind::UnrecognizedIdentifier)),
+        None => bail!("Unrecognized configuration identifier"),
     }
 }
 
@@ -183,10 +181,10 @@ pub fn instance_apply_mut<T: 'static, R, F: FnOnce(&mut Configuration<T>) -> R>(
         Some(instance) => {
             match instance.downcast_mut() {
                 Some(config) => Ok(f(config)),
-                None => Err(Error::new(ErrorKind::IdentifierTypeMismatch)),
+                None => bail!("Wrong type specified for configuration with the given identifier"),
             }
         },
-        None => Err(Error::new(ErrorKind::UnrecognizedIdentifier)),
+        None => bail!("Unrecognized configuration identifier"),
     }
 }
 

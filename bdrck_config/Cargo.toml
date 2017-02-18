@@ -8,7 +8,7 @@ repository = "https://github.com/CmdrMoozy/bdrck/tree/master/bdrck_config"
 license = "MIT"
 
 [dependencies]
-backtrace = "0.2"
+error-chain = "0.9"
 lazy_static = "0.2"
 rmp-serde = "0.12"
 serde = "0.9"
