@@ -43,9 +43,9 @@ impl Argument {
 
 impl fmt::Display for Argument {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        try!(write!(f, "{} - {}", self.name, self.help));
+        write!(f, "{} - {}", self.name, self.help)?;
         if let Some(default) = self.default_value.as_ref() {
-            try!(write!(f, " [Default: {}]", &default[..].join(", ")));
+            write!(f, " [Default: {}]", &default[..].join(", "))?;
         }
         Ok(())
     }

@@ -32,10 +32,10 @@ pub struct Identifier {
 
 #[cfg(target_os = "windows")]
 fn get_configuration_directory(application: &str) -> Result<PathBuf> {
-    let mut path = PathBuf::from(try!(env::var("APPDATA")));
+    let mut path = PathBuf::from(env::var("APPDATA")?);
     path.push(application);
 
-    try!(fs::create_dir_all(path.as_path()));
+    fs::create_dir_all(path.as_path())?;
     if !path.is_dir() {
         return Err(Error::new(ErrorKind::Io {
             cause: "Configuration directory is not a directory".to_owned(),
@@ -48,16 +48,15 @@ fn get_configuration_directory(application: &str) -> Result<PathBuf> {
 #[cfg(not(target_os = "windows"))]
 fn get_configuration_directory(application: &str) -> Result<PathBuf> {
     let mut path = PathBuf::new();
-    path.push(try!(env::var("XDG_CONFIG_HOME")
-        .map(PathBuf::from)
+    path.push(env::var("XDG_CONFIG_HOME").map(PathBuf::from)
         .or(env::var("HOME").map(|home| {
             let mut home = PathBuf::from(home);
             home.push(".config");
             home
-        }))));
+        }))?);
     path.push(application);
 
-    try!(fs::create_dir_all(path.as_path()));
+    fs::create_dir_all(path.as_path())?;
     if !path.is_dir() {
         bail!("Configuration directory is not a directory");
     }
@@ -68,7 +67,8 @@ fn get_configuration_directory(application: &str) -> Result<PathBuf> {
 fn get_configuration_path(id: &Identifier, custom_path: Option<&Path>) -> Result<PathBuf> {
     custom_path.map_or({
                            let mut path = PathBuf::new();
-                           path.push(try!(get_configuration_directory(id.application.as_str()))
+                           path.push(get_configuration_directory(id.application.as_str())
+                               ?
                                .as_path());
                            path.push(id.name.clone() + ".mp");
                            Ok(path)
@@ -78,7 +78,7 @@ fn get_configuration_path(id: &Identifier, custom_path: Option<&Path>) -> Result
 
 fn serialize<T: Serialize>(v: &T) -> Result<Vec<u8>> {
     let mut buf = Vec::new();
-    try!(v.serialize(&mut Serializer::new(&mut buf)));
+    v.serialize(&mut Serializer::new(&mut buf))?;
     Ok(buf)
 }
 
@@ -86,7 +86,7 @@ fn deserialize<T: Clone + Deserialize>(path: &PathBuf, default: &T) -> Result<T>
     match fs::File::open(path) {
         Ok(file) => {
             let mut deserializer = Deserializer::new(file);
-            Ok(try!(Deserialize::deserialize(&mut deserializer)))
+            Ok(Deserialize::deserialize(&mut deserializer)?)
         },
         Err(error) => {
             match error.kind() {
@@ -105,8 +105,8 @@ pub struct Configuration<T> {
 
 impl<T: Clone + Serialize + Deserialize> Configuration<T> {
     pub fn new(id: Identifier, default: T, custom_path: Option<&Path>) -> Result<Configuration<T>> {
-        let path: PathBuf = try!(get_configuration_path(&id, custom_path));
-        let current: T = try!(deserialize(&path, &default));
+        let path: PathBuf = get_configuration_path(&id, custom_path)?;
+        let current: T = deserialize(&path, &default)?;
 
         Ok(Configuration {
             path: path,
@@ -124,13 +124,14 @@ impl<T: Clone + Serialize + Deserialize> Configuration<T> {
     pub fn persist(&self) -> Result<()> {
         use std::io::Write;
 
-        try!(self.path.parent().map_or(Err(io::Error::new(io::ErrorKind::InvalidInput,
-                                                          "Invalid configuration path")),
-                                       fs::create_dir_all));
-        let data = try!(serialize(&self.current));
-        let mut file = try!(fs::File::create(self.path.as_path()));
-        try!(file.write_all(data.as_slice()));
-        try!(file.flush());
+        self.path
+            .parent()
+            .map_or(Err(io::Error::new(io::ErrorKind::InvalidInput, "Invalid configuration path")),
+                    fs::create_dir_all)?;
+        let data = serialize(&self.current)?;
+        let mut file = fs::File::create(self.path.as_path())?;
+        file.write_all(data.as_slice())?;
+        file.flush()?;
         Ok(())
     }
 }
@@ -151,7 +152,7 @@ pub fn new<T: Clone + Serialize + Deserialize + Send + 'static>(id: Identifier,
                                                                 custom_path: Option<&Path>)
                                                                 -> Result<()> {
     use std::ops::DerefMut;
-    let config: Configuration<T> = try!(Configuration::new(id.clone(), default, custom_path));
+    let config: Configuration<T> = Configuration::new(id.clone(), default, custom_path)?;
     let mut guard = lock(&SINGLETONS);
     guard.deref_mut().insert(id, Box::new(config));
     Ok(())
@@ -162,7 +163,7 @@ pub fn remove<T: Clone + Serialize + Deserialize + 'static>(id: &Identifier) -> 
 
     if let Some(instance) = guard.get(id) {
         if let Some(config) = instance.downcast_ref::<Configuration<T>>() {
-            try!(config.persist());
+            config.persist()?;
         } else {
             bail!("Wrong type specified for configuration with the given identifier");
         }
@@ -215,5 +216,5 @@ pub fn reset<T: Clone + Serialize + Deserialize + 'static>(id: &Identifier) -> R
 }
 
 pub fn persist<T: Clone + Serialize + Deserialize + 'static>(id: &Identifier) -> Result<()> {
-    try!(instance_apply::<T, _, _>(id, |instance| instance.persist()))
+    instance_apply::<T, _, _>(id, |instance| instance.persist())?
 }

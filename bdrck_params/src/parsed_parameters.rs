@@ -145,8 +145,8 @@ fn parse_option<'pl, 'cl, PI, OI>(parameters: &mut Peekable<PI>,
     where PI: Iterator<Item = &'pl String>,
           OI: Iterator<Item = &'cl Option>
 {
-    let option_parameters: OptionParameters<'cl> = match try!(next_option_parameters(parameters,
-                                                                                     options)) {
+    let option_parameters: OptionParameters<'cl> = match next_option_parameters(parameters,
+                                                                                options)? {
         Some(op) => op,
         None => return Ok(None),
     };
@@ -158,7 +158,7 @@ fn parse_option<'pl, 'cl, PI, OI>(parameters: &mut Peekable<PI>,
 
     let bool_value: Optional<bool> = if option_parameters.option_obj.is_flag {
         Some(match option_parameters.value.as_ref() {
-            Some(v) => try!(parse_bool(v.as_str())),
+            Some(v) => parse_bool(v.as_str())?,
             None => true,
         })
     } else {
@@ -181,7 +181,7 @@ fn parse_all_options<'pl, PI>(command: &Command,
     where PI: Iterator<Item = &'pl String>
 {
     let mut parsed: Vec<ParsedOption> = Vec::new();
-    while let Some(parsed_option) = try!(parse_option(parameters, command.options.iter())) {
+    while let Some(parsed_option) = parse_option(parameters, command.options.iter())? {
         parsed.push(parsed_option);
     }
     Ok(parsed)
@@ -197,7 +197,7 @@ fn emplace_all_options<'pl, PI>(command: &Command,
     where PI: Iterator<Item = &'pl String>
 {
 
-    for parsed_option in try!(parse_all_options(command, parameters)) {
+    for parsed_option in parse_all_options(command, parameters)? {
         if let Some(v) = parsed_option.bool_value {
             parsed_parameters.flags.insert(parsed_option.name, v);
         } else {
@@ -267,10 +267,9 @@ fn emplace_all_arguments<'pl, PI>(command: &Command,
                                   -> Result<()>
     where PI: Iterator<Item = &'pl String>
 {
-    parsed_parameters.arguments = try!(parse_all_arguments(parameters,
-                                                           &command.arguments,
-                                                           command.last_argument_is_variadic));
-
+    parsed_parameters.arguments = parse_all_arguments(parameters,
+                                                      &command.arguments,
+                                                      command.last_argument_is_variadic)?;
     Ok(())
 }
 
@@ -313,7 +312,7 @@ pub fn parse_command<'pl, 'cbl, PI, E>(program: &str,
 
     if let Err(e) = idx {
         if print_program_help {
-            try!(help::print_program_help(&mut get_writer_impl(), program, &commands));
+            help::print_program_help(&mut get_writer_impl(), program, &commands)?;
         }
         return Err(e);
     }
@@ -347,9 +346,9 @@ impl ParsedParameters {
         };
 
         build_default_options(command, &mut parsed);
-        try!(emplace_all_options(command, parameters, &mut parsed));
-        try!(emplace_all_arguments(command, parameters, &mut parsed));
-        try!(all_options_are_present(command, &parsed.options));
+        emplace_all_options(command, parameters, &mut parsed)?;
+        emplace_all_arguments(command, parameters, &mut parsed)?;
+        all_options_are_present(command, &parsed.options)?;
 
         Ok(parsed)
     }

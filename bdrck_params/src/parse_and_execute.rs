@@ -29,18 +29,18 @@ fn parse_and_execute_impl<E>(program: &str,
                              -> Result<CommandResult<E>> {
     let mut parameters_iterator = parameters.iter().peekable();
 
-    let command = try!(parse_command(program,
-                                     &mut parameters_iterator,
-                                     commands,
-                                     print_program_help));
+    let command = parse_command(program,
+                                &mut parameters_iterator,
+                                commands,
+                                print_program_help)?;
     let parsed_parameters = match ParsedParameters::new(&command.command,
                                                         &mut parameters_iterator) {
         Ok(p) => p,
         Err(e) => {
-            try!(help::print_command_help(&mut get_writer_impl(),
-                                          program,
-                                          &command.command,
-                                          print_command_name));
+            help::print_command_help(&mut get_writer_impl(),
+                                     program,
+                                     &command.command,
+                                     print_command_name)?;
             return Err(e);
         },
     };

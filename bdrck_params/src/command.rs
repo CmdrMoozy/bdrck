@@ -98,7 +98,7 @@ pub struct ExecutableCommand<'a, E> {
 
 impl<'a, E> fmt::Debug for ExecutableCommand<'a, E> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        try!(f.write_str(format!("{:#?}", self.command).as_ref()));
+        f.write_str(format!("{:#?}", self.command).as_ref())?;
         Ok(())
     }
 }

@@ -35,7 +35,7 @@ pub enum WriterImpl {
 fn write_to_io_writer(writer: &mut io::Write, s: &str) -> result::Result<(), fmt::Error> {
     use std::fmt::Write;
     let mut buf = String::new();
-    try!(buf.write_str(s));
+    buf.write_str(s)?;
     writer.write_all(&buf.into_bytes()[..]).unwrap();
     Ok(())
 }
