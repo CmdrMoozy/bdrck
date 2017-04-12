@@ -5,7 +5,7 @@ authors = ["Axel Rasmussen <axel.rasmussen1@gmail.com>"]
 description = "Command-line argument parsing."
 homepage = "https://github.com/CmdrMoozy/bdrck/tree/master/bdrck_params"
 repository = "https://github.com/CmdrMoozy/bdrck/tree/master/bdrck_params"
-license = "MIT"
+license = "Apache-2.0"
 
 [dependencies]
 error-chain = "0.9"

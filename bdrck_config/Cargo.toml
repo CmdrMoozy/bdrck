@@ -5,7 +5,7 @@ authors = ["Axel Rasmussen <axel.rasmussen1@gmail.com>"]
 description = "Application configuration tooling."
 homepage = "https://github.com/CmdrMoozy/bdrck/tree/master/bdrck_config"
 repository = "https://github.com/CmdrMoozy/bdrck/tree/master/bdrck_config"
-license = "MIT"
+license = "Apache-2.0"
 
 [dependencies]
 error-chain = "0.9"
