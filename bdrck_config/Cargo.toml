@@ -1,6 +1,6 @@
 [package]
 name = "bdrck_config"
-version = "0.1.2"
+version = "0.1.3"
 authors = ["Axel Rasmussen <axel.rasmussen1@gmail.com>"]
 description = "Application configuration tooling."
 homepage = "https://github.com/CmdrMoozy/bdrck/tree/master/bdrck_config"
@@ -8,7 +8,7 @@ repository = "https://github.com/CmdrMoozy/bdrck/tree/master/bdrck_config"
 license = "Apache-2.0"
 
 [dependencies]
-error-chain = "0.9"
+error-chain = "0.10"
 lazy_static = "0.2"
 rmp-serde = "0.12"
 serde = "0.9"

@@ -13,7 +13,6 @@
 // limitations under the License.
 
 extern crate chrono;
-#[macro_use]
 extern crate log;
 
 mod cli;
