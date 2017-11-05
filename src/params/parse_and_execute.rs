@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use command::{CommandResult, ExecutableCommand};
-use error::Result;
-use help;
-use io::get_writer_impl;
-use parsed_parameters::ParsedParameters;
-use parsed_parameters::parse_command;
+use error::*;
+use params::help;
+use params::command::{CommandResult, ExecutableCommand};
+use params::io::get_writer_impl;
+use params::parsed_parameters::ParsedParameters;
+use params::parsed_parameters::parse_command;
 use std::string::String;
 use std::vec::Vec;
 

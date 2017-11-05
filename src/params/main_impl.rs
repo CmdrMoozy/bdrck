@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use command::{CommandResult, ExecutableCommand};
-use error::Result;
-use parse_and_execute::parse_and_execute;
-use parse_and_execute::parse_and_execute_command;
-use parsed_parameters::get_program_parameters;
+use error::*;
+use params::command::{CommandResult, ExecutableCommand};
+use params::parse_and_execute::parse_and_execute;
+use params::parse_and_execute::parse_and_execute_command;
+use params::parsed_parameters::get_program_parameters;
 use std::env;
 use std::error;
 use std::process;

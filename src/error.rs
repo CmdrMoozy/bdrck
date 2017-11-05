@@ -17,6 +17,7 @@ error_chain! {
         Decode(::msgpack::decode::Error);
         Encode(::msgpack::encode::Error);
         EnvVar(::std::env::VarError);
+        Fmt(::std::fmt::Error);
         Io(::std::io::Error);
     }
 }

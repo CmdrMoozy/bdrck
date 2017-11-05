@@ -14,3 +14,5 @@
 
 #[cfg(test)]
 mod configuration;
+#[cfg(test)]
+mod params;

@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use super::argument::Argument;
-use super::error::*;
-use super::option::Option;
+use error::*;
+use params::argument::Argument;
+use params::option::Option;
 use std::collections::HashMap;
 use std::fmt;
 use std::result;

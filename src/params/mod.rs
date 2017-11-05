@@ -12,9 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-extern crate bdrck_test;
+pub mod argument;
+pub mod command;
+pub mod io;
+pub mod main_impl;
+pub mod option;
+pub mod parse_and_execute;
 
-#[cfg(test)]
-mod option;
-#[cfg(test)]
-mod parse_and_execute;
+mod help;
+mod parsed_parameters;
+
+// Re-export most commonly used symbols, to allow using this library with just
+// one "use".
+
+pub use self::argument::Argument;
+pub use self::command::{Command, CommandCallback, CommandResult, ExecutableCommand};
+pub use self::main_impl::{main_impl_multiple_commands, main_impl_single_command};
+pub use self::option::Option;

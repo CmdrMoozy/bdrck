@@ -12,13 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use argument::Argument;
-use command::{Command, CommandResult, ExecutableCommand};
-use ::error::*;
-use help;
-use io::get_writer_impl;
-use option::Option;
-use option::find_option;
+use error::*;
+use params::argument::Argument;
+use params::command::{Command, CommandResult, ExecutableCommand};
+use params::help;
+use params::io::get_writer_impl;
+use params::option::Option;
+use params::option::find_option;
 use std::collections::HashMap;
 use std::env;
 use std::iter::Peekable;

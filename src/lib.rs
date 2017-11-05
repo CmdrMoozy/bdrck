@@ -17,6 +17,7 @@ extern crate chrono;
 extern crate error_chain;
 #[macro_use]
 extern crate lazy_static;
+#[macro_use]
 extern crate log;
 extern crate rmp_serde as msgpack;
 extern crate serde;
@@ -26,6 +27,7 @@ extern crate serde_derive;
 pub mod configuration;
 pub mod error;
 pub mod logging;
+pub mod params;
 pub mod testing;
 
 #[cfg(test)]

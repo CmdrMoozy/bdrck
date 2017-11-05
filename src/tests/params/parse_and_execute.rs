@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use argument::Argument;
-use command::{Command, CommandCallback, CommandResult, ExecutableCommand};
-use io::*;
-use option::Option;
-use parse_and_execute::{parse_and_execute, parse_and_execute_command};
+use params::argument::Argument;
+use params::command::{Command, CommandCallback, CommandResult, ExecutableCommand};
+use params::io::*;
+use params::option::Option;
+use params::parse_and_execute::{parse_and_execute, parse_and_execute_command};
 use std::collections::HashMap;
 use std::option::Option as Optional;
-use tests::bdrck_test::fn_instrumentation::FnInstrumentation;
+use testing::fn_instrumentation::FnInstrumentation;
 
 fn build_trivial_command_for_test(name: &str) -> Command {
     Command::new(name, name, vec![], vec![], false).unwrap()

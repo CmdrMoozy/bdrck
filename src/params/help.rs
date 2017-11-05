@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use command::{Command, ExecutableCommand};
-use error::Result;
+use error::*;
+use params::command::{Command, ExecutableCommand};
 use std::fmt::Write;
 
 pub fn print_program_help<'cbl, E>(f: &mut Write,

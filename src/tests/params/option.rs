@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use io::*;
-use option::Option;
-use option::find_option;
+use params::io::*;
+use params::option::Option;
+use params::option::find_option;
 
 fn find_option_works(options: &Vec<Option>, query: &str, expected_name: &str) -> bool {
     return find_option(options.iter(), query).map_or(false, |o| o.name == expected_name);
