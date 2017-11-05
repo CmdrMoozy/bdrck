@@ -15,6 +15,7 @@
 use error::{Error, Result};
 use msgpack::{Deserializer, Serializer};
 use serde::{Deserialize, Serialize};
+use serde::de::DeserializeOwned;
 use std::any::Any;
 use std::boxed::Box;
 use std::collections::HashMap;
@@ -82,7 +83,7 @@ fn serialize<T: Serialize>(v: &T) -> Result<Vec<u8>> {
     Ok(buf)
 }
 
-fn deserialize<T: Clone + Deserialize>(path: &PathBuf, default: &T) -> Result<T> {
+fn deserialize<T: Clone + DeserializeOwned>(path: &PathBuf, default: &T) -> Result<T> {
     match fs::File::open(path) {
         Ok(file) => {
             let mut deserializer = Deserializer::new(file);
@@ -103,7 +104,7 @@ pub struct Configuration<T> {
     current: T,
 }
 
-impl<T: Clone + Serialize + Deserialize> Configuration<T> {
+impl<T: Clone + Serialize + DeserializeOwned> Configuration<T> {
     pub fn new(id: Identifier, default: T, custom_path: Option<&Path>) -> Result<Configuration<T>> {
         let path: PathBuf = get_configuration_path(&id, custom_path)?;
         let current: T = deserialize(&path, &default)?;
@@ -147,7 +148,7 @@ fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<T> {
     }
 }
 
-pub fn new<T: Clone + Serialize + Deserialize + Send + 'static>(id: Identifier,
+pub fn new<T: Clone + Serialize + DeserializeOwned + Send + 'static>(id: Identifier,
                                                                 default: T,
                                                                 custom_path: Option<&Path>)
                                                                 -> Result<()> {
@@ -158,7 +159,7 @@ pub fn new<T: Clone + Serialize + Deserialize + Send + 'static>(id: Identifier,
     Ok(())
 }
 
-pub fn remove<T: Clone + Serialize + Deserialize + 'static>(id: &Identifier) -> Result<()> {
+pub fn remove<T: Clone + Serialize + DeserializeOwned + 'static>(id: &Identifier) -> Result<()> {
     let mut guard = lock(&SINGLETONS);
 
     if let Some(instance) = guard.get(id) {
@@ -203,18 +204,18 @@ pub fn instance_apply_mut<T: 'static, R, F: FnOnce(&mut Configuration<T>) -> R>(
     }
 }
 
-pub fn get<T: Clone + Serialize + Deserialize + 'static>(id: &Identifier) -> Result<T> {
+pub fn get<T: Clone + Serialize + DeserializeOwned + 'static>(id: &Identifier) -> Result<T> {
     instance_apply::<T, T, _>(id, |instance| instance.get().clone())
 }
 
-pub fn set<T: Clone + Serialize + Deserialize + 'static>(id: &Identifier, config: T) -> Result<()> {
+pub fn set<T: Clone + Serialize + DeserializeOwned + 'static>(id: &Identifier, config: T) -> Result<()> {
     instance_apply_mut(id, move |instance| instance.set(config))
 }
 
-pub fn reset<T: Clone + Serialize + Deserialize + 'static>(id: &Identifier) -> Result<()> {
+pub fn reset<T: Clone + Serialize + DeserializeOwned + 'static>(id: &Identifier) -> Result<()> {
     instance_apply_mut::<T, _, _>(id, |instance| instance.reset())
 }
 
-pub fn persist<T: Clone + Serialize + Deserialize + 'static>(id: &Identifier) -> Result<()> {
+pub fn persist<T: Clone + Serialize + DeserializeOwned + 'static>(id: &Identifier) -> Result<()> {
     instance_apply::<T, _, _>(id, |instance| instance.persist())?
 }
