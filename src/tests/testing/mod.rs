@@ -13,8 +13,4 @@
 // limitations under the License.
 
 #[cfg(test)]
-mod configuration;
-#[cfg(test)]
-mod params;
-#[cfg(test)]
-mod testing;
+mod fn_instrumentation;

@@ -28,20 +28,3 @@ impl FnInstrumentation {
 
     pub fn get_call_count(&self) -> u64 { *self.call_count.lock().unwrap() }
 }
-
-#[cfg(test)]
-mod test {
-
-    use super::FnInstrumentation;
-    use std::boxed::Box;
-
-    #[test]
-    fn test_fn_mut_instrumentation() {
-        let instrumentation = FnInstrumentation::new();
-        let mut function: Box<FnMut()> = Box::new(|| { instrumentation.record_call(); });
-
-        assert!(instrumentation.get_call_count() == 0);
-        function.as_mut()();
-        assert!(instrumentation.get_call_count() == 1);
-    }
-}

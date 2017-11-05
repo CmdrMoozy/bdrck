@@ -12,9 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#[cfg(test)]
-mod configuration;
-#[cfg(test)]
-mod params;
-#[cfg(test)]
-mod testing;
+use testing::fn_instrumentation::*;
+
+#[test]
+fn test_fn_mut_instrumentation() {
+    let instrumentation = FnInstrumentation::new();
+    let mut function: Box<FnMut()> = Box::new(|| { instrumentation.record_call(); });
+
+    assert!(instrumentation.get_call_count() == 0);
+    function.as_mut()();
+    assert!(instrumentation.get_call_count() == 1);
+}
