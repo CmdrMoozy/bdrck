@@ -23,6 +23,7 @@ extern crate serde_derive;
 
 pub mod configuration;
 pub mod error;
+pub mod testing;
 
 #[cfg(test)]
 mod tests;
