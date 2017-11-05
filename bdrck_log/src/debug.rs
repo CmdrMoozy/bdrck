@@ -18,7 +18,7 @@ use std::io;
 
 fn format_log_record(record: &log::LogRecord) -> String {
     format!("[{} {}:{}] {} - {}",
-            chrono::offset::utc::UTC::now().format("%Y-%m-%d %H:%M:%S UTC"),
+            chrono::Utc::now().format("%Y-%m-%d %H:%M:%S UTC"),
             record.location().file(),
             record.location().line(),
             record.level(),
