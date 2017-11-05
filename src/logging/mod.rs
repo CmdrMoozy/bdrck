@@ -12,11 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-extern crate chrono;
-extern crate log;
-
 mod cli;
 mod debug;
 
-pub use cli::init_cli_logger;
-pub use debug::init_debug_logger;
+pub use self::cli::init_cli_logger;
+pub use self::debug::init_debug_logger;

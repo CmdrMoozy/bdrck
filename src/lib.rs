@@ -12,10 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+extern crate chrono;
 #[macro_use]
 extern crate error_chain;
 #[macro_use]
 extern crate lazy_static;
+extern crate log;
 extern crate rmp_serde as msgpack;
 extern crate serde;
 #[macro_use]
@@ -23,6 +25,7 @@ extern crate serde_derive;
 
 pub mod configuration;
 pub mod error;
+pub mod logging;
 pub mod testing;
 
 #[cfg(test)]
