@@ -8,7 +8,7 @@ repository = "https://github.com/CmdrMoozy/bdrck/tree/master/bdrck_params"
 license = "Apache-2.0"
 
 [dependencies]
-error-chain = "0.10"
+error-chain = "0.11"
 lazy_static = "0.2"
 log = "0.3"
 
