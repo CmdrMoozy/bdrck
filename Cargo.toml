@@ -1,0 +1,18 @@
+[package]
+name = "bdrck"
+version = "0.4.0"
+authors = ["Axel Rasmussen <axel.rasmussen1@gmail.com>"]
+description = "Generic common foundational utilities."
+homepage = "https://github.com/CmdrMoozy/bdrck"
+repository = "https://github.com/CmdrMoozy/bdrck"
+license = "Apache-2.0"
+
+[dependencies]
+error-chain = "0.11"
+lazy_static = "0.2"
+rmp-serde = "0.13"
+serde = "1.0"
+serde_derive = "1.0"
+
+[dev-dependencies]
+tempfile = "2.2"
