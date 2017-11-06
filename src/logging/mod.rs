@@ -12,8 +12,40 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-mod cli;
-mod debug;
+use chrono;
+use log::{self, Log, LogLevelFilter, LogMetadata, LogRecord, SetLoggerError};
+use std::io::{self, Write};
 
-pub use self::cli::init_cli_logger;
-pub use self::debug::init_debug_logger;
+fn format_log_record(record: &LogRecord) -> String {
+    format!(
+        "[{} {}:{}] {} - {}",
+        chrono::Utc::now().format("%Y-%m-%d %H:%M:%S UTC"),
+        record.location().file(),
+        record.location().line(),
+        record.level(),
+        record.args()
+    )
+}
+
+struct Logger;
+
+impl Log for Logger {
+    fn enabled(&self, _: &LogMetadata) -> bool { true }
+
+    fn log(&self, record: &LogRecord) {
+        if self.enabled(record.metadata()) {
+            writeln!(&mut io::stderr(), "{}", format_log_record(record)).unwrap();
+        }
+    }
+}
+
+pub fn try_init(
+    max_log_level: Option<LogLevelFilter>,
+) -> ::std::result::Result<(), SetLoggerError> {
+    log::set_logger(|level_filter| {
+        level_filter.set(max_log_level.unwrap_or(LogLevelFilter::Debug));
+        Box::new(Logger)
+    })
+}
+
+pub fn init(max_log_level: Option<LogLevelFilter>) { try_init(max_log_level).unwrap() }
