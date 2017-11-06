@@ -1,13 +1,13 @@
 # Bdrck
 
-Bdrck is a set of crates containing generic common utilities. In particular:
+Bdrck is a crate containing generic common utilities. In particular, it has several top-level modules which provide various functionality:
 
-| Crate        | Description                        |
-| ------------ | ---------------------------------- |
-| bdrck_config | Application configuration tooling. |
-| bdrck_log    | Utilities for logging.             |
-| bdrck_params | Command-line argument parsing.     |
-| bdrck_test   | Utilities for unit tests.          |
+| Module        | Description                        |
+| ------------- | ---------------------------------- |
+| configuration | Application configuration tooling. |
+| logging       | Log message formatting utilities.  |
+| params        | Command-line argument parsing.     |
+| testing       | Unit testing utilities.            |
 
 ## Versioning
 
