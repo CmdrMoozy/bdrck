@@ -49,12 +49,13 @@ fn get_configuration_directory(application: &str) -> Result<PathBuf> {
 #[cfg(not(target_os = "windows"))]
 fn get_configuration_directory(application: &str) -> Result<PathBuf> {
     let mut path = PathBuf::new();
-    path.push(env::var("XDG_CONFIG_HOME").map(PathBuf::from)
-        .or(env::var("HOME").map(|home| {
+    path.push(env::var("XDG_CONFIG_HOME").map(PathBuf::from).or(
+        env::var("HOME").map(|home| {
             let mut home = PathBuf::from(home);
             home.push(".config");
             home
-        }))?);
+        }),
+    )?);
     path.push(application);
 
     fs::create_dir_all(path.as_path())?;
@@ -66,15 +67,15 @@ fn get_configuration_directory(application: &str) -> Result<PathBuf> {
 }
 
 fn get_configuration_path(id: &Identifier, custom_path: Option<&Path>) -> Result<PathBuf> {
-    custom_path.map_or({
-                           let mut path = PathBuf::new();
-                           path.push(get_configuration_directory(id.application.as_str())
-                               ?
-                               .as_path());
-                           path.push(id.name.clone() + ".mp");
-                           Ok(path)
-                       },
-                       |custom_path| Ok(PathBuf::from(custom_path)))
+    custom_path.map_or(
+        {
+            let mut path = PathBuf::new();
+            path.push(get_configuration_directory(id.application.as_str())?.as_path());
+            path.push(id.name.clone() + ".mp");
+            Ok(path)
+        },
+        |custom_path| Ok(PathBuf::from(custom_path)),
+    )
 }
 
 fn serialize<T: Serialize>(v: &T) -> Result<Vec<u8>> {
@@ -89,11 +90,9 @@ fn deserialize<T: Clone + DeserializeOwned>(path: &PathBuf, default: &T) -> Resu
             let mut deserializer = Deserializer::new(file);
             Ok(Deserialize::deserialize(&mut deserializer)?)
         },
-        Err(error) => {
-            match error.kind() {
-                io::ErrorKind::NotFound => Ok(default.clone()),
-                _ => Err(Error::from(error)),
-            }
+        Err(error) => match error.kind() {
+            io::ErrorKind::NotFound => Ok(default.clone()),
+            _ => Err(Error::from(error)),
         },
     }
 }
@@ -125,10 +124,13 @@ impl<T: Clone + Serialize + DeserializeOwned> Configuration<T> {
     pub fn persist(&self) -> Result<()> {
         use std::io::Write;
 
-        self.path
-            .parent()
-            .map_or(Err(io::Error::new(io::ErrorKind::InvalidInput, "Invalid configuration path")),
-                    fs::create_dir_all)?;
+        self.path.parent().map_or(
+            Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "Invalid configuration path",
+            )),
+            fs::create_dir_all,
+        )?;
         let data = serialize(&self.current)?;
         let mut file = fs::File::create(self.path.as_path())?;
         file.write_all(data.as_slice())?;
@@ -148,10 +150,11 @@ fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<T> {
     }
 }
 
-pub fn new<T: Clone + Serialize + DeserializeOwned + Send + 'static>(id: Identifier,
-                                                                default: T,
-                                                                custom_path: Option<&Path>)
-                                                                -> Result<()> {
+pub fn new<T: Clone + Serialize + DeserializeOwned + Send + 'static>(
+    id: Identifier,
+    default: T,
+    custom_path: Option<&Path>,
+) -> Result<()> {
     use std::ops::DerefMut;
     let config: Configuration<T> = Configuration::new(id.clone(), default, custom_path)?;
     let mut guard = lock(&SINGLETONS);
@@ -176,29 +179,27 @@ pub fn remove<T: Clone + Serialize + DeserializeOwned + 'static>(id: &Identifier
     }
 }
 
-pub fn instance_apply<T: 'static, R, F: FnOnce(&Configuration<T>) -> R>(id: &Identifier,
-                                                                        f: F)
-                                                                        -> Result<R> {
+pub fn instance_apply<T: 'static, R, F: FnOnce(&Configuration<T>) -> R>(
+    id: &Identifier,
+    f: F,
+) -> Result<R> {
     match lock(&SINGLETONS).get(id) {
-        Some(instance) => {
-            match instance.downcast_ref() {
-                Some(config) => Ok(f(config)),
-                None => bail!("Wrong type specified for configuration with the given identifier"),
-            }
+        Some(instance) => match instance.downcast_ref() {
+            Some(config) => Ok(f(config)),
+            None => bail!("Wrong type specified for configuration with the given identifier"),
         },
         None => bail!("Unrecognized configuration identifier"),
     }
 }
 
-pub fn instance_apply_mut<T: 'static, R, F: FnOnce(&mut Configuration<T>) -> R>(id: &Identifier,
-                                                                                f: F)
-                                                                                -> Result<R> {
+pub fn instance_apply_mut<T: 'static, R, F: FnOnce(&mut Configuration<T>) -> R>(
+    id: &Identifier,
+    f: F,
+) -> Result<R> {
     match lock(&SINGLETONS).get_mut(id) {
-        Some(instance) => {
-            match instance.downcast_mut() {
-                Some(config) => Ok(f(config)),
-                None => bail!("Wrong type specified for configuration with the given identifier"),
-            }
+        Some(instance) => match instance.downcast_mut() {
+            Some(config) => Ok(f(config)),
+            None => bail!("Wrong type specified for configuration with the given identifier"),
         },
         None => bail!("Unrecognized configuration identifier"),
     }
@@ -208,7 +209,10 @@ pub fn get<T: Clone + Serialize + DeserializeOwned + 'static>(id: &Identifier) -
     instance_apply::<T, T, _>(id, |instance| instance.get().clone())
 }
 
-pub fn set<T: Clone + Serialize + DeserializeOwned + 'static>(id: &Identifier, config: T) -> Result<()> {
+pub fn set<T: Clone + Serialize + DeserializeOwned + 'static>(
+    id: &Identifier,
+    config: T,
+) -> Result<()> {
     instance_apply_mut(id, move |instance| instance.set(config))
 }
 

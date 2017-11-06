@@ -38,28 +38,40 @@ fn test_persistence() {
     fs::remove_file(path.as_path()).unwrap();
 
     // Test that creating a configuration with an nonexistent file uses the default.
-    let default = TestConfiguration { foo: "this is test data".to_owned() };
-    configuration::new(TEST_IDENTIFIER.clone(),
-                       default.clone(),
-                       Some(path.as_path()))
-        .ok()
+    let default = TestConfiguration {
+        foo: "this is test data".to_owned(),
+    };
+    configuration::new(
+        TEST_IDENTIFIER.clone(),
+        default.clone(),
+        Some(path.as_path()),
+    ).ok()
         .unwrap();
     assert_eq!(default, configuration::get(&TEST_IDENTIFIER).ok().unwrap());
 
     // Test that when we update the configuration, the new version is persisted,
     // and is re-loaded upon recreation.
-    let updated = TestConfiguration { foo: "this is some other test data".to_owned() };
-    configuration::set(&TEST_IDENTIFIER, updated.clone()).ok().unwrap();
-    assert_eq!(updated, configuration::get(&TEST_IDENTIFIER).ok().unwrap());
-    configuration::remove::<TestConfiguration>(&TEST_IDENTIFIER).ok().unwrap();
-    configuration::new(TEST_IDENTIFIER.clone(),
-                       default.clone(),
-                       Some(path.as_path()))
+    let updated = TestConfiguration {
+        foo: "this is some other test data".to_owned(),
+    };
+    configuration::set(&TEST_IDENTIFIER, updated.clone())
         .ok()
+        .unwrap();
+    assert_eq!(updated, configuration::get(&TEST_IDENTIFIER).ok().unwrap());
+    configuration::remove::<TestConfiguration>(&TEST_IDENTIFIER)
+        .ok()
+        .unwrap();
+    configuration::new(
+        TEST_IDENTIFIER.clone(),
+        default.clone(),
+        Some(path.as_path()),
+    ).ok()
         .unwrap();
     assert_eq!(updated, configuration::get(&TEST_IDENTIFIER).ok().unwrap());
 
     // Test that we can then reset back to defaults.
-    configuration::reset::<TestConfiguration>(&TEST_IDENTIFIER).ok().unwrap();
+    configuration::reset::<TestConfiguration>(&TEST_IDENTIFIER)
+        .ok()
+        .unwrap();
     assert_eq!(default, configuration::get(&TEST_IDENTIFIER).ok().unwrap());
 }

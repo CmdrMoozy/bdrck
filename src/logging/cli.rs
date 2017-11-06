@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use logging::debug::DebugLogger;
 use log;
+use logging::debug::DebugLogger;
 use std::io;
 
 fn format_log_record(record: &log::LogRecord) -> String {
@@ -36,8 +36,9 @@ impl log::Log for CliLogger {
         if self.enabled(record.metadata()) {
             if record.level() == log::LogLevel::Info {
                 writeln!(&mut io::stdout(), "{}", format_log_record(record)).unwrap();
-            } else if record.level() == log::LogLevel::Error ||
-                      record.level() == log::LogLevel::Warn {
+            } else if record.level() == log::LogLevel::Error
+                || record.level() == log::LogLevel::Warn
+            {
                 writeln!(&mut io::stderr(), "{}", format_log_record(record)).unwrap();
             } else {
                 self.debug_logger.log(record);
@@ -53,6 +54,8 @@ impl log::Log for CliLogger {
 pub fn init_cli_logger() -> Result<(), log::SetLoggerError> {
     log::set_logger(|max_log_level| {
         max_log_level.set(log::LogLevelFilter::Debug);
-        Box::new(CliLogger { debug_logger: DebugLogger {} })
+        Box::new(CliLogger {
+            debug_logger: DebugLogger {},
+        })
     })
 }

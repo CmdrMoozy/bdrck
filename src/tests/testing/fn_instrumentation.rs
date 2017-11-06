@@ -17,7 +17,9 @@ use testing::fn_instrumentation::*;
 #[test]
 fn test_fn_mut_instrumentation() {
     let instrumentation = FnInstrumentation::new();
-    let mut function: Box<FnMut()> = Box::new(|| { instrumentation.record_call(); });
+    let mut function: Box<FnMut()> = Box::new(|| {
+        instrumentation.record_call();
+    });
 
     assert!(instrumentation.get_call_count() == 0);
     function.as_mut()();

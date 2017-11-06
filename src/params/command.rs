@@ -34,28 +34,33 @@ pub struct Command {
 }
 
 impl Command {
-    pub fn new(name: &str,
-               help: &str,
-               options: Vec<Option>,
-               arguments: Vec<Argument>,
-               last_argument_is_variadic: bool)
-               -> Result<Command> {
-        //! Constructs a new Command structure. Performs some validation on the inputs,
+    pub fn new(
+        name: &str,
+        help: &str,
+        options: Vec<Option>,
+        arguments: Vec<Argument>,
+        last_argument_is_variadic: bool,
+    ) -> Result<Command> {
+        //! Constructs a new Command structure. Performs some validation on the
+        //! inputs,
         //! and returns either a valid Command or an appropriate error.
 
         // All arguments after the first one with a default value must also have
         // default values.
-        if !arguments.iter()
+        if !arguments
+            .iter()
             .skip_while(|a| a.default_value.is_none())
-            .all(|a| a.default_value.is_some()) {
+            .all(|a| a.default_value.is_some())
+        {
             bail!("Missing default argument value");
         }
 
         // All arguments other than the last one must have at most one default value.
-        if !arguments.is_empty() &&
-           !&arguments[..arguments.len() - 1]
-            .iter()
-            .all(|a| a.default_value.as_ref().map_or(0, |dv| dv.len()) <= 1) {
+        if !arguments.is_empty()
+            && !&arguments[..arguments.len() - 1]
+                .iter()
+                .all(|a| a.default_value.as_ref().map_or(0, |dv| dv.len()) <= 1)
+        {
             bail!("Too many default argument values");
         }
 
@@ -84,10 +89,11 @@ impl PartialEq for Command {
 
 pub type CommandResult<E> = result::Result<(), E>;
 
-pub type CommandCallback<'a, E> = Box<FnMut(HashMap<String, String>,
-                                            HashMap<String, bool>,
-                                            HashMap<String, Vec<String>>)
-                                            -> CommandResult<E> + 'a>;
+pub type CommandCallback<'a, E> = Box<
+    FnMut(HashMap<String, String>, HashMap<String, bool>, HashMap<String, Vec<String>>)
+        -> CommandResult<E>
+        + 'a,
+>;
 
 /// An `ExecutableCommand` is a Command alongside a callback function which can
 /// be called to execute the command in question.
@@ -115,11 +121,12 @@ impl<'a, E> ExecutableCommand<'a, E> {
         }
     }
 
-    pub fn execute(&mut self,
-                   options: HashMap<String, String>,
-                   flags: HashMap<String, bool>,
-                   arguments: HashMap<String, Vec<String>>)
-                   -> CommandResult<E> {
+    pub fn execute(
+        &mut self,
+        options: HashMap<String, String>,
+        flags: HashMap<String, bool>,
+        arguments: HashMap<String, Vec<String>>,
+    ) -> CommandResult<E> {
         self.callback.as_mut()(options, flags, arguments)
     }
 }

@@ -25,16 +25,18 @@ fn test_find_option() {
     // Do not write any output from unit tests.
     set_writer_impl(WriterImpl::Noop);
 
-    let options = vec![Option::required("foo", "", Some('o'), None),
-                       Option::required("bar", "", Some('r'), None),
-                       Option::flag("baz", "", Some('z')),
-                       Option::flag("zab", "", Some('Z')),
-                       Option::required("rab", "", Some('R'), None),
-                       Option::required("oof", "", Some('O'), None),
-                       Option::required("foobar", "", Some('f'), None),
-                       Option::flag("barbaz", "", Some('b')),
-                       Option::flag("zabrab", "", Some('B')),
-                       Option::required("raboof", "", Some('F'), None)];
+    let options = vec![
+        Option::required("foo", "", Some('o'), None),
+        Option::required("bar", "", Some('r'), None),
+        Option::flag("baz", "", Some('z')),
+        Option::flag("zab", "", Some('Z')),
+        Option::required("rab", "", Some('R'), None),
+        Option::required("oof", "", Some('O'), None),
+        Option::required("foobar", "", Some('f'), None),
+        Option::flag("barbaz", "", Some('b')),
+        Option::flag("zabrab", "", Some('B')),
+        Option::required("raboof", "", Some('F'), None),
+    ];
 
     assert!(find_option_works(&options, "foo", "foo"));
     assert!(find_option_works(&options, "o", "foo"));

@@ -81,5 +81,7 @@ pub fn get_writer_impl() -> Writer {
         Ok(guard) => guard,
         Err(poisoned) => poisoned.into_inner(),
     };
-    Writer { writer_impl: (*guard).clone() }
+    Writer {
+        writer_impl: (*guard).clone(),
+    }
 }

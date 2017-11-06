@@ -27,14 +27,12 @@ const EXIT_FAILURE: i32 = 1;
 
 fn handle_result<E: error::Error>(r: Result<CommandResult<E>>) -> i32 {
     match r {
-        Ok(command_result) => {
-            match command_result {
-                Ok(_) => EXIT_SUCCESS,
-                Err(e) => {
-                    error!("{}", e);
-                    EXIT_FAILURE
-                },
-            }
+        Ok(command_result) => match command_result {
+            Ok(_) => EXIT_SUCCESS,
+            Err(e) => {
+                error!("{}", e);
+                EXIT_FAILURE
+            },
         },
         Err(e) => {
             error!("Internal error: {}", e);
@@ -52,9 +50,11 @@ fn handle_result<E: error::Error>(r: Result<CommandResult<E>>) -> i32 {
 /// from the only thread, and that any destructors which need to be run are in
 /// the stack of the command callback.
 pub fn main_impl_multiple_commands<E: error::Error>(commands: Vec<ExecutableCommand<E>>) -> ! {
-    process::exit(handle_result(parse_and_execute_command(env::args().next().unwrap().as_ref(),
-                                                          &get_program_parameters(),
-                                                          commands)));
+    process::exit(handle_result(parse_and_execute_command(
+        env::args().next().unwrap().as_ref(),
+        &get_program_parameters(),
+        commands,
+    )));
 }
 
 /// Parses command-line parameters and executes the given command.
@@ -66,7 +66,9 @@ pub fn main_impl_multiple_commands<E: error::Error>(commands: Vec<ExecutableComm
 /// from the only thread, and that any destructors which need to be run are in
 /// the stack of the command callback.
 pub fn main_impl_single_command<E: error::Error>(command: ExecutableCommand<E>) -> ! {
-    process::exit(handle_result(parse_and_execute(env::args().next().unwrap().as_ref(),
-                                                  &get_program_parameters(),
-                                                  command)));
+    process::exit(handle_result(parse_and_execute(
+        env::args().next().unwrap().as_ref(),
+        &get_program_parameters(),
+        command,
+    )));
 }

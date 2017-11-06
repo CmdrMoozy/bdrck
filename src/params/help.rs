@@ -16,15 +16,18 @@ use error::*;
 use params::command::{Command, ExecutableCommand};
 use std::fmt::Write;
 
-pub fn print_program_help<'cbl, E>(f: &mut Write,
-                                   program: &str,
-                                   commands: &[ExecutableCommand<'cbl, E>])
-                                   -> Result<()> {
+pub fn print_program_help<'cbl, E>(
+    f: &mut Write,
+    program: &str,
+    commands: &[ExecutableCommand<'cbl, E>],
+) -> Result<()> {
     let mut s = String::new();
 
-    write!(s,
-           "Usage: {} command [options ...] [arguments ...]\n",
-           program)?;
+    write!(
+        s,
+        "Usage: {} command [options ...] [arguments ...]\n",
+        program
+    )?;
     write!(s, "Available commands:\n")?;
     for command in commands.iter() {
         write!(s, "\t{} - {}\n", command.command.name, command.command.help)?;
@@ -34,11 +37,12 @@ pub fn print_program_help<'cbl, E>(f: &mut Write,
     Ok(())
 }
 
-pub fn print_command_help(f: &mut Write,
-                          program: &str,
-                          command: &Command,
-                          print_command_name: bool)
-                          -> Result<()> {
+pub fn print_command_help(
+    f: &mut Write,
+    program: &str,
+    command: &Command,
+    print_command_name: bool,
+) -> Result<()> {
     let mut s = String::new();
 
     write!(s, "Usage: {} ", program)?;

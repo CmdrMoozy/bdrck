@@ -19,7 +19,11 @@ pub struct FnInstrumentation {
 }
 
 impl FnInstrumentation {
-    pub fn new() -> FnInstrumentation { FnInstrumentation { call_count: Mutex::new(0) } }
+    pub fn new() -> FnInstrumentation {
+        FnInstrumentation {
+            call_count: Mutex::new(0),
+        }
+    }
 
     pub fn record_call(&self) {
         let mut data = self.call_count.lock().unwrap();

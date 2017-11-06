@@ -20,7 +20,7 @@ use std::string::String;
 /// name along with a value. Flags are options whose value is either true
 /// or false, and is false by default. Passing a flag by name means
 /// flipping its value to true.
-#[derive(Clone,Debug)]
+#[derive(Clone, Debug)]
 pub struct Option {
     pub name: String,
     pub help: String,
@@ -34,11 +34,12 @@ impl Option {
     /// Constructs a required option. This option may have a default value.
     /// But, importantly, it will always have some value inside the command
     /// function.
-    pub fn required(name: &str,
-                    help: &str,
-                    short_name: Optional<char>,
-                    default_value: Optional<&str>)
-                    -> Option {
+    pub fn required(
+        name: &str,
+        help: &str,
+        short_name: Optional<char>,
+        default_value: Optional<&str>,
+    ) -> Option {
         Option {
             name: name.to_string(),
             help: help.to_string(),
@@ -81,7 +82,8 @@ impl Option {
 /// given name (which can be either a short name or a long name). If no such
 /// Option is found, return None instead.
 pub fn find_option<'a, I>(options: I, name: &str) -> Optional<&'a Option>
-    where I: Iterator<Item = &'a Option>
+where
+    I: Iterator<Item = &'a Option>,
 {
     let mut result: Optional<&'a Option> = None;
     for o in options {
