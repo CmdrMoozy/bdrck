@@ -19,6 +19,7 @@ extern crate error_chain;
 extern crate lazy_static;
 #[macro_use]
 extern crate log;
+extern crate regex;
 extern crate rmp_serde as msgpack;
 extern crate serde;
 #[macro_use]

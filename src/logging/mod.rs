@@ -13,8 +13,92 @@
 // limitations under the License.
 
 use chrono;
-use log::{self, Log, LogLevelFilter, LogMetadata, LogRecord, SetLoggerError};
+use error::*;
+use log::{self, Log, LogLevelFilter, LogMetadata, LogRecord};
+use regex::Regex;
+use std::collections::HashMap;
 use std::io::{self, Write};
+use std::str::FromStr;
+
+const RUST_LOG_ENV_VAR: &'static str = "RUST_LOG";
+
+pub fn parse_log_level_filter(s: &str) -> Result<LogLevelFilter> {
+    lazy_static! {
+        static ref STRING_MAPPING: HashMap<String, LogLevelFilter> = {
+            let mut m = HashMap::new();
+            m.insert(LogLevelFilter::Off.to_string().to_lowercase(), LogLevelFilter::Off);
+            m.insert(LogLevelFilter::Error.to_string().to_lowercase(), LogLevelFilter::Error);
+            m.insert(LogLevelFilter::Warn.to_string().to_lowercase(), LogLevelFilter::Warn);
+            m.insert(LogLevelFilter::Info.to_string().to_lowercase(), LogLevelFilter::Info);
+            m.insert(LogLevelFilter::Debug.to_string().to_lowercase(), LogLevelFilter::Debug);
+            m.insert(LogLevelFilter::Trace.to_string().to_lowercase(), LogLevelFilter::Trace);
+            m
+        };
+    }
+
+    let normalized = s.trim().to_lowercase();
+    match STRING_MAPPING.get(&normalized) {
+        None => bail!("Invalid LogLevelFilter '{}'", s),
+        Some(f) => Ok(*f),
+    }
+}
+
+pub struct LogFilter {
+    pub module: Option<Regex>,
+    pub level: LogLevelFilter,
+}
+
+impl FromStr for LogFilter {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<LogFilter> {
+        match s.rfind('=') {
+            None => Ok(LogFilter {
+                module: None,
+                level: parse_log_level_filter(s)?,
+            }),
+            Some(eq_pos) => Ok(LogFilter {
+                module: Some(Regex::new(&s[..eq_pos])?),
+                level: parse_log_level_filter(&s[eq_pos + 1..])?,
+            }),
+        }
+    }
+}
+
+pub struct LogFilters(pub Vec<LogFilter>);
+
+impl FromStr for LogFilters {
+    type Err = Error;
+
+    /// Parse a set of log filters from a string.
+    ///
+    /// We assume that the regex contained in log filters will only contain
+    /// certain characters: those which can appear in valid module names
+    /// (something like [A-Za-z_][A-Za-z0-9_]* separated by :'s), and maybe
+    /// some modifiers or etc., like *+?|(){}[].
+    ///
+    /// But, we want a string to contain *several* filters. So, using the
+    /// above assumption about what characters will appear in the regex,
+    /// we'll use the ; character as a separator. So, the final format is:
+    ///
+    /// regex=level;regex=level;...
+    fn from_str(s: &str) -> Result<LogFilters> {
+        let filters: Result<Vec<LogFilter>> = s.split(';').map(|f| f.parse()).collect();
+        Ok(LogFilters(filters?))
+    }
+}
+
+fn get_env_var(key: &str) -> Result<Option<String>> {
+    match ::std::env::var(key) {
+        Ok(v) => Ok(Some(v)),
+        Err(e) => match e {
+            ::std::env::VarError::NotPresent => Ok(None),
+            ::std::env::VarError::NotUnicode(_) => {
+                bail!("Environment variable '{}' not valid unicode", key)
+            },
+        },
+    }
+}
 
 fn format_log_record(record: &LogRecord) -> String {
     format!(
@@ -39,13 +123,25 @@ impl Log for Logger {
     }
 }
 
-pub fn try_init(
-    max_log_level: Option<LogLevelFilter>,
-) -> ::std::result::Result<(), SetLoggerError> {
-    log::set_logger(|level_filter| {
-        level_filter.set(max_log_level.unwrap_or(LogLevelFilter::Debug));
+pub fn try_init(mut filters: Option<LogFilters>) -> Result<()> {
+    if filters.is_none() {
+        let filters_str: Option<String> = get_env_var(RUST_LOG_ENV_VAR)?;
+        if let Some(filters_str) = filters_str {
+            filters = Some(filters_str.parse()?);
+        }
+    }
+
+    let max_level: Option<LogLevelFilter> = match filters {
+        None => None,
+        Some(fs) => fs.0.iter().map(|f| f.level).max(),
+    };
+
+    Ok(log::set_logger(|level_filter| {
+        if let Some(level) = max_level {
+            level_filter.set(level);
+        }
         Box::new(Logger)
-    })
+    })?)
 }
 
-pub fn init(max_log_level: Option<LogLevelFilter>) { try_init(max_log_level).unwrap() }
+pub fn init(filters: Option<LogFilters>) { try_init(filters).unwrap() }

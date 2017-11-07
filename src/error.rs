@@ -19,5 +19,7 @@ error_chain! {
         EnvVar(::std::env::VarError);
         Fmt(::std::fmt::Error);
         Io(::std::io::Error);
+        Regex(::regex::Error);
+        SetLog(::log::SetLoggerError);
     }
 }
