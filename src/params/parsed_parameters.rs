@@ -23,8 +23,6 @@ use std::collections::HashMap;
 use std::env;
 use std::iter::Peekable;
 use std::option::Option as Optional;
-use std::string::String;
-use std::vec::Vec;
 
 /// Returns the current program's parameters (accessed essentialy via
 /// `std::env::args`) collected into a Vec. The 0'th parameter (the executable)

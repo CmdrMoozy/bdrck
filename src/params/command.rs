@@ -17,9 +17,6 @@ use params::argument::Argument;
 use params::option::Option;
 use std::collections::HashMap;
 use std::fmt;
-use std::result;
-use std::string::String;
-use std::vec::Vec;
 
 /// A command is a single sub-command for a given program. Each command has
 /// its own description as well as sets of options and arguments that it
@@ -87,7 +84,7 @@ impl PartialEq for Command {
     fn eq(&self, other: &Command) -> bool { self.name == other.name }
 }
 
-pub type CommandResult<E> = result::Result<(), E>;
+pub type CommandResult<E> = ::std::result::Result<(), E>;
 
 pub type CommandCallback<'a, E> = Box<
     FnMut(HashMap<String, String>, HashMap<String, bool>, HashMap<String, Vec<String>>)

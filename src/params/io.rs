@@ -14,7 +14,6 @@
 
 use std::fmt;
 use std::io;
-use std::result;
 use std::sync::Mutex;
 
 /// The various `fmt::Write` implementations `bdrck_params` can use to e.g.
@@ -32,7 +31,7 @@ pub enum WriterImpl {
     Noop,
 }
 
-fn write_to_io_writer(writer: &mut io::Write, s: &str) -> result::Result<(), fmt::Error> {
+fn write_to_io_writer(writer: &mut io::Write, s: &str) -> ::std::result::Result<(), fmt::Error> {
     use std::fmt::Write;
     let mut buf = String::new();
     buf.write_str(s)?;
@@ -61,7 +60,7 @@ pub struct Writer {
 }
 
 impl fmt::Write for Writer {
-    fn write_str(&mut self, s: &str) -> result::Result<(), fmt::Error> {
+    fn write_str(&mut self, s: &str) -> ::std::result::Result<(), fmt::Error> {
         match self.writer_impl {
             WriterImpl::Stdout => write_to_io_writer(&mut io::stdout(), s),
             WriterImpl::Stderr => write_to_io_writer(&mut io::stderr(), s),

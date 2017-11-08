@@ -13,7 +13,6 @@
 // limitations under the License.
 
 use std::option::Option as Optional;
-use std::string::String;
 
 /// An option is a non-positional parameter to a command. Options can
 /// either be normal options or flags. Normal options must be passed by

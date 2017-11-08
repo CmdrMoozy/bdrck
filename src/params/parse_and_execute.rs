@@ -18,8 +18,6 @@ use params::help;
 use params::io::get_writer_impl;
 use params::parsed_parameters::ParsedParameters;
 use params::parsed_parameters::parse_command;
-use std::string::String;
-use std::vec::Vec;
 
 fn parse_and_execute_impl<E>(
     program: &str,

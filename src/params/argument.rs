@@ -14,7 +14,6 @@
 
 use std::fmt;
 use std::option::Option as Optional;
-use std::string::String;
 
 /// An argument is a positional parameter. It must come after any Options
 /// the command supports, and can have a default value if it is not

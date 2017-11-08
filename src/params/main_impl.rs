@@ -18,14 +18,12 @@ use params::parse_and_execute::parse_and_execute;
 use params::parse_and_execute::parse_and_execute_command;
 use params::parsed_parameters::get_program_parameters;
 use std::env;
-use std::error;
 use std::process;
-use std::vec::Vec;
 
 const EXIT_SUCCESS: i32 = 0;
 const EXIT_FAILURE: i32 = 1;
 
-fn handle_result<E: error::Error>(r: Result<CommandResult<E>>) -> i32 {
+fn handle_result<E: ::std::error::Error>(r: Result<CommandResult<E>>) -> i32 {
     match r {
         Ok(command_result) => match command_result {
             Ok(_) => EXIT_SUCCESS,
@@ -49,7 +47,9 @@ fn handle_result<E: error::Error>(r: Result<CommandResult<E>>) -> i32 {
 /// stack will be run. The caller should ensure that this function is called
 /// from the only thread, and that any destructors which need to be run are in
 /// the stack of the command callback.
-pub fn main_impl_multiple_commands<E: error::Error>(commands: Vec<ExecutableCommand<E>>) -> ! {
+pub fn main_impl_multiple_commands<E: ::std::error::Error>(
+    commands: Vec<ExecutableCommand<E>>,
+) -> ! {
     process::exit(handle_result(parse_and_execute_command(
         env::args().next().unwrap().as_ref(),
         &get_program_parameters(),
@@ -65,7 +65,7 @@ pub fn main_impl_multiple_commands<E: error::Error>(commands: Vec<ExecutableComm
 /// stack will be run. The caller should ensure that this function is called
 /// from the only thread, and that any destructors which need to be run are in
 /// the stack of the command callback.
-pub fn main_impl_single_command<E: error::Error>(command: ExecutableCommand<E>) -> ! {
+pub fn main_impl_single_command<E: ::std::error::Error>(command: ExecutableCommand<E>) -> ! {
     process::exit(handle_result(parse_and_execute(
         env::args().next().unwrap().as_ref(),
         &get_program_parameters(),
