@@ -53,7 +53,7 @@ fn assert_log_filters_level(
     expected_level: Option<LogLevelFilter>,
 ) {
     let filters: LogFilters = filters.parse().unwrap();
-    assert_eq!(expected_level, filters.level_for(module_path));
+    assert_eq!(expected_level, filters.max_level_for(module_path));
 }
 
 #[test]

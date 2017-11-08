@@ -14,7 +14,7 @@
 
 use chrono;
 use error::*;
-use log::{self, Log, LogLevelFilter, LogMetadata, LogRecord};
+use log::{self, Log, LogLevel, LogLevelFilter, LogMetadata, LogRecord};
 use regex::Regex;
 use std::collections::HashMap;
 use std::io::{self, Write};
@@ -49,7 +49,7 @@ pub struct LogFilter {
 }
 
 impl LogFilter {
-    pub fn level_for(&self, module_path: &str) -> Option<LogLevelFilter> {
+    pub fn max_level_for(&self, module_path: &str) -> Option<LogLevelFilter> {
         match self.module {
             None => Some(self.level),
             Some(ref module) => match module.is_match(module_path) {
@@ -84,10 +84,10 @@ impl FromStr for LogFilter {
 pub struct LogFilters(pub Vec<LogFilter>);
 
 impl LogFilters {
-    pub fn level_for(&self, module_path: &str) -> Option<LogLevelFilter> {
+    pub fn max_level_for(&self, module_path: &str) -> Option<LogLevelFilter> {
         self.0
             .iter()
-            .map(|f| f.level_for(module_path))
+            .map(|f| f.max_level_for(module_path))
             .filter(|l| l.is_some())
             .next()
             .unwrap_or(None)
@@ -138,13 +138,36 @@ fn format_log_record(record: &LogRecord) -> String {
     )
 }
 
-struct Logger;
+struct Logger {
+    filters: Option<LogFilters>,
+    max_level: Option<LogLevelFilter>,
+}
 
 impl Log for Logger {
-    fn enabled(&self, _: &LogMetadata) -> bool { true }
+    fn enabled(&self, metadata: &LogMetadata) -> bool {
+        let max_level: Option<LogLevel> =
+            self.max_level.map(|lf| lf.to_log_level()).unwrap_or(None);
+        match max_level {
+            None => true,
+            Some(level) => metadata.level() <= level,
+        }
+    }
 
     fn log(&self, record: &LogRecord) {
-        if self.enabled(record.metadata()) {
+        let module_path: &str = record.location().module_path();
+        let max_level_filter: Option<LogLevelFilter> = self.filters
+            .as_ref()
+            .map(|fs| fs.max_level_for(module_path))
+            .unwrap_or(None);
+        let max_level: Option<LogLevel> = max_level_filter
+            .map(|mlf| mlf.to_log_level())
+            .unwrap_or(None);
+
+        let enabled = match max_level {
+            None => true,
+            Some(level) => record.level() <= level,
+        };
+        if enabled {
             writeln!(&mut io::stderr(), "{}", format_log_record(record)).unwrap();
         }
     }
@@ -160,14 +183,17 @@ pub fn try_init(mut filters: Option<LogFilters>) -> Result<()> {
 
     let max_level: Option<LogLevelFilter> = match filters {
         None => None,
-        Some(fs) => fs.0.iter().map(|f| f.level).max(),
+        Some(ref fs) => fs.0.iter().map(|f| f.level).max(),
     };
 
     Ok(log::set_logger(|level_filter| {
         if let Some(level) = max_level {
             level_filter.set(level);
         }
-        Box::new(Logger)
+        Box::new(Logger {
+            filters: filters,
+            max_level: max_level,
+        })
     })?)
 }
 
