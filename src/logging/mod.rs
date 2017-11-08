@@ -48,6 +48,18 @@ pub struct LogFilter {
     pub level: LogLevelFilter,
 }
 
+impl LogFilter {
+    pub fn level_for(&self, module_path: &str) -> Option<LogLevelFilter> {
+        match self.module {
+            None => Some(self.level),
+            Some(ref module) => match module.is_match(module_path) {
+                false => None,
+                true => Some(self.level),
+            },
+        }
+    }
+}
+
 impl FromStr for LogFilter {
     type Err = Error;
 
@@ -57,15 +69,30 @@ impl FromStr for LogFilter {
                 module: None,
                 level: parse_log_level_filter(s)?,
             }),
-            Some(eq_pos) => Ok(LogFilter {
-                module: Some(Regex::new(&s[..eq_pos])?),
-                level: parse_log_level_filter(&s[eq_pos + 1..])?,
-            }),
+            Some(eq_pos) => {
+                let mut re: String = "^".to_owned();
+                re.push_str(&s[..eq_pos]);
+                Ok(LogFilter {
+                    module: Some(Regex::new(&re)?),
+                    level: parse_log_level_filter(&s[eq_pos + 1..])?,
+                })
+            },
         }
     }
 }
 
 pub struct LogFilters(pub Vec<LogFilter>);
+
+impl LogFilters {
+    pub fn level_for(&self, module_path: &str) -> Option<LogLevelFilter> {
+        self.0
+            .iter()
+            .map(|f| f.level_for(module_path))
+            .filter(|l| l.is_some())
+            .next()
+            .unwrap_or(None)
+    }
+}
 
 impl FromStr for LogFilters {
     type Err = Error;
