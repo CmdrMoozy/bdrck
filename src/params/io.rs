@@ -25,8 +25,6 @@ pub enum WriterImpl {
     Stdout,
     /// Print information to stderr.
     Stderr,
-    /// Log information using info!().
-    Info,
     /// Silently discard any output information.
     Noop,
 }
@@ -40,7 +38,7 @@ fn write_to_io_writer(writer: &mut io::Write, s: &str) -> ::std::result::Result<
 }
 
 lazy_static! {
-    static ref WRITER_IMPL: Mutex<WriterImpl> = Mutex::new(WriterImpl::Info);
+    static ref WRITER_IMPL: Mutex<WriterImpl> = Mutex::new(WriterImpl::Stderr);
 }
 
 /// Change the writer implementation used by all `bdrck_params` functions.
@@ -64,10 +62,6 @@ impl fmt::Write for Writer {
         match self.writer_impl {
             WriterImpl::Stdout => write_to_io_writer(&mut io::stdout(), s),
             WriterImpl::Stderr => write_to_io_writer(&mut io::stderr(), s),
-            WriterImpl::Info => {
-                info!("{}", s);
-                Ok(())
-            },
             WriterImpl::Noop => Ok(()),
         }
     }
