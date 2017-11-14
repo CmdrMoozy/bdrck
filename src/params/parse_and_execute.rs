@@ -15,14 +15,15 @@
 use error::*;
 use params::command::{CommandResult, ExecutableCommand};
 use params::help;
-use params::io::get_writer_impl;
 use params::parsed_parameters::ParsedParameters;
 use params::parsed_parameters::parse_command;
+use std::io::Write;
 
-fn parse_and_execute_impl<E>(
+fn parse_and_execute_impl<E, W: Write>(
     program: &str,
     parameters: &[String],
     commands: Vec<ExecutableCommand<E>>,
+    output_writer: &mut W,
     print_program_help: bool,
     print_command_name: bool,
 ) -> Result<CommandResult<E>> {
@@ -38,12 +39,7 @@ fn parse_and_execute_impl<E>(
     {
         Ok(p) => p,
         Err(e) => {
-            help::print_command_help(
-                &mut get_writer_impl(),
-                program,
-                &command.command,
-                print_command_name,
-            )?;
+            help::print_command_help(output_writer, program, &command.command, print_command_name)?;
             return Err(e);
         },
     };
@@ -62,7 +58,14 @@ pub fn parse_and_execute_command<E>(
     parameters: &[String],
     commands: Vec<ExecutableCommand<E>>,
 ) -> Result<CommandResult<E>> {
-    parse_and_execute_impl(program, parameters, commands, true, true)
+    parse_and_execute_impl(
+        program,
+        parameters,
+        commands,
+        &mut ::std::io::stderr(),
+        true,
+        true,
+    )
 }
 
 /// This function parses the given program parameters and calls the given
@@ -80,5 +83,12 @@ pub fn parse_and_execute<E>(
         .into_iter()
         .chain(parameters.iter().cloned())
         .collect();
-    parse_and_execute_impl(program, parameters.as_slice(), vec![command], false, false)
+    parse_and_execute_impl(
+        program,
+        parameters.as_slice(),
+        vec![command],
+        &mut ::std::io::stderr(),
+        false,
+        false,
+    )
 }

@@ -14,73 +14,70 @@
 
 use error::*;
 use params::command::{Command, ExecutableCommand};
-use std::fmt::Write;
+use std::io::Write;
 
-pub fn print_program_help<'cbl, E>(
-    f: &mut Write,
+pub fn print_program_help<'cbl, W: Write, E>(
+    f: &mut W,
     program: &str,
     commands: &[ExecutableCommand<'cbl, E>],
 ) -> Result<()> {
-    let mut s = String::new();
-
-    write!(
-        s,
+    f.write_fmt(format_args!(
         "Usage: {} command [options ...] [arguments ...]\n",
         program
-    )?;
-    write!(s, "Available commands:\n")?;
+    ))?;
+    f.write_fmt(format_args!("Available commands:\n"))?;
     for command in commands.iter() {
-        write!(s, "\t{} - {}\n", command.command.name, command.command.help)?;
+        f.write_fmt(format_args!(
+            "\t{} - {}\n",
+            command.command.name,
+            command.command.help
+        ))?;
     }
 
-    write!(f, "{}", s)?;
     Ok(())
 }
 
-pub fn print_command_help(
-    f: &mut Write,
+pub fn print_command_help<W: Write>(
+    f: &mut W,
     program: &str,
     command: &Command,
     print_command_name: bool,
 ) -> Result<()> {
-    let mut s = String::new();
-
-    write!(s, "Usage: {} ", program)?;
+    f.write_fmt(format_args!("Usage: {}", program))?;
     if print_command_name {
-        write!(s, "{} ", command.name)?;
+        f.write_fmt(format_args!("{} ", command.name))?;
     }
-    write!(s, "[options ...] [arguments ...]\n")?;
+    f.write_fmt(format_args!("[options ...] [arguments ...]\n"))?;
 
     if !command.options.is_empty() {
-        write!(s, "\nOptions:\n")?;
+        f.write_fmt(format_args!("\nOptions:\n"))?;
         for option in &command.options {
-            write!(s, "\t--{}", option.name)?;
+            f.write_fmt(format_args!("\t--{}", option.name))?;
             if let Some(short_name) = option.short_name.as_ref() {
-                write!(s, ", -{}", short_name)?;
+                f.write_fmt(format_args!(", -{}", short_name))?;
             }
-            write!(s, " - {}", option.help)?;
+            f.write_fmt(format_args!(" - {}", option.help))?;
 
             if option.is_flag {
-                write!(s, " [Flag, default: off]")?;
+                f.write_fmt(format_args!(" [Flag, default: off]"))?;
             } else if let Some(default_value) = option.default_value.as_ref() {
-                write!(s, " [Default: {}]", default_value)?;
+                f.write_fmt(format_args!(" [Default: {}]", default_value))?;
             }
 
-            write!(s, "\n")?;
+            f.write_fmt(format_args!("\n"))?;
         }
     }
 
     if !command.arguments.is_empty() {
-        write!(s, "\nPositional arguments:")?;
+        f.write_fmt(format_args!("\nPositional arguments:"))?;
         for argument in &command.arguments {
-            write!(s, "\n\t{}", argument)?;
+            f.write_fmt(format_args!("\n\t{}", argument))?;
         }
         if command.last_argument_is_variadic {
-            write!(s, " [One or more]")?;
+            f.write_fmt(format_args!(" [One or more]"))?;
         }
-        write!(s, "\n")?;
+        f.write_fmt(format_args!("\n"))?;
     }
 
-    write!(f, "{}", s)?;
     Ok(())
 }

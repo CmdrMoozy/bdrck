@@ -12,20 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub mod argument;
-pub mod command;
-pub mod main_impl;
-pub mod option;
-pub mod parse_and_execute;
+use std::env;
 
-mod help;
-mod parsed_parameters;
-mod util;
-
-// Re-export most commonly used symbols, to allow using this library with just
-// one "use".
-
-pub use self::argument::Argument;
-pub use self::command::{Command, CommandCallback, CommandResult, ExecutableCommand};
-pub use self::main_impl::{main_impl_multiple_commands, main_impl_single_command};
-pub use self::option::Option;
+/// Returns the current program's parameters (accessed essentialy via
+/// `std::env::args`) collected into a Vec. The 0'th parameter (the executable)
+/// is omitted.
+pub fn get_program_parameters() -> Vec<String> {
+    env::args()
+        .skip(1) // Skip the first argument, which is our executable.
+        .collect()
+}

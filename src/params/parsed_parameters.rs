@@ -16,22 +16,11 @@ use error::*;
 use params::argument::Argument;
 use params::command::{Command, CommandResult, ExecutableCommand};
 use params::help;
-use params::io::get_writer_impl;
 use params::option::Option;
 use params::option::find_option;
 use std::collections::HashMap;
-use std::env;
 use std::iter::Peekable;
 use std::option::Option as Optional;
-
-/// Returns the current program's parameters (accessed essentialy via
-/// `std::env::args`) collected into a Vec. The 0'th parameter (the executable)
-/// is omitted.
-pub fn get_program_parameters() -> Vec<String> {
-    env::args()
-        .skip(1) // Skip the first argument, which is our executable.
-        .collect()
-}
 
 /// Constructs maps for options and flags which contain the default values (if
 /// any) for each of the given command's options. Note that all flags have a
@@ -336,7 +325,7 @@ where
 
     if let Err(e) = idx {
         if print_program_help {
-            help::print_program_help(&mut get_writer_impl(), program, &commands)?;
+            help::print_program_help(&mut ::std::io::stderr(), program, &commands)?;
         }
         return Err(e);
     }

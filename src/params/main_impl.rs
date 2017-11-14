@@ -16,7 +16,7 @@ use error::*;
 use params::command::{CommandResult, ExecutableCommand};
 use params::parse_and_execute::parse_and_execute;
 use params::parse_and_execute::parse_and_execute_command;
-use params::parsed_parameters::get_program_parameters;
+use params::util::get_program_parameters;
 use std::env;
 use std::process;
 
