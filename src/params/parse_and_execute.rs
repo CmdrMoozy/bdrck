@@ -18,12 +18,13 @@ use params::help;
 use params::parsed_parameters::ParsedParameters;
 use params::parsed_parameters::parse_command;
 use std::io::Write;
+use std::option::Option as Optional;
 
 fn parse_and_execute_impl<E, W: Write>(
     program: &str,
     parameters: &[String],
     commands: Vec<ExecutableCommand<E>>,
-    output_writer: &mut W,
+    output_writer: Optional<W>,
     print_program_help: bool,
     print_command_name: bool,
 ) -> Result<CommandResult<E>> {
@@ -62,7 +63,7 @@ pub fn parse_and_execute_command<E>(
         program,
         parameters,
         commands,
-        &mut ::std::io::stderr(),
+        Some(::std::io::stderr()),
         true,
         true,
     )
@@ -87,7 +88,7 @@ pub fn parse_and_execute<E>(
         program,
         parameters.as_slice(),
         vec![command],
-        &mut ::std::io::stderr(),
+        Some(::std::io::stderr()),
         false,
         false,
     )

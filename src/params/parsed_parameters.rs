@@ -325,7 +325,7 @@ where
 
     if let Err(e) = idx {
         if print_program_help {
-            help::print_program_help(&mut ::std::io::stderr(), program, &commands)?;
+            help::print_program_help(Some(::std::io::stderr()), program, &commands)?;
         }
         return Err(e);
     }

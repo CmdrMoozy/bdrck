@@ -15,12 +15,18 @@
 use error::*;
 use params::command::{Command, ExecutableCommand};
 use std::io::Write;
+use std::option::Option as Optional;
 
 pub fn print_program_help<'cbl, W: Write, E>(
-    f: &mut W,
+    f: Optional<W>,
     program: &str,
     commands: &[ExecutableCommand<'cbl, E>],
 ) -> Result<()> {
+    if f.is_none() {
+        return Ok(());
+    }
+    let mut f = f.unwrap();
+
     f.write_fmt(format_args!(
         "Usage: {} command [options ...] [arguments ...]\n",
         program
@@ -38,11 +44,16 @@ pub fn print_program_help<'cbl, W: Write, E>(
 }
 
 pub fn print_command_help<W: Write>(
-    f: &mut W,
+    f: Optional<W>,
     program: &str,
     command: &Command,
     print_command_name: bool,
 ) -> Result<()> {
+    if f.is_none() {
+        return Ok(());
+    }
+    let mut f = f.unwrap();
+
     f.write_fmt(format_args!("Usage: {}", program))?;
     if print_command_name {
         f.write_fmt(format_args!("{} ", command.name))?;
