@@ -70,7 +70,12 @@ fn parse_and_execute_test_impl(
 
     assert!(instrumentation.get_call_count() == 0);
     let parameters: Vec<String> = parameters.into_iter().map(|p| p.to_owned()).collect();
-    let res = parse_and_execute_command("program", parameters.as_slice(), executable_commands);
+    let res = parse_and_execute_command::<(), ::std::io::Stderr>(
+        "program",
+        parameters.as_slice(),
+        executable_commands,
+        None,
+    );
     assert!(res.is_ok(), "{}", res.err().unwrap());
     assert!(res.unwrap().is_ok());
     assert!(instrumentation.get_call_count() == 1);
@@ -112,7 +117,14 @@ fn test_parse_and_execute() {
     );
 
     assert!(instrumentation.get_call_count() == 0);
-    assert!(parse_and_execute(program.as_ref(), &parameters, executable_command).is_ok());
+    assert!(
+        parse_and_execute::<(), ::std::io::Stderr>(
+            program.as_ref(),
+            &parameters,
+            executable_command,
+            None
+        ).is_ok()
+    );
     assert!(instrumentation.get_call_count() == 1);
 }
 

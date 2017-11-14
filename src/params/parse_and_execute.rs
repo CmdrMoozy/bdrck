@@ -24,7 +24,7 @@ fn parse_and_execute_impl<E, W: Write>(
     program: &str,
     parameters: &[String],
     commands: Vec<ExecutableCommand<E>>,
-    output_writer: Optional<W>,
+    mut output_writer: Optional<W>,
     print_program_help: bool,
     print_command_name: bool,
 ) -> Result<CommandResult<E>> {
@@ -34,13 +34,19 @@ fn parse_and_execute_impl<E, W: Write>(
         program,
         &mut parameters_iterator,
         commands,
+        output_writer.as_mut(),
         print_program_help,
     )?;
     let parsed_parameters = match ParsedParameters::new(&command.command, &mut parameters_iterator)
     {
         Ok(p) => p,
         Err(e) => {
-            help::print_command_help(output_writer, program, &command.command, print_command_name)?;
+            help::print_command_help(
+                output_writer.as_mut(),
+                program,
+                &command.command,
+                print_command_name,
+            )?;
             return Err(e);
         },
     };
@@ -54,19 +60,13 @@ fn parse_and_execute_impl<E, W: Write>(
 ///
 /// This is the function which should be used for typical multi-command
 /// programs.
-pub fn parse_and_execute_command<E>(
+pub fn parse_and_execute_command<E, W: Write>(
     program: &str,
     parameters: &[String],
     commands: Vec<ExecutableCommand<E>>,
+    output_writer: Optional<W>,
 ) -> Result<CommandResult<E>> {
-    parse_and_execute_impl(
-        program,
-        parameters,
-        commands,
-        Some(::std::io::stderr()),
-        true,
-        true,
-    )
+    parse_and_execute_impl(program, parameters, commands, output_writer, true, true)
 }
 
 /// This function parses the given program parameters and calls the given
@@ -75,10 +75,11 @@ pub fn parse_and_execute_command<E>(
 ///
 /// This is the function which should be used for typical single-command
 /// programs.
-pub fn parse_and_execute<E>(
+pub fn parse_and_execute<E, W: Write>(
     program: &str,
     parameters: &[String],
     command: ExecutableCommand<E>,
+    output_writer: Optional<W>,
 ) -> Result<CommandResult<E>> {
     let parameters: Vec<String> = Some(command.command.name.clone())
         .into_iter()
@@ -88,7 +89,7 @@ pub fn parse_and_execute<E>(
         program,
         parameters.as_slice(),
         vec![command],
-        Some(::std::io::stderr()),
+        output_writer,
         false,
         false,
     )

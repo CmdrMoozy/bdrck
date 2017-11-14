@@ -18,14 +18,14 @@ use std::io::Write;
 use std::option::Option as Optional;
 
 pub fn print_program_help<'cbl, W: Write, E>(
-    f: Optional<W>,
+    f: Optional<&mut W>,
     program: &str,
     commands: &[ExecutableCommand<'cbl, E>],
 ) -> Result<()> {
     if f.is_none() {
         return Ok(());
     }
-    let mut f = f.unwrap();
+    let f = f.unwrap();
 
     f.write_fmt(format_args!(
         "Usage: {} command [options ...] [arguments ...]\n",
@@ -44,7 +44,7 @@ pub fn print_program_help<'cbl, W: Write, E>(
 }
 
 pub fn print_command_help<W: Write>(
-    f: Optional<W>,
+    f: Optional<&mut W>,
     program: &str,
     command: &Command,
     print_command_name: bool,
@@ -52,7 +52,7 @@ pub fn print_command_help<W: Write>(
     if f.is_none() {
         return Ok(());
     }
-    let mut f = f.unwrap();
+    let f = f.unwrap();
 
     f.write_fmt(format_args!("Usage: {}", program))?;
     if print_command_name {

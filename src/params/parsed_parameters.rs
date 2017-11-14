@@ -19,6 +19,7 @@ use params::help;
 use params::option::Option;
 use params::option::find_option;
 use std::collections::HashMap;
+use std::io::Write;
 use std::iter::Peekable;
 use std::option::Option as Optional;
 
@@ -303,10 +304,11 @@ fn all_options_are_present(command: &Command, options: &HashMap<String, String>)
 /// Look up by name the command indicated by the first element of the given
 /// range of program parameters. If a matching command could not be found,
 /// return None instead.
-pub fn parse_command<'pl, 'cbl, PI, E>(
+pub fn parse_command<'pl, 'cbl, PI, E, W: Write>(
     program: &str,
     parameters: &mut Peekable<PI>,
     mut commands: Vec<ExecutableCommand<'cbl, E>>,
+    output_writer: Optional<&mut W>,
     print_program_help: bool,
 ) -> Result<ExecutableCommand<'cbl, E>>
 where
@@ -325,7 +327,7 @@ where
 
     if let Err(e) = idx {
         if print_program_help {
-            help::print_program_help(Some(::std::io::stderr()), program, &commands)?;
+            help::print_program_help(output_writer, program, &commands)?;
         }
         return Err(e);
     }

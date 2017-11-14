@@ -54,6 +54,7 @@ pub fn main_impl_multiple_commands<E: ::std::error::Error>(
         env::args().next().unwrap().as_ref(),
         &get_program_parameters(),
         commands,
+        Some(::std::io::stderr()),
     )));
 }
 
@@ -70,5 +71,6 @@ pub fn main_impl_single_command<E: ::std::error::Error>(command: ExecutableComma
         env::args().next().unwrap().as_ref(),
         &get_program_parameters(),
         command,
+        Some(::std::io::stderr()),
     )));
 }
