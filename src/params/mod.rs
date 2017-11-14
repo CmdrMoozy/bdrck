@@ -17,9 +17,9 @@ pub mod command;
 pub mod main_impl;
 pub mod option;
 pub mod parse_and_execute;
+pub mod parsed_parameters;
 
 mod help;
-mod parsed_parameters;
 mod util;
 
 // Re-export most commonly used symbols, to allow using this library with just

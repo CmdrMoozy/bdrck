@@ -30,7 +30,7 @@ fn parse_and_execute_impl<E, W: Write>(
 ) -> Result<CommandResult<E>> {
     let mut parameters_iterator = parameters.iter().peekable();
 
-    let command = parse_command(
+    let mut command = parse_command(
         program,
         &mut parameters_iterator,
         commands,
@@ -51,7 +51,7 @@ fn parse_and_execute_impl<E, W: Write>(
         },
     };
 
-    Ok(parsed_parameters.execute(command))
+    Ok(command.execute(parsed_parameters))
 }
 
 /// This function parses the given program parameters, and calls the appropriate

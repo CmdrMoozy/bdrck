@@ -15,7 +15,7 @@
 use error::*;
 use params::argument::Argument;
 use params::option::Option;
-use std::collections::HashMap;
+use params::parsed_parameters::ParsedParameters;
 use std::fmt;
 
 /// A command is a single sub-command for a given program. Each command has
@@ -86,11 +86,7 @@ impl PartialEq for Command {
 
 pub type CommandResult<E> = ::std::result::Result<(), E>;
 
-pub type CommandCallback<'a, E> = Box<
-    FnMut(HashMap<String, String>, HashMap<String, bool>, HashMap<String, Vec<String>>)
-        -> CommandResult<E>
-        + 'a,
->;
+pub type CommandCallback<'a, E> = Box<FnMut(ParsedParameters) -> CommandResult<E> + 'a>;
 
 /// An `ExecutableCommand` is a Command alongside a callback function which can
 /// be called to execute the command in question.
@@ -118,12 +114,7 @@ impl<'a, E> ExecutableCommand<'a, E> {
         }
     }
 
-    pub fn execute(
-        &mut self,
-        options: HashMap<String, String>,
-        flags: HashMap<String, bool>,
-        arguments: HashMap<String, Vec<String>>,
-    ) -> CommandResult<E> {
-        self.callback.as_mut()(options, flags, arguments)
+    pub fn execute(&mut self, parameters: ParsedParameters) -> CommandResult<E> {
+        self.callback.as_mut()(parameters)
     }
 }

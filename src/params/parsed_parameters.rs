@@ -14,7 +14,7 @@
 
 use error::*;
 use params::argument::Argument;
-use params::command::{Command, CommandResult, ExecutableCommand};
+use params::command::{Command, ExecutableCommand};
 use params::help;
 use params::option::Option;
 use params::option::find_option;
@@ -369,7 +369,7 @@ impl ParsedParameters {
         Ok(parsed)
     }
 
-    pub fn execute<E>(self, mut command: ExecutableCommand<E>) -> CommandResult<E> {
-        command.execute(self.options, self.flags, self.arguments)
-    }
+    pub fn get_options(&self) -> &HashMap<String, String> { &self.options }
+    pub fn get_flags(&self) -> &HashMap<String, bool> { &self.flags }
+    pub fn get_arguments(&self) -> &HashMap<String, Vec<String>> { &self.arguments }
 }

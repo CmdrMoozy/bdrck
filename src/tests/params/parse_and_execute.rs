@@ -16,6 +16,7 @@ use params::argument::Argument;
 use params::command::{Command, CommandCallback, CommandResult, ExecutableCommand};
 use params::option::Option;
 use params::parse_and_execute::{parse_and_execute, parse_and_execute_command};
+use params::parsed_parameters::ParsedParameters;
 use std::collections::HashMap;
 use std::option::Option as Optional;
 use testing::fn_instrumentation::FnInstrumentation;
@@ -24,17 +25,9 @@ fn build_trivial_command_for_test(name: &str) -> Command {
     Command::new(name, name, vec![], vec![], false).unwrap()
 }
 
-type TestCallback = Box<
-    FnMut(HashMap<String, String>, HashMap<String, bool>, HashMap<String, Vec<String>>),
->;
+type TestCallback = Box<FnMut(ParsedParameters)>;
 
-fn noop_command_callback(
-    _: HashMap<String, String>,
-    _: HashMap<String, bool>,
-    _: HashMap<String, Vec<String>>,
-) -> CommandResult<()> {
-    Ok(())
-}
+fn noop_command_callback(_: ParsedParameters) -> CommandResult<()> { Ok(()) }
 
 fn parse_and_execute_test_impl(
     parameters: Vec<&str>,
@@ -43,12 +36,11 @@ fn parse_and_execute_test_impl(
     mut expected_callback: TestCallback,
 ) {
     let instrumentation = FnInstrumentation::new();
-    let callback: CommandCallback<()> =
-        Box::new(|options, flags, arguments| -> CommandResult<()> {
-            instrumentation.record_call();
-            expected_callback(options, flags, arguments);
-            Ok(())
-        });
+    let callback: CommandCallback<()> = Box::new(|p| -> CommandResult<()> {
+        instrumentation.record_call();
+        expected_callback(p);
+        Ok(())
+    });
 
     let mut expected_command: Optional<Command> = None;
     if let Some(expected_command_position) = commands
@@ -84,12 +76,12 @@ fn parse_and_execute_test_impl(
 #[test]
 fn test_parse_and_execute() {
     let instrumentation = FnInstrumentation::new();
-    let callback: CommandCallback<()> = Box::new(|options, flags, arguments| {
+    let callback: CommandCallback<()> = Box::new(|p| {
         instrumentation.record_call();
 
-        assert!(options.len() == 2);
-        assert!(flags.len() == 2);
-        assert!(arguments.len() == 1);
+        assert!(p.get_options().len() == 2);
+        assert!(p.get_flags().len() == 2);
+        assert!(p.get_arguments().len() == 1);
 
         Ok(())
     });
@@ -139,7 +131,7 @@ fn test_parse_invalid_command() {
             build_trivial_command_for_test("baz"),
         ],
         "biff",
-        Box::new(|_, _, _| {}),
+        Box::new(|_| {}),
     );
 }
 
@@ -153,10 +145,10 @@ fn test_parse_command_no_arguments() {
             build_trivial_command_for_test("baz"),
         ],
         "bar",
-        Box::new(|options, flags, arguments| {
-            assert!(options.len() == 0);
-            assert!(flags.len() == 0);
-            assert!(arguments.len() == 0);
+        Box::new(|p| {
+            assert!(p.get_options().len() == 0);
+            assert!(p.get_flags().len() == 0);
+            assert!(p.get_arguments().len() == 0);
         }),
     );
 }
@@ -171,10 +163,10 @@ fn test_parse_command_with_unused_arguments() {
             build_trivial_command_for_test("baz"),
         ],
         "baz",
-        Box::new(|options, flags, arguments| {
-            assert!(options.len() == 0);
-            assert!(flags.len() == 0);
-            assert!(arguments.len() == 0);
+        Box::new(|p| {
+            assert!(p.get_options().len() == 0);
+            assert!(p.get_flags().len() == 0);
+            assert!(p.get_arguments().len() == 0);
         }),
     );
 }
@@ -200,18 +192,18 @@ fn test_default_options() {
             ).unwrap(),
         ],
         "foo",
-        Box::new(|options, flags, arguments| {
-            assert!(options.len() == 2);
-            assert!(options.get("a").map_or(false, |v| *v == "a"));
-            assert!(options.get("b").map_or(false, |v| *v == "b"));
-            assert!(options.get("c").is_none());
-            assert!(options.get("d").is_none());
+        Box::new(|p| {
+            assert!(p.get_options().len() == 2);
+            assert!(p.get_options().get("a").map_or(false, |v| *v == "a"));
+            assert!(p.get_options().get("b").map_or(false, |v| *v == "b"));
+            assert!(p.get_options().get("c").is_none());
+            assert!(p.get_options().get("d").is_none());
 
-            assert!(flags.len() == 2);
-            assert!(flags.get("e").map_or(false, |v| *v == false));
-            assert!(flags.get("f").map_or(false, |v| *v == false));
+            assert!(p.get_flags().len() == 2);
+            assert!(p.get_flags().get("e").map_or(false, |v| *v == false));
+            assert!(p.get_flags().get("f").map_or(false, |v| *v == false));
 
-            assert!(arguments.len() == 0);
+            assert!(p.get_arguments().len() == 0);
         }),
     );
 }
@@ -238,7 +230,7 @@ fn test_missing_required_option() {
             ).unwrap(),
         ],
         "foo",
-        Box::new(|_, _, _| {}),
+        Box::new(|_| {}),
     );
 }
 
@@ -249,7 +241,7 @@ fn test_parse_invalid_option() {
         vec!["foo", "--foo=bar"],
         vec![Command::new("foo", "foo", vec![], vec![], false).unwrap()],
         "foo",
-        Box::new(|_, _, _| {}),
+        Box::new(|_| {}),
     );
 }
 
@@ -271,7 +263,7 @@ fn test_parse_missing_option_value() {
             ).unwrap(),
         ],
         "foo",
-        Box::new(|_, _, _| {}),
+        Box::new(|_| {}),
     );
 }
 
@@ -300,8 +292,8 @@ fn test_parse_option_format_variations() {
             ).unwrap(),
         ],
         "foo",
-        Box::new(move |options, _, _| {
-            assert_eq!(expected_options, options);
+        Box::new(move |p| {
+            assert_eq!(expected_options, *p.get_options());
         }),
     );
 }
@@ -331,8 +323,8 @@ fn test_parse_flag_format_variations() {
             ).unwrap(),
         ],
         "foo",
-        Box::new(move |_, flags, _| {
-            assert_eq!(expected_flags, flags);
+        Box::new(move |p| {
+            assert_eq!(expected_flags, *p.get_flags());
         }),
     );
 }
@@ -380,9 +372,9 @@ fn test_parse_options() {
             ).unwrap(),
         ],
         "foobar",
-        Box::new(move |options, flags, _| {
-            assert_eq!(expected_options, options);
-            assert_eq!(expected_flags, flags);
+        Box::new(move |p| {
+            assert_eq!(expected_options, *p.get_options());
+            assert_eq!(expected_flags, *p.get_flags());
         }),
     );
 }
@@ -433,9 +425,9 @@ fn test_parse_arguments() {
             ).unwrap(),
         ],
         "foobar",
-        Box::new(move |options, _, arguments| {
-            assert_eq!(expected_options, options);
-            assert_eq!(expected_arguments, arguments);
+        Box::new(move |p| {
+            assert_eq!(expected_options, *p.get_options());
+            assert_eq!(expected_arguments, *p.get_arguments());
         }),
     );
 }
@@ -466,9 +458,9 @@ fn test_parse_variadic_last_argument_empty() {
             ).unwrap(),
         ],
         "foobar",
-        Box::new(move |options, _, arguments| {
-            assert_eq!(expected_options, options);
-            assert_eq!(expected_arguments, arguments);
+        Box::new(move |p| {
+            assert_eq!(expected_options, *p.get_options());
+            assert_eq!(expected_arguments, *p.get_arguments());
         }),
     );
 }
@@ -499,9 +491,9 @@ fn test_parse_variadic_last_argument_many() {
             ).unwrap(),
         ],
         "foobar",
-        Box::new(move |options, _, arguments| {
-            assert_eq!(expected_options, options);
-            assert_eq!(expected_arguments, arguments);
+        Box::new(move |p| {
+            assert_eq!(expected_options, *p.get_options());
+            assert_eq!(expected_arguments, *p.get_arguments());
         }),
     );
 }
@@ -532,9 +524,9 @@ fn test_parse_default_arguments() {
             ).unwrap(),
         ],
         "foobar",
-        Box::new(move |options, _, arguments| {
-            assert_eq!(expected_options, options);
-            assert_eq!(expected_arguments, arguments);
+        Box::new(move |p| {
+            assert_eq!(expected_options, *p.get_options());
+            assert_eq!(expected_arguments, *p.get_arguments());
         }),
     );
 }
@@ -572,9 +564,9 @@ fn test_parse_default_variadic_arguments() {
             ).unwrap(),
         ],
         "foobar",
-        Box::new(move |options, _, arguments| {
-            assert_eq!(expected_options, options);
-            assert_eq!(expected_arguments, arguments);
+        Box::new(move |p| {
+            assert_eq!(expected_options, *p.get_options());
+            assert_eq!(expected_arguments, *p.get_arguments());
         }),
     );
 }
