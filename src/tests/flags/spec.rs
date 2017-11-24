@@ -14,13 +14,15 @@
 
 use flags::spec::*;
 
-fn find_named_spec_works(specs: &Vec<Spec>, query: &str, expected_name: &str) -> bool {
-    find_named_spec(specs.iter(), query).map_or(false, |s| s.name == expected_name)
+fn find_named_spec_works(specs: &Specs, query: &str, expected_name: &str) -> bool {
+    specs
+        .find_named_spec(query)
+        .map_or(false, |s| s.name == expected_name)
 }
 
 #[test]
 fn test_find_option() {
-    let specs = vec![
+    let specs = Specs::new(vec![
         Spec::required("foo", "", Some('o'), None),
         Spec::required("bar", "", Some('r'), None),
         Spec::boolean("baz", "", Some('z')),
@@ -31,7 +33,7 @@ fn test_find_option() {
         Spec::boolean("barbaz", "", Some('b')),
         Spec::boolean("zabrab", "", Some('B')),
         Spec::optional("raboof", "", Some('F')),
-    ];
+    ]).unwrap();
 
     assert!(find_named_spec_works(&specs, "foo", "foo"));
     assert!(find_named_spec_works(&specs, "o", "foo"));
