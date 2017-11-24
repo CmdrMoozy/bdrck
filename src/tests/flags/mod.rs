@@ -16,3 +16,5 @@
 mod option;
 #[cfg(test)]
 mod parse_and_execute;
+#[cfg(test)]
+mod spec;

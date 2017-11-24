@@ -18,6 +18,7 @@ pub mod main_impl;
 pub mod option;
 pub mod parse_and_execute;
 pub mod parsed_parameters;
+pub mod spec;
 
 mod help;
 mod util;
