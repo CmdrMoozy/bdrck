@@ -17,6 +17,6 @@ mod configuration;
 #[cfg(test)]
 mod logging;
 #[cfg(test)]
-mod params;
+mod flags;
 #[cfg(test)]
 mod testing;

@@ -13,11 +13,11 @@
 // limitations under the License.
 
 use error::*;
-use params::argument::Argument;
-use params::command::{Command, ExecutableCommand};
-use params::help;
-use params::option::Option;
-use params::option::find_option;
+use flags::argument::Argument;
+use flags::command::{Command, ExecutableCommand};
+use flags::help;
+use flags::option::Option;
+use flags::option::find_option;
 use std::collections::HashMap;
 use std::io::Write;
 use std::iter::Peekable;

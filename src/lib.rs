@@ -27,8 +27,8 @@ extern crate serde_derive;
 
 pub mod configuration;
 pub mod error;
+pub mod flags;
 pub mod logging;
-pub mod params;
 pub mod testing;
 
 #[cfg(test)]

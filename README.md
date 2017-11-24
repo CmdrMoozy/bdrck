@@ -5,8 +5,8 @@ Bdrck is a crate containing generic common utilities. In particular, it has seve
 | Module        | Description                        |
 | ------------- | ---------------------------------- |
 | configuration | Application configuration tooling. |
+| flags         | Command-line flag parsing.         |
 | logging       | Log message formatting utilities.  |
-| params        | Command-line argument parsing.     |
 | testing       | Unit testing utilities.            |
 
 ## Versioning

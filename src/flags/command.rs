@@ -13,9 +13,9 @@
 // limitations under the License.
 
 use error::*;
-use params::argument::Argument;
-use params::option::Option;
-use params::parsed_parameters::ParsedParameters;
+use flags::argument::Argument;
+use flags::option::Option;
+use flags::parsed_parameters::ParsedParameters;
 use std::fmt;
 
 /// A command is a single sub-command for a given program. Each command has

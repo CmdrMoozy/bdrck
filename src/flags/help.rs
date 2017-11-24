@@ -13,7 +13,7 @@
 // limitations under the License.
 
 use error::*;
-use params::command::{Command, ExecutableCommand};
+use flags::command::{Command, ExecutableCommand};
 use std::io::Write;
 use std::option::Option as Optional;
 

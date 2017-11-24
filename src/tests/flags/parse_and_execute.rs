@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use params::argument::Argument;
-use params::command::{Command, CommandCallback, CommandResult, ExecutableCommand};
-use params::option::Option;
-use params::parse_and_execute::{parse_and_execute, parse_and_execute_command};
-use params::parsed_parameters::ParsedParameters;
+use flags::argument::Argument;
+use flags::command::{Command, CommandCallback, CommandResult, ExecutableCommand};
+use flags::option::Option;
+use flags::parse_and_execute::{parse_and_execute, parse_and_execute_command};
+use flags::parsed_parameters::ParsedParameters;
 use std::collections::HashMap;
 use std::option::Option as Optional;
 use testing::fn_instrumentation::FnInstrumentation;

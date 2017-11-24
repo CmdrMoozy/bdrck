@@ -13,10 +13,10 @@
 // limitations under the License.
 
 use error::*;
-use params::command::{CommandResult, ExecutableCommand};
-use params::help;
-use params::parsed_parameters::ParsedParameters;
-use params::parsed_parameters::parse_command;
+use flags::command::{CommandResult, ExecutableCommand};
+use flags::help;
+use flags::parsed_parameters::ParsedParameters;
+use flags::parsed_parameters::parse_command;
 use std::io::Write;
 use std::option::Option as Optional;
 

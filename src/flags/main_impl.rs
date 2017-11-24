@@ -13,10 +13,10 @@
 // limitations under the License.
 
 use error::*;
-use params::command::{CommandResult, ExecutableCommand};
-use params::parse_and_execute::parse_and_execute;
-use params::parse_and_execute::parse_and_execute_command;
-use params::util::get_program_parameters;
+use flags::command::{CommandResult, ExecutableCommand};
+use flags::parse_and_execute::parse_and_execute;
+use flags::parse_and_execute::parse_and_execute_command;
+use flags::util::get_program_parameters;
 use std::env;
 use std::process;
 
