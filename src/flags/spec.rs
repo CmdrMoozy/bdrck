@@ -16,6 +16,7 @@ use error::*;
 
 /// Type denotes the particular type of flag a Spec structure describes. It
 /// also contains extra metadata about the flag, if applicable for that type.
+#[derive(Debug)]
 pub enum Type {
     Required {
         default_value: Option<String>,
@@ -121,10 +122,20 @@ impl Spec {
         })
     }
 
+    /// Returns true if this Spec describes a boolean flag. This function is
+    /// needed because boolean flags are treated differently in some ways
+    /// during parsing.
+    pub fn is_boolean(&self) -> bool {
+        match self.flag_type {
+            Type::Boolean => true,
+            _ => false,
+        }
+    }
+
     /// Returns true if this Spec describes a positional flag (that is, a flag
     /// which is interpreted by its position in the command-line arguments, not
     /// by the name it is given in the command-line arguments.
-    fn is_positional(&self) -> bool {
+    pub fn is_positional(&self) -> bool {
         match self.flag_type {
             Type::Positional { .. } => true,
             _ => false,
@@ -133,12 +144,12 @@ impl Spec {
 
     /// Returns true if this Spec describes a named flag. This is equivalent to
     /// !is_positional().
-    fn is_named(&self) -> bool { !self.is_positional() }
+    pub fn is_named(&self) -> bool { !self.is_positional() }
 
     /// Returns true if this Spec describes a flag which has a default value
     /// (that is, one which we will still store a value for even if it does not
     /// appear in the command-line arguments).
-    fn has_default_value(&self) -> bool {
+    pub fn has_default_value(&self) -> bool {
         match self.flag_type {
             Type::Required { ref default_value } => default_value.is_some(),
             Type::Boolean => true,
@@ -168,12 +179,27 @@ impl Spec {
     }
 
     /// A flag is variadic if it can collect more than one value during parsing.
-    fn is_variadic(&self) -> bool {
+    pub fn is_variadic(&self) -> bool {
         match self.flag_type {
             Type::Positional { is_variadic, .. } => is_variadic,
             _ => false,
         }
     }
+
+    /// Returns true if this Spec must have an associated value (either one
+    /// specified or a default) after parsing command line arguments.
+    pub fn is_required(&self) -> bool {
+        if self.has_default_value() {
+            return true;
+        }
+        match self.flag_type {
+            Type::Required { .. } => true,
+            _ => false,
+        }
+    }
+
+    /// Returns this flag's full name (i.e., not the short name).
+    pub fn get_name(&self) -> &str { self.name.as_str() }
 }
 
 pub struct Specs {
@@ -205,6 +231,8 @@ impl Specs {
 
         Ok(Specs { specs: specs })
     }
+
+    pub fn iter(&self) -> ::std::slice::Iter<Spec> { self.specs.iter() }
 
     /// Given an iterator over a collection of Specs, locate the first Spec
     /// which matches the given name. The given name might either be a short
