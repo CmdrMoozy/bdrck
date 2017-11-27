@@ -15,7 +15,7 @@
 use error::*;
 use flags::spec::{Spec, Specs, Type};
 use std::collections::HashMap;
-use std::iter::Peekable;
+use std::iter::{FromIterator, Peekable};
 
 /// Returns a collection containing all default values from the given flag
 /// Specs.
@@ -54,6 +54,7 @@ fn parse_bool(value: &str) -> Result<bool> {
 
 /// A Value is the value associated with a given flag. The type of the value
 /// is different depending on the type of flag it is associated with.
+#[derive(Debug, Eq, PartialEq)]
 pub enum Value {
     Single(String),
     Boolean(bool),
@@ -242,6 +243,7 @@ impl<'a, 'b, I: Iterator<Item = &'b String>> Iterator for ValueIterator<'a, 'b, 
 /// values (or the default values for those flags). If parsing fails (including
 /// if some required flags weren't specified, for example), an error is
 /// returned.
+#[derive(Debug, Eq, PartialEq)]
 pub struct Values {
     values: HashMap<String, Value>,
 }
@@ -267,5 +269,16 @@ impl Values {
         }
 
         Ok(Values { values: values })
+    }
+}
+
+impl From<HashMap<String, Value>> for Values {
+    fn from(values: HashMap<String, Value>) -> Self { Values { values: values } }
+}
+
+impl FromIterator<(String, Value)> for Values {
+    fn from_iter<T: IntoIterator<Item = (String, Value)>>(iter: T) -> Self {
+        let values: HashMap<String, Value> = iter.into_iter().collect();
+        values.into()
     }
 }

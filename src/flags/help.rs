@@ -15,10 +15,9 @@
 use error::*;
 use flags::command::{Command, ExecutableCommand};
 use std::io::Write;
-use std::option::Option as Optional;
 
 pub fn print_program_help<'cbl, W: Write, E>(
-    f: Optional<&mut W>,
+    f: Option<&mut W>,
     program: &str,
     commands: &[ExecutableCommand<'cbl, E>],
 ) -> Result<()> {
@@ -27,10 +26,7 @@ pub fn print_program_help<'cbl, W: Write, E>(
     }
     let f = f.unwrap();
 
-    f.write_fmt(format_args!(
-        "Usage: {} command [options ...] [arguments ...]\n",
-        program
-    ))?;
+    f.write_fmt(format_args!("Usage: {} command [flags ...]\n", program))?;
     f.write_fmt(format_args!("Available commands:\n"))?;
     for command in commands.iter() {
         f.write_fmt(format_args!(
@@ -44,7 +40,7 @@ pub fn print_program_help<'cbl, W: Write, E>(
 }
 
 pub fn print_command_help<W: Write>(
-    f: Optional<&mut W>,
+    f: Option<&mut W>,
     program: &str,
     command: &Command,
     print_command_name: bool,
@@ -58,20 +54,26 @@ pub fn print_command_help<W: Write>(
     if print_command_name {
         f.write_fmt(format_args!("{} ", command.name))?;
     }
-    f.write_fmt(format_args!("[options ...] [arguments ...]\n"))?;
+    f.write_fmt(format_args!("[flags ...]\n"))?;
 
-    if !command.options.is_empty() {
-        f.write_fmt(format_args!("\nOptions:\n"))?;
-        for option in &command.options {
-            f.write_fmt(format_args!("\t--{}", option.name))?;
-            if let Some(short_name) = option.short_name.as_ref() {
+    if command
+        .flags
+        .iter()
+        .filter(|s| s.is_named())
+        .next()
+        .is_some()
+    {
+        f.write_fmt(format_args!("\nNamed flags:\n"))?;
+        for spec in command.flags.iter().filter(|s| s.is_named()) {
+            f.write_fmt(format_args!("\t--{}", spec.get_name()))?;
+            if let Some(short_name) = spec.get_short_name() {
                 f.write_fmt(format_args!(", -{}", short_name))?;
             }
-            f.write_fmt(format_args!(" - {}", option.help))?;
+            f.write_fmt(format_args!(" - {}", spec.get_help()))?;
 
-            if option.is_flag {
-                f.write_fmt(format_args!(" [Flag, default: off]"))?;
-            } else if let Some(default_value) = option.default_value.as_ref() {
+            if spec.is_boolean() {
+                f.write_fmt(format_args!(" [Boolean, default: false]"))?;
+            } else if let Some(default_value) = spec.get_required_default_value() {
                 f.write_fmt(format_args!(" [Default: {}]", default_value))?;
             }
 
@@ -79,13 +81,19 @@ pub fn print_command_help<W: Write>(
         }
     }
 
-    if !command.arguments.is_empty() {
+    if command
+        .flags
+        .iter()
+        .filter(|s| s.is_positional())
+        .next()
+        .is_some()
+    {
         f.write_fmt(format_args!("\nPositional arguments:"))?;
-        for argument in &command.arguments {
-            f.write_fmt(format_args!("\n\t{}", argument))?;
-        }
-        if command.last_argument_is_variadic {
-            f.write_fmt(format_args!(" [One or more]"))?;
+        for spec in command.flags.iter().filter(|s| s.is_positional()) {
+            f.write_fmt(format_args!("\n\t{}", spec.get_name()))?;
+            if spec.is_variadic() {
+                f.write_fmt(format_args!(" [One or more]"))?;
+            }
         }
         f.write_fmt(format_args!("\n"))?;
     }

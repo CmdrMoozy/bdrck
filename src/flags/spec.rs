@@ -31,6 +31,7 @@ pub enum Type {
 
 /// Spec describes a flag, in such a way that the parser can correctly identify
 /// it in the set of arguments given on the command-line.
+#[derive(Debug)]
 pub struct Spec {
     pub name: String,
     pub help: String,
@@ -200,8 +201,24 @@ impl Spec {
 
     /// Returns this flag's full name (i.e., not the short name).
     pub fn get_name(&self) -> &str { self.name.as_str() }
+
+    /// Returns this flag's short name, if it has one.
+    pub fn get_short_name(&self) -> Option<char> { self.short_name.clone() }
+
+    /// Returns the human-readable help text for this flag.
+    pub fn get_help(&self) -> &str { self.help.as_str() }
+
+    /// Returns the default value for this Type::Required Spec, or None if it
+    /// either is some other type of Spec or does not have a default value.
+    pub fn get_required_default_value(&self) -> Option<&str> {
+        match self.flag_type {
+            Type::Required { ref default_value } => default_value.as_ref().map(|dv| dv.as_str()),
+            _ => None,
+        }
+    }
 }
 
+#[derive(Debug)]
 pub struct Specs {
     specs: Vec<Spec>,
 }
@@ -232,6 +249,7 @@ impl Specs {
         Ok(Specs { specs: specs })
     }
 
+    /// Returns an Iterator over the Spec structures this Specs contains.
     pub fn iter(&self) -> ::std::slice::Iter<Spec> { self.specs.iter() }
 
     /// Given an iterator over a collection of Specs, locate the first Spec

@@ -12,12 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub mod argument;
 pub mod command;
 pub mod main_impl;
-pub mod option;
 pub mod parse_and_execute;
-pub mod parsed_parameters;
 pub mod spec;
 pub mod value;
 
@@ -27,7 +24,7 @@ mod util;
 // Re-export most commonly used symbols, to allow using this library with just
 // one "use".
 
-pub use self::argument::Argument;
 pub use self::command::{Command, CommandCallback, CommandResult, ExecutableCommand};
 pub use self::main_impl::{main_impl_multiple_commands, main_impl_single_command};
-pub use self::option::Option;
+pub use self::spec::{Spec, Specs};
+pub use self::value::Values;

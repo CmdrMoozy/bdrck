@@ -13,10 +13,12 @@
 // limitations under the License.
 
 use error::*;
-use flags::argument::Argument;
-use flags::option::Option;
-use flags::parsed_parameters::ParsedParameters;
+use flags::help;
+use flags::spec::Specs;
+use flags::value::Values;
 use std::fmt;
+use std::io::Write;
+use std::iter::Peekable;
 
 /// A command is a single sub-command for a given program. Each command has
 /// its own description as well as sets of options and arguments that it
@@ -25,58 +27,16 @@ use std::fmt;
 pub struct Command {
     pub name: String,
     pub help: String,
-    pub options: Vec<Option>,
-    pub arguments: Vec<Argument>,
-    pub last_argument_is_variadic: bool,
+    pub flags: Specs,
 }
 
 impl Command {
-    pub fn new(
-        name: &str,
-        help: &str,
-        options: Vec<Option>,
-        arguments: Vec<Argument>,
-        last_argument_is_variadic: bool,
-    ) -> Result<Command> {
-        //! Constructs a new Command structure. Performs some validation on the
-        //! inputs,
-        //! and returns either a valid Command or an appropriate error.
-
-        // All arguments after the first one with a default value must also have
-        // default values.
-        if !arguments
-            .iter()
-            .skip_while(|a| a.default_value.is_none())
-            .all(|a| a.default_value.is_some())
-        {
-            bail!("Missing default argument value");
-        }
-
-        // All arguments other than the last one must have at most one default value.
-        if !arguments.is_empty()
-            && !&arguments[..arguments.len() - 1]
-                .iter()
-                .all(|a| a.default_value.as_ref().map_or(0, |dv| dv.len()) <= 1)
-        {
-            bail!("Too many default argument values");
-        }
-
-        // The last argument can have more than one default value only if it is
-        // variadic.
-        let has_multiple_defaults = arguments.iter().last().map_or(false, |a| {
-            a.default_value.as_ref().map_or(false, |dv| dv.len() > 1)
-        });
-        if !last_argument_is_variadic && has_multiple_defaults {
-            bail!("Too many default argument values");
-        }
-
-        Ok(Command {
+    pub fn new(name: &str, help: &str, flags: Specs) -> Command {
+        Command {
             name: name.to_owned(),
             help: help.to_owned(),
-            options: options,
-            arguments: arguments,
-            last_argument_is_variadic: last_argument_is_variadic,
-        })
+            flags: flags,
+        }
     }
 }
 
@@ -85,8 +45,7 @@ impl PartialEq for Command {
 }
 
 pub type CommandResult<E> = ::std::result::Result<(), E>;
-
-pub type CommandCallback<'a, E> = Box<FnMut(ParsedParameters) -> CommandResult<E> + 'a>;
+pub type CommandCallback<'a, E> = Box<FnMut(Values) -> CommandResult<E> + 'a>;
 
 /// An `ExecutableCommand` is a Command alongside a callback function which can
 /// be called to execute the command in question.
@@ -114,7 +73,36 @@ impl<'a, E> ExecutableCommand<'a, E> {
         }
     }
 
-    pub fn execute(&mut self, parameters: ParsedParameters) -> CommandResult<E> {
-        self.callback.as_mut()(parameters)
+    pub fn execute(&mut self, values: Values) -> CommandResult<E> { self.callback.as_mut()(values) }
+}
+
+/// Look up by name the command indicated by the first element of the given
+/// range of program parameters. If a matching command could not be found,
+/// return None instead.
+pub fn parse_command<'a, 'b, I: Iterator<Item = &'a String>, E, W: Write>(
+    program: &str,
+    args: &mut Peekable<I>,
+    mut commands: Vec<ExecutableCommand<'b, E>>,
+    output_writer: Option<&mut W>,
+    print_program_help: bool,
+) -> Result<ExecutableCommand<'b, E>> {
+    let idx: Result<usize> = match args.next() {
+        Some(command_arg) => match commands
+            .iter()
+            .position(|command| command.command.name == *command_arg)
+        {
+            Some(command) => Ok(command),
+            None => Err(format!("Unrecognized command '{}'", command_arg).into()),
+        },
+        None => Err("No command specified".into()),
+    };
+
+    if let Err(e) = idx {
+        if print_program_help {
+            help::print_program_help(output_writer, program, &commands)?;
+        }
+        return Err(e);
     }
+
+    Ok(commands.remove(idx.unwrap()))
 }

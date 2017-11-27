@@ -13,8 +13,6 @@
 // limitations under the License.
 
 #[cfg(test)]
-mod option;
-#[cfg(test)]
 mod parse_and_execute;
 #[cfg(test)]
 mod spec;
