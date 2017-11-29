@@ -13,7 +13,7 @@
 // limitations under the License.
 
 use error::*;
-use flags::command::{parse_command, CommandResult, ExecutableCommand};
+use flags::command::{parse_command, Command, CommandResult};
 use flags::help;
 use flags::value::Values;
 use std::io::Write;
@@ -21,7 +21,7 @@ use std::io::Write;
 fn parse_and_execute_impl<E, W: Write>(
     program: &str,
     args: &[String],
-    commands: Vec<ExecutableCommand<E>>,
+    commands: Vec<Command<E>>,
     mut output_writer: Option<W>,
     print_program_help: bool,
     print_command_name: bool,
@@ -36,13 +36,13 @@ fn parse_and_execute_impl<E, W: Write>(
         print_program_help,
     )?;
 
-    let values = match Values::new(&command.command.flags, args_iterator) {
+    let values = match Values::new(&command.flags, args_iterator) {
         Ok(vs) => vs,
         Err(e) => {
             help::print_command_help(
                 output_writer.as_mut(),
                 program,
-                &command.command,
+                &command,
                 print_command_name,
             )?;
             return Err(e);
@@ -61,7 +61,7 @@ fn parse_and_execute_impl<E, W: Write>(
 pub fn parse_and_execute_command<E, W: Write>(
     program: &str,
     args: &[String],
-    commands: Vec<ExecutableCommand<E>>,
+    commands: Vec<Command<E>>,
     output_writer: Option<W>,
 ) -> Result<CommandResult<E>> {
     parse_and_execute_impl(program, args, commands, output_writer, true, true)
@@ -76,10 +76,10 @@ pub fn parse_and_execute_command<E, W: Write>(
 pub fn parse_and_execute<E, W: Write>(
     program: &str,
     args: &[String],
-    command: ExecutableCommand<E>,
+    command: Command<E>,
     output_writer: Option<W>,
 ) -> Result<CommandResult<E>> {
-    let args: Vec<String> = Some(command.command.name.clone())
+    let args: Vec<String> = Some(command.name.clone())
         .into_iter()
         .chain(args.iter().cloned())
         .collect();

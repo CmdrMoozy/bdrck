@@ -24,7 +24,7 @@ mod util;
 // Re-export most commonly used symbols, to allow using this library with just
 // one "use".
 
-pub use self::command::{Command, CommandCallback, CommandResult, ExecutableCommand};
+pub use self::command::{Command, CommandCallback, CommandResult};
 pub use self::main_impl::{main_impl_multiple_commands, main_impl_single_command};
 pub use self::spec::{Spec, Specs};
 pub use self::value::Values;

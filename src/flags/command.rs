@@ -20,60 +20,47 @@ use std::fmt;
 use std::io::Write;
 use std::iter::Peekable;
 
+pub type CommandResult<E> = ::std::result::Result<(), E>;
+pub type CommandCallback<'a, E> = Box<FnMut(Values) -> CommandResult<E> + 'a>;
+
 /// A command is a single sub-command for a given program. Each command has
 /// its own description as well as sets of options and arguments that it
 /// accepts.
-#[derive(Debug)]
-pub struct Command {
+pub struct Command<'a, E> {
     pub name: String,
     pub help: String,
     pub flags: Specs,
+    pub callback: CommandCallback<'a, E>,
 }
 
-impl Command {
-    pub fn new(name: &str, help: &str, flags: Specs) -> Command {
+impl<'a, E> Command<'a, E> {
+    pub fn new(name: &str, help: &str, flags: Specs, callback: CommandCallback<'a, E>) -> Self {
         Command {
             name: name.to_owned(),
             help: help.to_owned(),
             flags: flags,
-        }
-    }
-}
-
-impl PartialEq for Command {
-    fn eq(&self, other: &Command) -> bool { self.name == other.name }
-}
-
-pub type CommandResult<E> = ::std::result::Result<(), E>;
-pub type CommandCallback<'a, E> = Box<FnMut(Values) -> CommandResult<E> + 'a>;
-
-/// An `ExecutableCommand` is a Command alongside a callback function which can
-/// be called to execute the command in question.
-pub struct ExecutableCommand<'a, E> {
-    pub command: Command,
-    callback: CommandCallback<'a, E>,
-}
-
-impl<'a, E> fmt::Debug for ExecutableCommand<'a, E> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.write_str(format!("{:#?}", self.command).as_ref())?;
-        Ok(())
-    }
-}
-
-impl<'a, E> PartialEq<Command> for ExecutableCommand<'a, E> {
-    fn eq(&self, other: &Command) -> bool { self.command == *other }
-}
-
-impl<'a, E> ExecutableCommand<'a, E> {
-    pub fn new(command: Command, callback: CommandCallback<'a, E>) -> ExecutableCommand<'a, E> {
-        ExecutableCommand {
-            command: command,
             callback: callback,
         }
     }
 
     pub fn execute(&mut self, values: Values) -> CommandResult<E> { self.callback.as_mut()(values) }
+}
+
+impl<'a, E> fmt::Debug for Command<'a, E> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.write_str(
+            format!(
+                "Command {{ {:#?}, {:#?}, {:#?} }}",
+                self.name,
+                self.help,
+                self.flags
+            ).as_str(),
+        )
+    }
+}
+
+impl<'a, E> PartialEq for Command<'a, E> {
+    fn eq(&self, other: &Self) -> bool { self.name == other.name }
 }
 
 /// Look up by name the command indicated by the first element of the given
@@ -82,14 +69,14 @@ impl<'a, E> ExecutableCommand<'a, E> {
 pub fn parse_command<'a, 'b, I: Iterator<Item = &'a String>, E, W: Write>(
     program: &str,
     args: &mut Peekable<I>,
-    mut commands: Vec<ExecutableCommand<'b, E>>,
+    mut commands: Vec<Command<'b, E>>,
     output_writer: Option<&mut W>,
     print_program_help: bool,
-) -> Result<ExecutableCommand<'b, E>> {
+) -> Result<Command<'b, E>> {
     let idx: Result<usize> = match args.next() {
         Some(command_arg) => match commands
             .iter()
-            .position(|command| command.command.name == *command_arg)
+            .position(|command| command.name == *command_arg)
         {
             Some(command) => Ok(command),
             None => Err(format!("Unrecognized command '{}'", command_arg).into()),

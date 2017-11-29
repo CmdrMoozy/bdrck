@@ -13,13 +13,13 @@
 // limitations under the License.
 
 use error::*;
-use flags::command::{Command, ExecutableCommand};
+use flags::command::Command;
 use std::io::Write;
 
 pub fn print_program_help<'cbl, W: Write, E>(
     f: Option<&mut W>,
     program: &str,
-    commands: &[ExecutableCommand<'cbl, E>],
+    commands: &[Command<'cbl, E>],
 ) -> Result<()> {
     if f.is_none() {
         return Ok(());
@@ -29,20 +29,16 @@ pub fn print_program_help<'cbl, W: Write, E>(
     f.write_fmt(format_args!("Usage: {} command [flags ...]\n", program))?;
     f.write_fmt(format_args!("Available commands:\n"))?;
     for command in commands.iter() {
-        f.write_fmt(format_args!(
-            "\t{} - {}\n",
-            command.command.name,
-            command.command.help
-        ))?;
+        f.write_fmt(format_args!("\t{} - {}\n", command.name, command.help))?;
     }
 
     Ok(())
 }
 
-pub fn print_command_help<W: Write>(
+pub fn print_command_help<W: Write, E>(
     f: Option<&mut W>,
     program: &str,
-    command: &Command,
+    command: &Command<E>,
     print_command_name: bool,
 ) -> Result<()> {
     if f.is_none() {

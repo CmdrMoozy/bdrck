@@ -16,7 +16,7 @@ use error::*;
 
 /// Type denotes the particular type of flag a Spec structure describes. It
 /// also contains extra metadata about the flag, if applicable for that type.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum Type {
     Required {
         default_value: Option<String>,
@@ -31,7 +31,7 @@ pub enum Type {
 
 /// Spec describes a flag, in such a way that the parser can correctly identify
 /// it in the set of arguments given on the command-line.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Spec {
     pub name: String,
     pub help: String,
@@ -218,7 +218,7 @@ impl Spec {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Specs {
     specs: Vec<Spec>,
 }

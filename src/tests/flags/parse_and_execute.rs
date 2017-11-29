@@ -12,69 +12,96 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use flags::command::{Command, CommandCallback, CommandResult, ExecutableCommand};
+use flags::command::{Command, CommandCallback};
 use flags::parse_and_execute::{parse_and_execute, parse_and_execute_command};
 use flags::spec::{Spec, Specs};
 use flags::value::{Value, Values};
 use testing::fn_instrumentation::FnInstrumentation;
-
-fn build_trivial_command_for_test(name: &str) -> Command {
-    Command::new(name, name, Specs::new(vec![]).unwrap())
-}
-
-type TestCallback = Box<FnMut(Values)>;
-
-fn noop_command_callback(_: Values) -> CommandResult<()> { Ok(()) }
-
-fn parse_and_execute_test_impl(
-    parameters: Vec<&str>,
-    mut commands: Vec<Command>,
-    expected_command_name: &str,
-    mut expected_callback: TestCallback,
-) {
-    let instrumentation = FnInstrumentation::new();
-    let callback: CommandCallback<()> = Box::new(|p| -> CommandResult<()> {
-        instrumentation.record_call();
-        expected_callback(p);
-        Ok(())
-    });
-
-    let mut expected_command: Option<Command> = None;
-    if let Some(expected_command_position) = commands
-        .iter()
-        .position(|c| c.name == expected_command_name)
-    {
-        expected_command = Some(commands.remove(expected_command_position));
-    }
-
-    let mut executable_commands: Vec<ExecutableCommand<()>> = commands
-        .into_iter()
-        .map(|c| {
-            ExecutableCommand::new(c, Box::new(noop_command_callback))
-        })
-        .collect();
-    if let Some(expected_command) = expected_command {
-        executable_commands.push(ExecutableCommand::new(expected_command, callback));
-    }
-
-    assert!(instrumentation.get_call_count() == 0);
-    let parameters: Vec<String> = parameters.into_iter().map(|p| p.to_owned()).collect();
-    let res = parse_and_execute_command::<(), ::std::io::Stderr>(
-        "program",
-        parameters.as_slice(),
-        executable_commands,
-        None,
-    );
-    assert!(res.is_ok(), "{}", res.err().unwrap());
-    assert!(res.unwrap().is_ok());
-    assert!(instrumentation.get_call_count() == 1);
-}
 
 fn into_expected_values(values: Vec<(&'static str, Value)>) -> Values {
     values
         .into_iter()
         .map(|tuple| (tuple.0.to_owned(), tuple.1))
         .collect()
+}
+
+fn build_trivial_test_command(name: &str) -> Command<()> {
+    Command::new(
+        name,
+        name,
+        Specs::new(vec![]).unwrap(),
+        Box::new(|vs| {
+            assert_eq!(into_expected_values(vec![]), vs);
+            Ok(())
+        }),
+    )
+}
+
+fn build_test_command(name: &str, specs: Specs, expected_vs: Values) -> Command<()> {
+    Command::new(
+        name,
+        name,
+        specs,
+        Box::new(move |vs| {
+            assert_eq!(expected_vs, vs);
+            Ok(())
+        }),
+    )
+}
+
+fn parse_and_execute_test_impl(
+    args: Vec<&'static str>,
+    mut commands: Vec<Command<()>>,
+    expected_command_name: &'static str,
+) {
+    // We need to take the command we expect to execute and modify its callback to
+    // record that the function call happened. This has to be done in a certain
+    // order to keep the borrow checker happy, while also dealing with the case
+    // where the expected command does not exist.
+    let instrumentation = FnInstrumentation::new();
+    let expected_command: Option<Command<()>> = commands
+        .iter()
+        .position(|c| c.name == expected_command_name)
+        .map(|idx| commands.remove(idx));
+    let expected_command_metadata: Option<(String, String, Specs)> = expected_command
+        .as_ref()
+        .map(|c| (c.name.clone(), c.help.clone(), c.flags.clone()));
+    let mut real_callback: Option<CommandCallback<()>> = expected_command.map(|c| c.callback);
+    let callback: CommandCallback<()> = Box::new(|vs| {
+        instrumentation.record_call();
+        if let Some(real_callback) = real_callback.as_mut() {
+            real_callback(vs)
+        } else {
+            Ok(())
+        }
+    });
+    let mut modified_commands: Vec<Command<()>> = vec![];
+    if let Some(m) = expected_command_metadata {
+        modified_commands.push(Command {
+            name: m.0,
+            help: m.1,
+            flags: m.2,
+            callback: callback,
+        });
+    }
+    let commands: Vec<Command<()>> = commands
+        .into_iter()
+        .chain(modified_commands.into_iter())
+        .collect();
+
+    // Actually parse the flags and execute the relevant command, and assert that
+    // this worked as expected.
+    assert!(instrumentation.get_call_count() == 0);
+    let args: Vec<String> = args.into_iter().map(|arg| arg.to_owned()).collect();
+    let res = parse_and_execute_command::<(), ::std::io::Stderr>(
+        "program",
+        args.as_slice(),
+        commands,
+        None,
+    );
+    assert!(res.is_ok(), "{}", res.err().unwrap());
+    assert!(res.unwrap().is_ok());
+    assert!(instrumentation.get_call_count() == 1);
 }
 
 #[test]
@@ -99,29 +126,22 @@ fn test_parse_and_execute() {
         "--flagb".to_owned(),
         "baz".to_owned(),
     ];
-    let executable_command = ExecutableCommand::new(
-        Command::new(
-            "foobar",
-            "foobar",
-            Specs::new(vec![
-                Spec::required("flaga", "flaga", None, None),
-                Spec::required("flagb", "flagb", None, Some("oof")),
-                Spec::boolean("boola", "boola", None),
-                Spec::boolean("boolb", "boolb", None),
-                Spec::positional("posa", "posa", None, false).unwrap(),
-            ]).unwrap(),
-        ),
+    let command = Command::new(
+        "foobar",
+        "foobar",
+        Specs::new(vec![
+            Spec::required("flaga", "flaga", None, None),
+            Spec::required("flagb", "flagb", None, Some("oof")),
+            Spec::boolean("boola", "boola", None),
+            Spec::boolean("boolb", "boolb", None),
+            Spec::positional("posa", "posa", None, false).unwrap(),
+        ]).unwrap(),
         callback,
     );
 
     assert!(instrumentation.get_call_count() == 0);
     assert!(
-        parse_and_execute::<(), ::std::io::Stderr>(
-            program.as_ref(),
-            &args,
-            executable_command,
-            None
-        ).is_ok()
+        parse_and_execute::<(), ::std::io::Stderr>(program.as_ref(), &args, command, None).is_ok()
     );
     assert!(instrumentation.get_call_count() == 1);
 }
@@ -132,12 +152,11 @@ fn test_parse_invalid_command() {
     parse_and_execute_test_impl(
         vec!["biff", "foo", "bar", "baz"],
         vec![
-            build_trivial_command_for_test("foo"),
-            build_trivial_command_for_test("bar"),
-            build_trivial_command_for_test("baz"),
+            build_trivial_test_command("foo"),
+            build_trivial_test_command("bar"),
+            build_trivial_test_command("baz"),
         ],
         "biff",
-        Box::new(|_| {}),
     );
 }
 
@@ -146,14 +165,11 @@ fn test_parse_command_no_arguments() {
     parse_and_execute_test_impl(
         vec!["bar"],
         vec![
-            build_trivial_command_for_test("foo"),
-            build_trivial_command_for_test("bar"),
-            build_trivial_command_for_test("baz"),
+            build_trivial_test_command("foo"),
+            build_trivial_test_command("bar"),
+            build_trivial_test_command("baz"),
         ],
         "bar",
-        Box::new(|vs| {
-            assert_eq!(into_expected_values(vec![]), vs);
-        }),
     );
 }
 
@@ -162,14 +178,11 @@ fn test_parse_command_with_unused_arguments() {
     parse_and_execute_test_impl(
         vec!["baz", "foo", "bar", "baz"],
         vec![
-            build_trivial_command_for_test("foo"),
-            build_trivial_command_for_test("bar"),
-            build_trivial_command_for_test("baz"),
+            build_trivial_test_command("foo"),
+            build_trivial_test_command("bar"),
+            build_trivial_test_command("baz"),
         ],
         "baz",
-        Box::new(|vs| {
-            assert_eq!(into_expected_values(vec![]), vs);
-        }),
     );
 }
 
@@ -185,8 +198,7 @@ fn test_default_values() {
     parse_and_execute_test_impl(
         vec!["foo"],
         vec![
-            Command::new(
-                "foo",
+            build_test_command(
                 "foo",
                 Specs::new(vec![
                     Spec::required("a", "a", None, Some("a")),
@@ -196,12 +208,10 @@ fn test_default_values() {
                     Spec::boolean("e", "e", None),
                     Spec::boolean("f", "f", Some('f')),
                 ]).unwrap(),
+                expected_vs,
             ),
         ],
         "foo",
-        Box::new(move |vs| {
-            assert_eq!(expected_vs, vs);
-        }),
     );
 }
 
@@ -211,8 +221,7 @@ fn test_missing_required_flag() {
     parse_and_execute_test_impl(
         vec!["foo"],
         vec![
-            Command::new(
-                "foo",
+            build_test_command(
                 "foo",
                 Specs::new(vec![
                     Spec::required("a", "a", None, None),
@@ -222,10 +231,10 @@ fn test_missing_required_flag() {
                     Spec::boolean("e", "e", None),
                     Spec::boolean("f", "f", Some('f')),
                 ]).unwrap(),
+                into_expected_values(vec![]),
             ),
         ],
         "foo",
-        Box::new(|_| {}),
     );
 }
 
@@ -234,9 +243,14 @@ fn test_missing_required_flag() {
 fn test_parse_invalid_flag() {
     parse_and_execute_test_impl(
         vec!["foo", "--foo=bar"],
-        vec![Command::new("foo", "foo", Specs::new(vec![]).unwrap())],
+        vec![
+            build_test_command(
+                "foo",
+                Specs::new(vec![]).unwrap(),
+                into_expected_values(vec![]),
+            ),
+        ],
         "foo",
-        Box::new(|_| {}),
     );
 }
 
@@ -246,17 +260,16 @@ fn test_parse_missing_flag_value() {
     parse_and_execute_test_impl(
         vec!["foo", "--foobar", "--barbaz"],
         vec![
-            Command::new(
-                "foo",
+            build_test_command(
                 "foo",
                 Specs::new(vec![
                     Spec::required("foobar", "foobar", None, None),
                     Spec::required("barbaz", "barbaz", None, None),
                 ]).unwrap(),
+                into_expected_values(vec![]),
             ),
         ],
         "foo",
-        Box::new(|_| {}),
     );
 }
 
@@ -272,8 +285,7 @@ fn test_parse_flag_format_variations() {
     parse_and_execute_test_impl(
         vec!["foo", "--flaga=a", "--b=b", "-flagc", "c", "-d", "d"],
         vec![
-            Command::new(
-                "foo",
+            build_test_command(
                 "foo",
                 Specs::new(vec![
                     Spec::required("flaga", "flaga", Some('a'), None),
@@ -281,12 +293,10 @@ fn test_parse_flag_format_variations() {
                     Spec::required("flagc", "flagc", Some('c'), None),
                     Spec::required("flagd", "flagd", Some('d'), None),
                 ]).unwrap(),
+                expected_vs,
             ),
         ],
         "foo",
-        Box::new(move |vs| {
-            assert_eq!(expected_vs, vs);
-        }),
     );
 }
 
@@ -302,8 +312,7 @@ fn test_parse_boolean_flag_format_variations() {
     parse_and_execute_test_impl(
         vec!["foo", "--boola", "-b", "--boolc=true", "-d=false"],
         vec![
-            Command::new(
-                "foo",
+            build_test_command(
                 "foo",
                 Specs::new(vec![
                     Spec::boolean("boola", "boola", Some('a')),
@@ -311,12 +320,10 @@ fn test_parse_boolean_flag_format_variations() {
                     Spec::boolean("boolc", "boolc", Some('c')),
                     Spec::boolean("boold", "boold", Some('d')),
                 ]).unwrap(),
+                expected_vs,
             ),
         ],
         "foo",
-        Box::new(move |vs| {
-            assert_eq!(expected_vs, vs);
-        }),
     );
 }
 
@@ -344,8 +351,7 @@ fn test_parse_named_flags() {
             "--h=false",
         ],
         vec![
-            Command::new(
-                "foobar",
+            build_test_command(
                 "foobar",
                 Specs::new(vec![
                     Spec::required("flaga", "flaga", Some('a'), None),
@@ -357,12 +363,10 @@ fn test_parse_named_flags() {
                     Spec::boolean("flagg", "flagg", Some('g')),
                     Spec::boolean("flagh", "flagh", Some('h')),
                 ]).unwrap(),
+                expected_vs,
             ),
         ],
         "foobar",
-        Box::new(move |vs| {
-            assert_eq!(expected_vs, vs);
-        }),
     );
 }
 
@@ -391,8 +395,7 @@ fn test_parse_positional_flags() {
             "baz",
         ],
         vec![
-            Command::new(
-                "foobar",
+            build_test_command(
                 "foobar",
                 Specs::new(vec![
                     Spec::required("flaga", "flaga", Some('a'), None),
@@ -403,12 +406,10 @@ fn test_parse_positional_flags() {
                     Spec::positional("posb", "posb", None, false).unwrap(),
                     Spec::positional("posc", "posc", None, false).unwrap(),
                 ]).unwrap(),
+                expected_vs,
             ),
         ],
         "foobar",
-        Box::new(move |vs| {
-            assert_eq!(expected_vs, vs);
-        }),
     );
 }
 
@@ -424,8 +425,7 @@ fn test_parse_variadic_flag_empty() {
     parse_and_execute_test_impl(
         vec!["foobar", "--flaga=oof", "foo", "bar"],
         vec![
-            Command::new(
-                "foobar",
+            build_test_command(
                 "foobar",
                 Specs::new(vec![
                     Spec::required("flaga", "flaga", Some('a'), None),
@@ -433,12 +433,10 @@ fn test_parse_variadic_flag_empty() {
                     Spec::positional("posb", "posb", None, false).unwrap(),
                     Spec::positional("posc", "posc", None, true).unwrap(),
                 ]).unwrap(),
+                expected_vs,
             ),
         ],
         "foobar",
-        Box::new(move |vs| {
-            assert_eq!(expected_vs, vs);
-        }),
     );
 }
 
@@ -457,8 +455,7 @@ fn test_parse_variadic_flag_many() {
     parse_and_execute_test_impl(
         vec!["foobar", "--flaga=oof", "foo", "bar", "baz", "quux"],
         vec![
-            Command::new(
-                "foobar",
+            build_test_command(
                 "foobar",
                 Specs::new(vec![
                     Spec::required("flaga", "flaga", Some('a'), None),
@@ -466,12 +463,10 @@ fn test_parse_variadic_flag_many() {
                     Spec::positional("posb", "posb", None, false).unwrap(),
                     Spec::positional("posc", "posc", None, true).unwrap(),
                 ]).unwrap(),
+                expected_vs,
             ),
         ],
         "foobar",
-        Box::new(move |vs| {
-            assert_eq!(expected_vs, vs);
-        }),
     );
 }
 
@@ -487,8 +482,7 @@ fn test_parse_default_positional_values() {
     parse_and_execute_test_impl(
         vec!["foobar", "--flaga=oof", "foo"],
         vec![
-            Command::new(
-                "foobar",
+            build_test_command(
                 "foobar",
                 Specs::new(vec![
                     Spec::required("flaga", "flaga", Some('a'), None),
@@ -496,12 +490,10 @@ fn test_parse_default_positional_values() {
                     Spec::positional("posb", "posb", Some(&["dvb"]), false).unwrap(),
                     Spec::positional("posc", "posc", Some(&["dvc"]), false).unwrap(),
                 ]).unwrap(),
+                expected_vs,
             ),
         ],
         "foobar",
-        Box::new(move |vs| {
-            assert_eq!(expected_vs, vs);
-        }),
     );
 }
 
@@ -520,8 +512,7 @@ fn test_parse_default_variadic_values() {
     parse_and_execute_test_impl(
         vec!["foobar", "--flaga=oof", "foo"],
         vec![
-            Command::new(
-                "foobar",
+            build_test_command(
                 "foobar",
                 Specs::new(vec![
                     Spec::required("flaga", "flaga", Some('a'), None),
@@ -529,11 +520,9 @@ fn test_parse_default_variadic_values() {
                     Spec::positional("posb", "posb", Some(&["dvb"]), false).unwrap(),
                     Spec::positional("posc", "posc", Some(&["dvc1", "dvc2"]), true).unwrap(),
                 ]).unwrap(),
+                expected_vs,
             ),
         ],
         "foobar",
-        Box::new(move |vs| {
-            assert_eq!(expected_vs, vs);
-        }),
     );
 }
