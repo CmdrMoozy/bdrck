@@ -16,6 +16,7 @@ use error::*;
 use flags::spec::{Spec, Specs, Type};
 use std::collections::HashMap;
 use std::iter::{FromIterator, Peekable};
+use std::str::FromStr;
 
 /// Returns a collection containing all default values from the given flag
 /// Specs.
@@ -243,6 +244,13 @@ impl<'a, 'b, I: Iterator<Item = &'b String>> Iterator for ValueIterator<'a, 'b, 
 /// values (or the default values for those flags). If parsing fails (including
 /// if some required flags weren't specified, for example), an error is
 /// returned.
+///
+/// This structure provides various accessor functions, to conveniently get at
+/// the flag values. These accessors tend to follow the pattern of assuming the
+/// caller is doing things correctly, and that the caller wants us to panic
+/// early if something goes wrong. If this is not the desired behavior, the
+/// Values::get accessor provides a safe API where the caller can do their own
+/// error handling.
 #[derive(Debug, Eq, PartialEq)]
 pub struct Values {
     values: HashMap<String, Value>,
@@ -269,6 +277,87 @@ impl Values {
         }
 
         Ok(Values { values: values })
+    }
+
+    /// Looks up a generic flag value, which may or may not be present. This
+    /// function is guaranteed not to panic, but error handling and type
+    /// matching is left up to the caller do deal with at runtime.
+    pub fn get(&self, name: &str) -> Option<&Value> { self.values.get(name) }
+
+    /// Lookup a required named flag value. This function panics if the value is
+    /// not found, or if the flag with the given name is of the wrong type.
+    pub fn get_required(&self, name: &str) -> &str {
+        match self.values.get(name) {
+            None => panic!("Missing required flag value for '{}'", name),
+            Some(v) => match v {
+                &Value::Single(ref s) => s.as_str(),
+                _ => panic!("Flag '{}' is not a named non-boolean flag", name),
+            },
+        }
+    }
+
+    /// Lookup a required named flag value, moving the value into a new
+    /// structure of the given type. A convenience wrapper around
+    /// get_required.
+    pub fn get_required_as<T: From<String>>(&self, name: &str) -> T {
+        T::from(self.get_required(name).to_owned())
+    }
+
+    /// Lookup a required named flag value, parsing the string into the given
+    /// type. A convenience wrapper around get_required.
+    pub fn get_required_parsed<E, T: FromStr<Err = E>>(
+        &self,
+        name: &str,
+    ) -> ::std::result::Result<T, E> {
+        self.get_required(name).parse()
+    }
+
+    /// Lookup a boolean flag value. Boolean flags always have a value, since
+    /// they have an implicit default value of false. This function panics if
+    /// the value is not found, or if the flag with the given name is of the
+    /// wrong type.
+    pub fn get_boolean(&self, name: &str) -> bool {
+        match self.values.get(name) {
+            None => panic!("Missing boolean flag value for '{}'", name),
+            Some(v) => match v {
+                &Value::Boolean(b) => b,
+                _ => panic!("Flag '{}' is not a named boolean flag", name),
+            },
+        }
+    }
+
+    /// This function looks up a positional flag's values, returning the full
+    /// (possibly empty) list of values. This function panics if no associated
+    /// value list was found, or if the flag with the given name is of the wrong
+    /// type.
+    pub fn get_positional(&self, name: &str) -> &[String] {
+        match self.values.get(name) {
+            None => panic!("Missing positional flag value for '{}'", name),
+            Some(v) => match v {
+                &Value::Repeated(ref vs) => vs.as_slice(),
+                _ => panic!("Flag '{}' is not a positional flag", name),
+            },
+        }
+    }
+
+    /// This function looks up a positional flag's values, returning the only
+    /// value in the list. This is most useful for non-variadic positional
+    /// flags, which are always guaranteed to have exactly one value. This
+    /// function panics if 0 or more than 1 value was found, or if the flag with
+    /// the given name is of the wrong type.
+    pub fn get_positional_single(&self, name: &str) -> &str {
+        let vs = self.get_positional(name);
+        if vs.len() > 1 {
+            panic!(
+                "Positional flag '{}' has more than one associated value",
+                name
+            );
+        }
+
+        match vs.first() {
+            None => panic!("Positional flag '{}' has an empty list of values", name),
+            Some(v) => v.as_str(),
+        }
     }
 }
 
