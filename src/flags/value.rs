@@ -284,6 +284,18 @@ impl Values {
     /// matching is left up to the caller do deal with at runtime.
     pub fn get(&self, name: &str) -> Option<&Value> { self.values.get(name) }
 
+    /// Lookup a single optional named flag value. This function panics if the
+    /// flag has a value, but it is of the wrong type.
+    pub fn get_single(&self, name: &str) -> Option<&str> {
+        match self.values.get(name) {
+            None => None,
+            Some(v) => match v {
+                &Value::Single(ref s) => Some(s.as_str()),
+                _ => panic!("Flag '{}' is not a named non-boolean flag", name),
+            },
+        }
+    }
+
     /// Lookup a required named flag value. This function panics if the value is
     /// not found, or if the flag with the given name is of the wrong type.
     pub fn get_required(&self, name: &str) -> &str {
