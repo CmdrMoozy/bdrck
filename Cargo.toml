@@ -11,7 +11,7 @@ license = "Apache-2.0"
 chrono = "0.4"
 error-chain = "0.11"
 lazy_static = "1.0"
-log = "0.3"
+log = { version = "0.4", features = ["std"] }
 regex = "0.2"
 rmp-serde = "0.13"
 serde = "1.0"

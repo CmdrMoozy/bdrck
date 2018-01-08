@@ -14,42 +14,41 @@
 
 use chrono;
 use error::*;
-use log::{self, Log, LogLevel, LogLevelFilter, LogMetadata, LogRecord};
+use log::{set_boxed_logger, Level, LevelFilter, Log, Metadata, Record};
 use regex::Regex;
 use std::collections::HashMap;
-use std::io::{self, Write};
 use std::str::FromStr;
 
 const RUST_LOG_ENV_VAR: &'static str = "RUST_LOG";
 
-pub fn parse_log_level_filter(s: &str) -> Result<LogLevelFilter> {
+pub fn parse_log_level_filter(s: &str) -> Result<LevelFilter> {
     lazy_static! {
-        static ref STRING_MAPPING: HashMap<String, LogLevelFilter> = {
+        static ref STRING_MAPPING: HashMap<String, LevelFilter> = {
             let mut m = HashMap::new();
-            m.insert(LogLevelFilter::Off.to_string().to_lowercase(), LogLevelFilter::Off);
-            m.insert(LogLevelFilter::Error.to_string().to_lowercase(), LogLevelFilter::Error);
-            m.insert(LogLevelFilter::Warn.to_string().to_lowercase(), LogLevelFilter::Warn);
-            m.insert(LogLevelFilter::Info.to_string().to_lowercase(), LogLevelFilter::Info);
-            m.insert(LogLevelFilter::Debug.to_string().to_lowercase(), LogLevelFilter::Debug);
-            m.insert(LogLevelFilter::Trace.to_string().to_lowercase(), LogLevelFilter::Trace);
+            m.insert(LevelFilter::Off.to_string().to_lowercase(), LevelFilter::Off);
+            m.insert(LevelFilter::Error.to_string().to_lowercase(), LevelFilter::Error);
+            m.insert(LevelFilter::Warn.to_string().to_lowercase(), LevelFilter::Warn);
+            m.insert(LevelFilter::Info.to_string().to_lowercase(), LevelFilter::Info);
+            m.insert(LevelFilter::Debug.to_string().to_lowercase(), LevelFilter::Debug);
+            m.insert(LevelFilter::Trace.to_string().to_lowercase(), LevelFilter::Trace);
             m
         };
     }
 
     let normalized = s.trim().to_lowercase();
     match STRING_MAPPING.get(&normalized) {
-        None => bail!("Invalid LogLevelFilter '{}'", s),
+        None => bail!("Invalid LevelFilter '{}'", s),
         Some(f) => Ok(*f),
     }
 }
 
 pub struct LogFilter {
     pub module: Option<Regex>,
-    pub level: LogLevelFilter,
+    pub level: LevelFilter,
 }
 
 impl LogFilter {
-    pub fn max_level_for(&self, module_path: &str) -> Option<LogLevelFilter> {
+    pub fn max_level_for(&self, module_path: &str) -> Option<LevelFilter> {
         match self.module {
             None => Some(self.level),
             Some(ref module) => match module.is_match(module_path) {
@@ -84,7 +83,7 @@ impl FromStr for LogFilter {
 pub struct LogFilters(pub Vec<LogFilter>);
 
 impl LogFilters {
-    pub fn max_level_for(&self, module_path: &str) -> Option<LogLevelFilter> {
+    pub fn max_level_for(&self, module_path: &str) -> Option<LevelFilter> {
         self.0
             .iter()
             .map(|f| f.max_level_for(module_path))
@@ -127,12 +126,14 @@ fn get_env_var(key: &str) -> Result<Option<String>> {
     }
 }
 
-fn format_log_record(record: &LogRecord) -> String {
+fn format_log_record(record: &Record) -> String {
     format!(
         "[{} {}:{}] {} - {}",
         chrono::Utc::now().format("%Y-%m-%d %H:%M:%S UTC"),
-        record.location().file(),
-        record.location().line(),
+        record.file().unwrap_or("UNKNOWN_FILE"),
+        record
+            .line()
+            .map_or("UNKNOWN_LINE".to_owned(), |l| l.to_string()),
         record.level(),
         record.args()
     )
@@ -140,61 +141,61 @@ fn format_log_record(record: &LogRecord) -> String {
 
 struct Logger {
     filters: Option<LogFilters>,
-    max_level: Option<LogLevelFilter>,
+    max_level: Option<LevelFilter>,
+}
+
+impl Logger {
+    pub fn new(mut filters: Option<LogFilters>) -> Result<Logger> {
+        if filters.is_none() {
+            let filters_str: Option<String> = get_env_var(RUST_LOG_ENV_VAR)?;
+            if let Some(filters_str) = filters_str {
+                filters = Some(filters_str.parse()?);
+            }
+        }
+
+        let max_level: Option<LevelFilter> = match filters {
+            None => None,
+            Some(ref fs) => fs.0.iter().map(|f| f.level).max(),
+        };
+
+        Ok(Logger {
+            filters: filters,
+            max_level: max_level,
+        })
+    }
 }
 
 impl Log for Logger {
-    fn enabled(&self, metadata: &LogMetadata) -> bool {
-        let max_level: Option<LogLevel> =
-            self.max_level.map(|lf| lf.to_log_level()).unwrap_or(None);
+    fn enabled(&self, metadata: &Metadata) -> bool {
+        let max_level: Option<Level> = self.max_level.map(|lf| lf.to_level()).unwrap_or(None);
         match max_level {
             None => true,
             Some(level) => metadata.level() <= level,
         }
     }
 
-    fn log(&self, record: &LogRecord) {
-        let module_path: &str = record.location().module_path();
-        let max_level_filter: Option<LogLevelFilter> = self.filters
+    fn log(&self, record: &Record) {
+        let module_path: &str = record.module_path().unwrap_or("UNKNOWN_MODULE");
+        let max_level_filter: Option<LevelFilter> = self.filters
             .as_ref()
             .map(|fs| fs.max_level_for(module_path))
             .unwrap_or(None);
-        let max_level: Option<LogLevel> = max_level_filter
-            .map(|mlf| mlf.to_log_level())
-            .unwrap_or(None);
+        let max_level: Option<Level> = max_level_filter.map(|mlf| mlf.to_level()).unwrap_or(None);
 
         let enabled = match max_level {
             None => true,
             Some(level) => record.level() <= level,
         };
         if enabled {
-            writeln!(&mut io::stderr(), "{}", format_log_record(record)).unwrap();
+            eprintln!("{}", format_log_record(record));
         }
     }
+
+    fn flush(&self) {}
 }
 
-pub fn try_init(mut filters: Option<LogFilters>) -> Result<()> {
-    if filters.is_none() {
-        let filters_str: Option<String> = get_env_var(RUST_LOG_ENV_VAR)?;
-        if let Some(filters_str) = filters_str {
-            filters = Some(filters_str.parse()?);
-        }
-    }
-
-    let max_level: Option<LogLevelFilter> = match filters {
-        None => None,
-        Some(ref fs) => fs.0.iter().map(|f| f.level).max(),
-    };
-
-    Ok(log::set_logger(|level_filter| {
-        if let Some(level) = max_level {
-            level_filter.set(level);
-        }
-        Box::new(Logger {
-            filters: filters,
-            max_level: max_level,
-        })
-    })?)
+pub fn try_init(filters: Option<LogFilters>) -> Result<()> {
+    Ok(set_boxed_logger(Box::new(Logger::new(filters)?))?)
 }
 
 pub fn init(filters: Option<LogFilters>) { try_init(filters).unwrap() }
