@@ -15,8 +15,7 @@
 use configuration;
 use std::fs;
 use std::path;
-
-extern crate tempfile;
+use testing::temp;
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 struct TestConfiguration {
@@ -32,7 +31,7 @@ lazy_static! {
 
 #[test]
 fn test_persistence() {
-    let file = tempfile::NamedTempFile::new().ok().unwrap();
+    let file = temp::File::new_file().unwrap();
     let path: path::PathBuf = file.path().to_owned();
     // Remove the file: an empty file isn't a valid serialized configuration struct.
     fs::remove_file(path.as_path()).unwrap();

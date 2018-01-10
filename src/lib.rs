@@ -24,10 +24,12 @@ extern crate rmp_serde as msgpack;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
+extern crate tempdir;
 
 pub mod configuration;
 pub mod error;
 pub mod flags;
+pub mod fs;
 pub mod logging;
 pub mod testing;
 
