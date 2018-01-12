@@ -20,3 +20,12 @@ fn test_new_file_in_subdirectory() {
     let file = File::new_file_at(dir.sub_path("foo/bar/file.txt").unwrap()).unwrap();
     assert!(file.path().exists());
 }
+
+#[test]
+fn test_new_symlink_in_subdirectory() {
+    let dir = Dir::new("bdrck").unwrap();
+    let file = File::new_file_at(dir.sub_path("foo/bar/file.txt").unwrap()).unwrap();
+    let symlink =
+        File::new_symlink_at(file.path(), dir.sub_path("bar/baz/symlink.txt").unwrap()).unwrap();
+    assert!(symlink.path().exists());
+}

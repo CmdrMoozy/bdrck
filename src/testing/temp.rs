@@ -110,6 +110,9 @@ impl File {
             _dir: None,
             path: symlink.as_ref().to_path_buf(),
         };
+        if let Some(parent) = symlink.as_ref().parent() {
+            fs::create_dir_all(parent)?;
+        }
         create_symlink(target, symlink)?;
         Ok(ret)
     }
