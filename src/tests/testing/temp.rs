@@ -12,7 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#[cfg(test)]
-mod fn_instrumentation;
-#[cfg(test)]
-mod temp;
+use testing::temp::*;
+
+#[test]
+fn test_new_file_in_subdirectory() {
+    let dir = Dir::new("bdrck").unwrap();
+    let file = File::new_file_at(dir.sub_path("foo/bar/file.txt").unwrap()).unwrap();
+    assert!(file.path().exists());
+}

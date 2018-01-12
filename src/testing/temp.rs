@@ -96,6 +96,9 @@ impl File {
             _dir: None,
             path: path.as_ref().to_path_buf(),
         };
+        if let Some(parent) = path.as_ref().parent() {
+            fs::create_dir_all(parent)?;
+        }
         create_file(ret.path.as_path())?;
         Ok(ret)
     }
