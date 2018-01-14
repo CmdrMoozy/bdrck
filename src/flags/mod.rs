@@ -19,7 +19,6 @@ pub mod spec;
 pub mod value;
 
 mod help;
-mod util;
 
 // Re-export most commonly used symbols, to allow using this library with just
 // one "use".

@@ -16,12 +16,20 @@ use error::*;
 use flags::command::{Command, CommandResult};
 use flags::parse_and_execute::parse_and_execute;
 use flags::parse_and_execute::parse_and_execute_command;
-use flags::util::get_program_parameters;
 use std::env;
 use std::process;
 
 const EXIT_SUCCESS: i32 = 0;
 const EXIT_FAILURE: i32 = 1;
+
+/// Returns the current program's parameters (accessed essentialy via
+/// `std::env::args`) collected into a Vec. The 0'th parameter (the executable)
+/// is omitted.
+pub fn get_program_parameters() -> Vec<String> {
+    env::args()
+        .skip(1) // Skip the first argument, which is our executable.
+        .collect()
+}
 
 fn handle_result<E: ::std::error::Error>(r: Result<CommandResult<E>>) -> i32 {
     match r {
