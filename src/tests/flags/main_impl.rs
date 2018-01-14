@@ -12,9 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#[cfg(test)]
-mod main_impl;
-#[cfg(test)]
-mod parse_and_execute;
-#[cfg(test)]
-mod spec;
+use error::*;
+use flags::main_impl::*;
+
+#[test]
+fn test_handle_result() {
+    assert_eq!(EXIT_SUCCESS, handle_result::<Error>(Ok(Ok((())))));
+    assert_eq!(
+        EXIT_FAILURE,
+        handle_result::<Error>(Err("arbitrary internal error".into()))
+    );
+    assert_eq!(
+        EXIT_FAILURE,
+        handle_result::<Error>(Ok(Err("arbitrary command error".into())))
+    );
+}

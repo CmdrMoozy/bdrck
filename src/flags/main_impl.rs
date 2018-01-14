@@ -19,8 +19,8 @@ use flags::parse_and_execute::parse_and_execute_command;
 use std::env;
 use std::process;
 
-const EXIT_SUCCESS: i32 = 0;
-const EXIT_FAILURE: i32 = 1;
+pub const EXIT_SUCCESS: i32 = 0;
+pub const EXIT_FAILURE: i32 = 1;
 
 /// Returns the current program's parameters (accessed essentialy via
 /// `std::env::args`) collected into a Vec. The 0'th parameter (the executable)
@@ -31,7 +31,7 @@ pub fn get_program_parameters() -> Vec<String> {
         .collect()
 }
 
-fn handle_result<E: ::std::error::Error>(r: Result<CommandResult<E>>) -> i32 {
+pub fn handle_result<E: ::std::error::Error>(r: Result<CommandResult<E>>) -> i32 {
     match r {
         Ok(command_result) => match command_result {
             Ok(_) => EXIT_SUCCESS,
