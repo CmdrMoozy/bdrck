@@ -4,3 +4,6 @@
 [submodule "cpp/3rdparty/catch"]
 	path = cpp/3rdparty/catch
 	url = https://github.com/philsquared/Catch.git
+[submodule "template"]
+	path = template
+	url = https://github.com/CmdrMoozy/rust-template.git
