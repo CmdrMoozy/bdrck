@@ -36,12 +36,12 @@ pub fn handle_result<E: ::std::error::Error>(r: Result<CommandResult<E>>) -> i32
         Ok(command_result) => match command_result {
             Ok(_) => EXIT_SUCCESS,
             Err(e) => {
-                error!("{}", e);
+                eprintln!("{}", e);
                 EXIT_FAILURE
             },
         },
         Err(e) => {
-            error!("Internal error: {}", e);
+            eprintln!("Internal error: {}", e);
             EXIT_FAILURE
         },
     }
