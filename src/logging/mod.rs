@@ -12,9 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+pub mod write;
+
 use chrono;
 use error::*;
 use log::{set_boxed_logger, Level, LevelFilter, Log, Metadata, Record};
+use logging::write::*;
 use regex::Regex;
 use std::collections::HashMap;
 use std::io::Write;
@@ -139,8 +142,6 @@ fn format_log_record(record: &Record) -> String {
         record.args()
     )
 }
-
-pub type LogOutputFactory = Box<Fn() -> Box<Write> + Send + Sync>;
 
 pub struct Logger {
     filters: Option<LogFilters>,
