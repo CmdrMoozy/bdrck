@@ -130,7 +130,7 @@ fn get_env_var(key: &str) -> Result<Option<String>> {
     }
 }
 
-fn format_log_record(record: &Record) -> String {
+pub fn format_log_record(record: &Record) -> String {
     format!(
         "[{} {}:{}] {} - {}",
         chrono::Utc::now().format("%Y-%m-%d %H:%M:%S UTC"),
@@ -200,7 +200,7 @@ impl Log for Logger {
             Some(level) => record.level() <= level,
         };
         if enabled {
-            let res = write!((self.output_factory)(), "{}", format_log_record(record));
+            let res = write!((self.output_factory)(), "{}\n", format_log_record(record));
             if self.panic_on_output_failure {
                 if let Err(e) = res {
                     panic!("Failed to write log output: {}", e);

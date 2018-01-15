@@ -13,7 +13,7 @@
 // limitations under the License.
 
 use std::io::{self, Write};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, MutexGuard};
 
 pub type LogOutputFactory = Box<Fn() -> Box<Write> + Send + Sync>;
 
@@ -27,6 +27,8 @@ impl<T: Write + Send + 'static> SyncWriteAdapter<T> {
             writer: Arc::new(Mutex::new(writer)),
         }
     }
+
+    pub fn lock(&self) -> MutexGuard<T> { self.writer.lock().unwrap() }
 }
 
 impl<T: Write + Send + 'static> Write for SyncWriteAdapter<T> {

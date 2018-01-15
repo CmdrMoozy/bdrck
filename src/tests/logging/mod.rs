@@ -12,8 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use log::{Level, LevelFilter, Log, Metadata};
+use log::{Level, LevelFilter, Log, Metadata, Record};
 use logging::*;
+use logging::write::*;
+use regex::Regex;
+use std::fmt::Arguments;
 
 #[test]
 fn test_parse_log_level_filter() {
@@ -65,14 +68,66 @@ fn test_log_filters() {
     );
 }
 
+fn test_metadata(level: Level) -> Metadata<'static> { Metadata::builder().level(level).build() }
+
+fn test_record<'a>(args: Arguments<'a>, level: Level) -> Record<'a> {
+    Record::builder()
+        .args(args)
+        .metadata(test_metadata(level))
+        .level(level)
+        .target("target")
+        .module_path(Some("bdrck::tests::logging"))
+        .file(Some("logging.rs"))
+        .line(Some(1234))
+        .build()
+}
+
+// This function normalizes the output from the Logging implementation,
+// replacing things which are unpredictable in unit tests like timestamps.
+fn normalize_log_output(output: &str) -> String {
+    lazy_static! {
+        static ref DATE_REGEX: Regex = Regex::new(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} UTC").unwrap();
+    }
+    DATE_REGEX
+        .replace_all(output, "2018-01-01 12:34:56 UTC")
+        .into_owned()
+}
+
 #[test]
 fn test_logger_enabled() {
     let logger = Logger::new(Some("error".parse().unwrap()), None, false).unwrap();
-    assert!(logger.enabled(&Metadata::builder().level(Level::Error).build()));
-    assert!(!logger.enabled(&Metadata::builder().level(Level::Warn).build()));
+    assert!(logger.enabled(&test_metadata(Level::Error)));
+    assert!(!logger.enabled(&test_metadata(Level::Warn)));
 
     let logger = Logger::new(Some("info".parse().unwrap()), None, false).unwrap();
-    assert!(logger.enabled(&Metadata::builder().level(Level::Warn).build()));
-    assert!(logger.enabled(&Metadata::builder().level(Level::Info).build()));
-    assert!(!logger.enabled(&Metadata::builder().level(Level::Debug).build()));
+    assert!(logger.enabled(&test_metadata(Level::Warn)));
+    assert!(logger.enabled(&test_metadata(Level::Info)));
+    assert!(!logger.enabled(&test_metadata(Level::Debug)));
+}
+
+#[test]
+fn test_logging_output() {
+    let log_output_buffer: Vec<u8> = Vec::new();
+    let adapter = SyncWriteAdapter::new(log_output_buffer);
+    let logger = Logger::new(
+        Some("info".parse().unwrap()),
+        Some(new_log_output_factory(adapter.clone())),
+        true,
+    ).unwrap();
+
+    logger.log(&test_record(format_args!("foo"), Level::Error));
+    logger.log(&test_record(format_args!("bar"), Level::Warn));
+    logger.log(&test_record(format_args!("baz"), Level::Info));
+    logger.log(&test_record(format_args!("quux"), Level::Debug));
+    logger.log(&test_record(format_args!("oof"), Level::Trace));
+
+    let log_output = normalize_log_output(&String::from_utf8(adapter.lock().clone()).unwrap());
+    assert_eq!(
+        [
+            "[2018-01-01 12:34:56 UTC logging.rs:1234] ERROR - foo",
+            "[2018-01-01 12:34:56 UTC logging.rs:1234] WARN - bar",
+            "[2018-01-01 12:34:56 UTC logging.rs:1234] INFO - baz\n",
+        ].join("\n"),
+        log_output
+    );
 }
