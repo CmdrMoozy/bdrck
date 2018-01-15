@@ -120,6 +120,7 @@ fn test_logging_output() {
     logger.log(&test_record(format_args!("baz"), Level::Info));
     logger.log(&test_record(format_args!("quux"), Level::Debug));
     logger.log(&test_record(format_args!("oof"), Level::Trace));
+    logger.flush();
 
     let log_output = normalize_log_output(&String::from_utf8(adapter.lock().clone()).unwrap());
     assert_eq!(
