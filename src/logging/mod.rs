@@ -139,7 +139,7 @@ fn format_log_record(record: &Record) -> String {
     )
 }
 
-struct Logger {
+pub struct Logger {
     filters: Option<LogFilters>,
     max_level: Option<LevelFilter>,
 }

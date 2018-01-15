@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use log::LevelFilter;
+use log::{Level, LevelFilter, Log, Metadata};
 use logging::*;
 
 #[test]
@@ -63,4 +63,16 @@ fn test_log_filters() {
         "foo::bar::baz",
         Some(LevelFilter::Debug),
     );
+}
+
+#[test]
+fn test_logger_enabled() {
+    let logger = Logger::new(Some("error".parse().unwrap())).unwrap();
+    assert!(logger.enabled(&Metadata::builder().level(Level::Error).build()));
+    assert!(!logger.enabled(&Metadata::builder().level(Level::Warn).build()));
+
+    let logger = Logger::new(Some("info".parse().unwrap())).unwrap();
+    assert!(logger.enabled(&Metadata::builder().level(Level::Warn).build()));
+    assert!(logger.enabled(&Metadata::builder().level(Level::Info).build()));
+    assert!(!logger.enabled(&Metadata::builder().level(Level::Debug).build()));
 }
