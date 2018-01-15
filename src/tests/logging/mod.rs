@@ -67,11 +67,11 @@ fn test_log_filters() {
 
 #[test]
 fn test_logger_enabled() {
-    let logger = Logger::new(Some("error".parse().unwrap())).unwrap();
+    let logger = Logger::new(Some("error".parse().unwrap()), None, false).unwrap();
     assert!(logger.enabled(&Metadata::builder().level(Level::Error).build()));
     assert!(!logger.enabled(&Metadata::builder().level(Level::Warn).build()));
 
-    let logger = Logger::new(Some("info".parse().unwrap())).unwrap();
+    let logger = Logger::new(Some("info".parse().unwrap()), None, false).unwrap();
     assert!(logger.enabled(&Metadata::builder().level(Level::Warn).build()));
     assert!(logger.enabled(&Metadata::builder().level(Level::Info).build()));
     assert!(!logger.enabled(&Metadata::builder().level(Level::Debug).build()));

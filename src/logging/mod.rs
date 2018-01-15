@@ -17,6 +17,7 @@ use error::*;
 use log::{set_boxed_logger, Level, LevelFilter, Log, Metadata, Record};
 use regex::Regex;
 use std::collections::HashMap;
+use std::io::Write;
 use std::str::FromStr;
 
 const RUST_LOG_ENV_VAR: &'static str = "RUST_LOG";
@@ -139,13 +140,21 @@ fn format_log_record(record: &Record) -> String {
     )
 }
 
+pub type LogOutputFactory = Box<Fn() -> Box<Write> + Send + Sync>;
+
 pub struct Logger {
     filters: Option<LogFilters>,
     max_level: Option<LevelFilter>,
+    output_factory: LogOutputFactory,
+    panic_on_output_failure: bool,
 }
 
 impl Logger {
-    pub fn new(mut filters: Option<LogFilters>) -> Result<Logger> {
+    pub fn new(
+        mut filters: Option<LogFilters>,
+        output_factory: Option<LogOutputFactory>,
+        panic_on_output_failure: bool,
+    ) -> Result<Logger> {
         if filters.is_none() {
             let filters_str: Option<String> = get_env_var(RUST_LOG_ENV_VAR)?;
             if let Some(filters_str) = filters_str {
@@ -161,6 +170,9 @@ impl Logger {
         Ok(Logger {
             filters: filters,
             max_level: max_level,
+            output_factory: output_factory
+                .unwrap_or_else(|| Box::new(|| Box::new(::std::io::stderr()))),
+            panic_on_output_failure: panic_on_output_failure,
         })
     }
 }
@@ -187,15 +199,41 @@ impl Log for Logger {
             Some(level) => record.level() <= level,
         };
         if enabled {
-            eprintln!("{}", format_log_record(record));
+            let res = write!((self.output_factory)(), "{}", format_log_record(record));
+            if self.panic_on_output_failure {
+                if let Err(e) = res {
+                    panic!("Failed to write log output: {}", e);
+                }
+            }
         }
     }
 
-    fn flush(&self) {}
+    fn flush(&self) {
+        let res = (self.output_factory)().flush();
+        if self.panic_on_output_failure {
+            if let Err(e) = res {
+                panic!("Failed to flush log output: {}", e);
+            }
+        }
+    }
 }
 
-pub fn try_init(filters: Option<LogFilters>) -> Result<()> {
-    Ok(set_boxed_logger(Box::new(Logger::new(filters)?))?)
+pub fn try_init(
+    filters: Option<LogFilters>,
+    output_factory: Option<LogOutputFactory>,
+    panic_on_output_failure: bool,
+) -> Result<()> {
+    Ok(set_boxed_logger(Box::new(Logger::new(
+        filters,
+        output_factory,
+        panic_on_output_failure,
+    )?))?)
 }
 
-pub fn init(filters: Option<LogFilters>) { try_init(filters).unwrap() }
+pub fn init(
+    filters: Option<LogFilters>,
+    output_factory: Option<LogOutputFactory>,
+    panic_on_output_failure: bool,
+) {
+    try_init(filters, output_factory, panic_on_output_failure).unwrap()
+}
