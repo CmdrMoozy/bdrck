@@ -39,7 +39,7 @@ pub fn handle_result<E: ChainedError>(r: Result<CommandResult<E>>) -> i32 {
             Err(e) => {
                 eprintln!(
                     "{}",
-                    match cfg!(debug) {
+                    match cfg!(debug_assertions) {
                         false => e.to_string(),
                         true => e.display_chain().to_string(),
                     }
@@ -50,7 +50,7 @@ pub fn handle_result<E: ChainedError>(r: Result<CommandResult<E>>) -> i32 {
         Err(e) => {
             eprintln!(
                 "Flag parsing error: {}",
-                match cfg!(debug) {
+                match cfg!(debug_assertions) {
                     false => e.to_string(),
                     true => e.display_chain().to_string(),
                 }
