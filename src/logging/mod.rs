@@ -231,10 +231,30 @@ pub fn try_init(
     )?))?)
 }
 
+pub fn try_init_to<T: Write + Send + 'static>(
+    filters: Option<LogFilters>,
+    output_writer: T,
+    panic_on_output_failure: bool,
+) -> Result<()> {
+    try_init(
+        filters,
+        Some(new_log_output_factory(output_writer)),
+        panic_on_output_failure,
+    )
+}
+
 pub fn init(
     filters: Option<LogFilters>,
     output_factory: Option<LogOutputFactory>,
     panic_on_output_failure: bool,
 ) {
     try_init(filters, output_factory, panic_on_output_failure).unwrap()
+}
+
+pub fn init_to<T: Write + Send + 'static>(
+    filters: Option<LogFilters>,
+    output_writer: T,
+    panic_on_output_failure: bool,
+) {
+    try_init_to(filters, output_writer, panic_on_output_failure).unwrap()
 }
