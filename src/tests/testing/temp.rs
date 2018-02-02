@@ -12,7 +12,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::fs;
+use std::io::{Read, Write};
 use testing::temp::*;
+
+#[test]
+fn test_read_write_temp_file() {
+    let temp_file = File::new_file().unwrap();
+    let test_contents: String = "this is some arbitrary test data".to_owned();
+
+    // Write some data to the temporary file.
+    {
+        let mut file = fs::File::create(temp_file.path()).unwrap();
+        file.write_all(test_contents.as_bytes()).unwrap();
+    }
+
+    // Read the data back and make sure that works.
+    let mut file = fs::File::open(temp_file.path()).unwrap();
+    let mut read_contents = String::new();
+    file.read_to_string(&mut read_contents).unwrap();
+    assert_eq!(test_contents, read_contents);
+}
 
 #[test]
 fn test_new_file_in_subdirectory() {

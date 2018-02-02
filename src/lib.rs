@@ -19,12 +19,12 @@ extern crate error_chain;
 extern crate lazy_static;
 #[macro_use]
 extern crate log;
+extern crate rand;
 extern crate regex;
 extern crate rmp_serde as msgpack;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
-extern crate tempdir;
 
 pub mod configuration;
 pub mod error;

@@ -12,13 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#[cfg(test)]
-mod configuration;
-#[cfg(test)]
-mod fs;
-#[cfg(test)]
-mod logging;
-#[cfg(test)]
-mod flags;
-#[cfg(test)]
-mod testing;
+use fs::*;
+use testing::temp;
+
+#[test]
+fn test_create_file() {
+    let dir = temp::Dir::new("bdrck").unwrap();
+    let mut file_path = dir.path().to_path_buf();
+    file_path.push("test_file");
+    assert_eq!(file_path.file_name().unwrap(), "test_file");
+    assert!(!file_path.exists());
+    create_file(file_path.as_path()).unwrap();
+    assert!(file_path.exists());
+    assert!(file_path.is_file());
+}

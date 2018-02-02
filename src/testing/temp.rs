@@ -14,9 +14,14 @@
 
 use error::*;
 use fs::{create_file, create_symlink};
+use rand::{thread_rng, Rng};
+use std::env;
 use std::fs;
+use std::io;
 use std::path::{Path, PathBuf};
-use tempdir;
+
+const TEMP_DIR_NAME_RAND_CHARS: usize = 32;
+const TEMP_DIR_RAND_RETRIES: usize = 1024;
 
 /// A directory within the system's standard temp directory that is
 /// automatically deleted when it goes out of scope. The directory is created
@@ -27,17 +32,34 @@ use tempdir;
 /// primarily intended to be used for unit testing only (thus their placement in the testing
 /// submodule).
 pub struct Dir {
-    dir: tempdir::TempDir,
+    path: PathBuf,
 }
 
 impl Dir {
-    pub fn new(prefix: &str) -> Result<Dir> {
-        Ok(Dir {
-            dir: tempdir::TempDir::new(prefix)?,
-        })
+    pub fn new(prefix: &str) -> Result<Dir> { Dir::new_in(&env::temp_dir(), prefix) }
+
+    fn new_in<P: AsRef<Path>>(temp_dir: P, prefix: &str) -> Result<Dir> {
+        let mut rng = thread_rng();
+        for _ in 0..TEMP_DIR_RAND_RETRIES {
+            let suffix: String = rng.gen_ascii_chars()
+                .take(TEMP_DIR_NAME_RAND_CHARS)
+                .collect();
+            let name = if prefix.is_empty() {
+                suffix
+            } else {
+                format!("{}-{}", prefix, suffix)
+            };
+            let path = temp_dir.as_ref().join(&name);
+            match fs::create_dir(&path) {
+                Ok(_) => return Ok(Dir { path: path }),
+                Err(ref e) if e.kind() == io::ErrorKind::AlreadyExists => {},
+                Err(e) => return Err(e.into()),
+            }
+        }
+        bail!("Failed to find unique random temporary directory name");
     }
 
-    pub fn path(&self) -> &Path { self.dir.path() }
+    pub fn path(&self) -> &Path { self.path.as_path() }
 
     /// A convenience function which adds the given relative path to this
     /// temporary directory's absolute path.
@@ -48,12 +70,17 @@ impl Dir {
                 path.as_ref().display()
             );
         }
-        let mut buf = self.path().to_path_buf();
-        buf.push(path);
-        Ok(buf)
+        Ok(self.path.as_path().join(path))
     }
 
-    pub fn close(self) -> Result<()> { Ok(self.dir.close()?) }
+    fn close_impl(&self) -> Result<()> { Ok(fs::remove_dir_all(&self.path)?) }
+
+    pub fn close(self) -> Result<()> { self.close_impl() }
+}
+
+impl Drop for Dir {
+    #[allow(unused_must_use)]
+    fn drop(&mut self) { self.close_impl(); }
 }
 
 /// A file within the system's standard temp directory that is automatically
