@@ -30,5 +30,7 @@ impl FnInstrumentation {
         *data += 1;
     }
 
-    pub fn get_call_count(&self) -> u64 { *self.call_count.lock().unwrap() }
+    pub fn get_call_count(&self) -> u64 {
+        *self.call_count.lock().unwrap()
+    }
 }

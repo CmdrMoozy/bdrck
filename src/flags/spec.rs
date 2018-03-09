@@ -145,7 +145,9 @@ impl Spec {
 
     /// Returns true if this Spec describes a named flag. This is equivalent to
     /// !is_positional().
-    pub fn is_named(&self) -> bool { !self.is_positional() }
+    pub fn is_named(&self) -> bool {
+        !self.is_positional()
+    }
 
     /// Returns true if this Spec describes a flag which has a default value
     /// (that is, one which we will still store a value for even if it does not
@@ -200,13 +202,19 @@ impl Spec {
     }
 
     /// Returns this flag's full name (i.e., not the short name).
-    pub fn get_name(&self) -> &str { self.name.as_str() }
+    pub fn get_name(&self) -> &str {
+        self.name.as_str()
+    }
 
     /// Returns this flag's short name, if it has one.
-    pub fn get_short_name(&self) -> Option<char> { self.short_name.clone() }
+    pub fn get_short_name(&self) -> Option<char> {
+        self.short_name.clone()
+    }
 
     /// Returns the human-readable help text for this flag.
-    pub fn get_help(&self) -> &str { self.help.as_str() }
+    pub fn get_help(&self) -> &str {
+        self.help.as_str()
+    }
 
     /// Returns the default value for this Type::Required Spec, or None if it
     /// either is some other type of Spec or does not have a default value.
@@ -250,7 +258,9 @@ impl Specs {
     }
 
     /// Returns an Iterator over the Spec structures this Specs contains.
-    pub fn iter(&self) -> ::std::slice::Iter<Spec> { self.specs.iter() }
+    pub fn iter(&self) -> ::std::slice::Iter<Spec> {
+        self.specs.iter()
+    }
 
     /// Given an iterator over a collection of Specs, locate the first Spec
     /// which matches the given name. The given name might either be a short

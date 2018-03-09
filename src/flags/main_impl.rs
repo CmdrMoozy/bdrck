@@ -45,7 +45,7 @@ pub fn handle_result<E: ChainedError>(r: Result<CommandResult<E>>) -> i32 {
                     }
                 );
                 EXIT_FAILURE
-            },
+            }
         },
         Err(e) => {
             eprintln!(
@@ -56,7 +56,7 @@ pub fn handle_result<E: ChainedError>(r: Result<CommandResult<E>>) -> i32 {
                 }
             );
             EXIT_FAILURE
-        },
+        }
     }
 }
 

@@ -79,7 +79,7 @@ impl FromStr for LogFilter {
                     module: Some(Regex::new(&re)?),
                     level: parse_log_level_filter(&s[eq_pos + 1..])?,
                 })
-            },
+            }
         }
     }
 }
@@ -125,7 +125,7 @@ fn get_env_var(key: &str) -> Result<Option<String>> {
             ::std::env::VarError::NotPresent => Ok(None),
             ::std::env::VarError::NotUnicode(_) => {
                 bail!("Environment variable '{}' not valid unicode", key)
-            },
+            }
         },
     }
 }

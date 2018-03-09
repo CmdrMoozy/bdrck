@@ -28,7 +28,9 @@ impl<T: Write + Send + 'static> SyncWriteAdapter<T> {
         }
     }
 
-    pub fn lock(&self) -> MutexGuard<T> { self.writer.lock().unwrap() }
+    pub fn lock(&self) -> MutexGuard<T> {
+        self.writer.lock().unwrap()
+    }
 }
 
 impl<T: Write + Send + 'static> Write for SyncWriteAdapter<T> {

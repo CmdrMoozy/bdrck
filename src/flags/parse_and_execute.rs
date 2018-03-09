@@ -46,7 +46,7 @@ fn parse_and_execute_impl<E, W: Write>(
                 print_command_name,
             )?;
             return Err(e);
-        },
+        }
     };
 
     Ok(command.execute(values))

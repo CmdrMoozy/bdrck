@@ -89,7 +89,7 @@ fn deserialize<T: Clone + DeserializeOwned>(path: &PathBuf, default: &T) -> Resu
         Ok(file) => {
             let mut deserializer = Deserializer::new(file);
             Ok(Deserialize::deserialize(&mut deserializer)?)
-        },
+        }
         Err(error) => match error.kind() {
             io::ErrorKind::NotFound => Ok(default.clone()),
             _ => Err(Error::from(error)),
@@ -115,11 +115,17 @@ impl<T: Clone + Serialize + DeserializeOwned> Configuration<T> {
         })
     }
 
-    pub fn get(&self) -> &T { &self.current }
+    pub fn get(&self) -> &T {
+        &self.current
+    }
 
-    pub fn set(&mut self, config: T) { self.current = config }
+    pub fn set(&mut self, config: T) {
+        self.current = config
+    }
 
-    pub fn reset(&mut self) { self.current = self.default.clone() }
+    pub fn reset(&mut self) {
+        self.current = self.default.clone()
+    }
 
     pub fn persist(&self) -> Result<()> {
         use std::io::Write;

@@ -43,7 +43,9 @@ impl<'a, E> Command<'a, E> {
         }
     }
 
-    pub fn execute(&mut self, values: Values) -> CommandResult<E> { self.callback.as_mut()(values) }
+    pub fn execute(&mut self, values: Values) -> CommandResult<E> {
+        self.callback.as_mut()(values)
+    }
 }
 
 impl<'a, E> fmt::Debug for Command<'a, E> {
@@ -58,7 +60,9 @@ impl<'a, E> fmt::Debug for Command<'a, E> {
 }
 
 impl<'a, E> PartialEq for Command<'a, E> {
-    fn eq(&self, other: &Self) -> bool { self.name == other.name }
+    fn eq(&self, other: &Self) -> bool {
+        self.name == other.name
+    }
 }
 
 /// Look up by name the command indicated by the first element of the given

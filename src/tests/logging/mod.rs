@@ -68,7 +68,9 @@ fn test_log_filters() {
     );
 }
 
-fn test_metadata(level: Level) -> Metadata<'static> { Metadata::builder().level(level).build() }
+fn test_metadata(level: Level) -> Metadata<'static> {
+    Metadata::builder().level(level).build()
+}
 
 fn test_record<'a>(args: Arguments<'a>, level: Level) -> Record<'a> {
     Record::builder()

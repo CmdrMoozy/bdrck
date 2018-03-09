@@ -234,7 +234,7 @@ impl<'a, 'b, I: Iterator<Item = &'b String>> Iterator for ValueIterator<'a, 'b, 
                         values.push(value.clone());
                     }
                     Some(Ok((spec.name, Value::Repeated(values))))
-                },
+                }
             },
         }
     }
@@ -282,7 +282,9 @@ impl Values {
     /// Looks up a generic flag value, which may or may not be present. This
     /// function is guaranteed not to panic, but error handling and type
     /// matching is left up to the caller do deal with at runtime.
-    pub fn get(&self, name: &str) -> Option<&Value> { self.values.get(name) }
+    pub fn get(&self, name: &str) -> Option<&Value> {
+        self.values.get(name)
+    }
 
     /// Lookup a single optional named flag value. This function panics if the
     /// flag has a value, but it is of the wrong type.
@@ -374,7 +376,9 @@ impl Values {
 }
 
 impl From<HashMap<String, Value>> for Values {
-    fn from(values: HashMap<String, Value>) -> Self { Values { values: values } }
+    fn from(values: HashMap<String, Value>) -> Self {
+        Values { values: values }
+    }
 }
 
 impl FromIterator<(String, Value)> for Values {

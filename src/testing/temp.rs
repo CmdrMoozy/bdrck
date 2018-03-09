@@ -36,7 +36,9 @@ pub struct Dir {
 }
 
 impl Dir {
-    pub fn new(prefix: &str) -> Result<Dir> { Dir::new_in(&env::temp_dir(), prefix) }
+    pub fn new(prefix: &str) -> Result<Dir> {
+        Dir::new_in(&env::temp_dir(), prefix)
+    }
 
     fn new_in<P: AsRef<Path>>(temp_dir: P, prefix: &str) -> Result<Dir> {
         let mut rng = thread_rng();
@@ -52,14 +54,16 @@ impl Dir {
             let path = temp_dir.as_ref().join(&name);
             match fs::create_dir(&path) {
                 Ok(_) => return Ok(Dir { path: path }),
-                Err(ref e) if e.kind() == io::ErrorKind::AlreadyExists => {},
+                Err(ref e) if e.kind() == io::ErrorKind::AlreadyExists => {}
                 Err(e) => return Err(e.into()),
             }
         }
         bail!("Failed to find unique random temporary directory name");
     }
 
-    pub fn path(&self) -> &Path { self.path.as_path() }
+    pub fn path(&self) -> &Path {
+        self.path.as_path()
+    }
 
     /// A convenience function which adds the given relative path to this
     /// temporary directory's absolute path.
@@ -73,14 +77,20 @@ impl Dir {
         Ok(self.path.as_path().join(path))
     }
 
-    fn close_impl(&self) -> Result<()> { Ok(fs::remove_dir_all(&self.path)?) }
+    fn close_impl(&self) -> Result<()> {
+        Ok(fs::remove_dir_all(&self.path)?)
+    }
 
-    pub fn close(self) -> Result<()> { self.close_impl() }
+    pub fn close(self) -> Result<()> {
+        self.close_impl()
+    }
 }
 
 impl Drop for Dir {
     #[allow(unused_must_use)]
-    fn drop(&mut self) { self.close_impl(); }
+    fn drop(&mut self) {
+        self.close_impl();
+    }
 }
 
 /// A file within the system's standard temp directory that is automatically
@@ -144,14 +154,22 @@ impl File {
         Ok(ret)
     }
 
-    pub fn path(&self) -> &Path { self.path.as_path() }
+    pub fn path(&self) -> &Path {
+        self.path.as_path()
+    }
 
-    fn close_impl(&self) -> Result<()> { Ok(fs::remove_file(self.path.as_path())?) }
+    fn close_impl(&self) -> Result<()> {
+        Ok(fs::remove_file(self.path.as_path())?)
+    }
 
-    pub fn close(self) -> Result<()> { self.close_impl() }
+    pub fn close(self) -> Result<()> {
+        self.close_impl()
+    }
 }
 
 impl Drop for File {
     #[allow(unused_must_use)]
-    fn drop(&mut self) { self.close_impl(); }
+    fn drop(&mut self) {
+        self.close_impl();
+    }
 }
