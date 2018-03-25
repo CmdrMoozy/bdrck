@@ -13,6 +13,7 @@
 // limitations under the License.
 
 use net::*;
+use std::net::IpAddr;
 
 #[test]
 fn test_increment_ip() {
@@ -126,6 +127,38 @@ fn test_ip_net_bit_order() {
 }
 
 #[test]
+fn test_ip_net_netmask() {
+    assert_eq!(
+        "255.255.0.0".parse::<IpAddr>().unwrap(),
+        "10.10.0.0/16".parse::<IpNet>().unwrap().netmask()
+    );
+    assert_eq!(
+        "255.255.255.0".parse::<IpAddr>().unwrap(),
+        "10.10.0.0/24".parse::<IpNet>().unwrap().netmask()
+    );
+    assert_eq!(
+        "255.255.240.0".parse::<IpAddr>().unwrap(),
+        "10.10.0.0/20".parse::<IpNet>().unwrap().netmask()
+    );
+}
+
+#[test]
+fn test_ip_net_broadcast() {
+    assert_eq!(
+        "10.10.255.255".parse::<IpAddr>().unwrap(),
+        "10.10.0.0/16".parse::<IpNet>().unwrap().broadcast()
+    );
+    assert_eq!(
+        "10.10.10.255".parse::<IpAddr>().unwrap(),
+        "10.10.10.0/24".parse::<IpNet>().unwrap().broadcast()
+    );
+    assert_eq!(
+        "172.31.255.255".parse::<IpAddr>().unwrap(),
+        "172.16.0.0/12".parse::<IpNet>().unwrap().broadcast()
+    );
+}
+
+#[test]
 fn test_ip_net_contains() {
     assert_eq!(
         true,
@@ -152,5 +185,17 @@ fn test_ip_net_first_address() {
     assert_eq!(
         Some("10.10.0.1".parse().unwrap()),
         "10.10.0.0/16".parse::<IpNet>().unwrap().first()
+    );
+}
+
+#[test]
+fn test_ip_net_last_address() {
+    assert_eq!(
+        "10.10.10.254".parse::<IpAddr>().unwrap(),
+        "10.10.10.0/24".parse::<IpNet>().unwrap().last()
+    );
+    assert_eq!(
+        "10.10.255.254".parse::<IpAddr>().unwrap(),
+        "10.10.0.0/16".parse::<IpNet>().unwrap().last()
     );
 }

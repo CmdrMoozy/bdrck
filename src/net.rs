@@ -158,26 +158,39 @@ impl<'de> Deserialize<'de> for HardwareAddr {
 /// any bits which are not "1" bits in the given mask. The mask should always
 /// be 16-bytes long, and the given IP address should already have been
 /// converted to an IPv6-compatible address (the caller should convert it back).
-fn apply_ip_mask_bytes(ip: &mut [u8], mask: &[u8]) {
+///
+/// If "set" is true, then the behavior changes: bitwise OR instead of bitwise
+/// AND, the behavior described above.
+fn apply_ip_mask_bytes(ip: &mut [u8], mask: &[u8], set: bool) {
     debug_assert!(ip.len() == mask.len());
     for (byte, mask) in ip.iter_mut().zip(mask.iter()) {
-        *byte &= *mask;
+        if set {
+            *byte |= *mask;
+        } else {
+            *byte &= *mask;
+        }
     }
 }
 
 /// Apply the given mask to the given IP address, turning off any bits in the IP
 /// address which are not "1" bits in the mask, returning the modified copy.
-fn apply_ip_mask(ip: &IpAddr, mask: &[u8]) -> IpAddr {
+///
+/// If "set" is true, then the behavior changes: bitwise OR instead of bitwise
+/// AND, the behavior described above.
+fn apply_ip_mask(ip: &IpAddr, mask: &[u8], set: bool) -> IpAddr {
     debug_assert!(mask.len() == 16);
     let mut bytes: [u8; 16] = match ip {
         &IpAddr::V4(ip) => ip.to_ipv6_compatible().octets(),
         &IpAddr::V6(ip) => ip.octets(),
     };
-    apply_ip_mask_bytes(&mut bytes, mask);
+    apply_ip_mask_bytes(&mut bytes, mask, set);
     let masked_ip = Ipv6Addr::from(bytes);
     match ip.is_ipv4() {
         false => IpAddr::V6(masked_ip),
-        true => IpAddr::V4(masked_ip.to_ipv4().unwrap()),
+        true => {
+            let bytes = masked_ip.octets();
+            IpAddr::V4(Ipv4Addr::new(bytes[12], bytes[13], bytes[14], bytes[15]))
+        }
     }
 }
 
@@ -228,15 +241,48 @@ impl IpNet {
             .fold(true, |acc, byte| acc && (*byte == 0x00_u8))
     }
 
+    /// Return the netmask IP address for this network.
+    pub fn netmask(&self) -> IpAddr {
+        apply_ip_mask(&self.ip, &self.mask, true)
+    }
+
+    /// Return the broadcast IP address for this network.
+    pub fn broadcast(&self) -> IpAddr {
+        let mut brd_mask = self.mask.clone();
+        for byte in brd_mask.iter_mut() {
+            *byte = !*byte;
+        }
+        apply_ip_mask(&self.ip, &brd_mask, true)
+    }
+
     /// Return whether or not the given IP address is contained within this
     /// network.
     pub fn contains(&self, ip: &IpAddr) -> bool {
-        apply_ip_mask(ip, &self.mask) == self.ip
+        apply_ip_mask(ip, &self.mask, false) == self.ip
     }
 
     /// Return the first IP address which falls within this network.
     pub fn first(&self) -> Option<IpAddr> {
         increment_ip(&self.ip)
+    }
+
+    /// Return the last non-broadcast IP address which falls within this
+    /// network.
+    pub fn last(&self) -> IpAddr {
+        match self.broadcast() {
+            IpAddr::V4(ip) => {
+                let mut bytes = ip.octets();
+                let idx = bytes.len() - 1;
+                bytes[idx] -= 1;
+                Ipv4Addr::from(bytes).into()
+            }
+            IpAddr::V6(ip) => {
+                let mut bytes = ip.octets();
+                let idx = bytes.len() - 1;
+                bytes[idx] -= 1;
+                Ipv6Addr::from(bytes).into()
+            }
+        }
     }
 }
 
@@ -296,7 +342,7 @@ impl FromStr for IpNet {
         }
 
         Ok(IpNet {
-            ip: apply_ip_mask(&ip, &mask),
+            ip: apply_ip_mask(&ip, &mask, false),
             mask: mask,
         })
     }
