@@ -9,6 +9,7 @@ license = "Apache-2.0"
 
 [dependencies]
 chrono = "0.4"
+data-encoding = "2.1"
 error-chain = "0.11"
 lazy_static = "1.0"
 log = { version = "0.4", features = ["std"] }

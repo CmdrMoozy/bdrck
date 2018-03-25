@@ -14,11 +14,14 @@
 
 error_chain! {
     foreign_links {
-        Decode(::msgpack::decode::Error);
-        Encode(::msgpack::encode::Error);
+        DataDecode(::data_encoding::DecodeError);
         EnvVar(::std::env::VarError);
         Fmt(::std::fmt::Error);
         Io(::std::io::Error);
+        MsgDecode(::msgpack::decode::Error);
+        MsgEncode(::msgpack::encode::Error);
+        ParseInt(::std::num::ParseIntError);
+        ParseIpAddr(::std::net::AddrParseError);
         Regex(::regex::Error);
         SetLog(::log::SetLoggerError);
     }

@@ -13,6 +13,7 @@
 // limitations under the License.
 
 extern crate chrono;
+extern crate data_encoding;
 #[macro_use]
 extern crate error_chain;
 #[macro_use]
@@ -31,6 +32,7 @@ pub mod error;
 pub mod flags;
 pub mod fs;
 pub mod logging;
+pub mod net;
 pub mod testing;
 
 #[cfg(test)]
