@@ -15,6 +15,23 @@
 use net::*;
 
 #[test]
+fn test_increment_ip() {
+    assert_eq!(
+        Some("10.0.0.1".parse().unwrap()),
+        increment_ip(&"10.0.0.0".parse().unwrap())
+    );
+    assert_eq!(
+        Some("10.10.10.11".parse().unwrap()),
+        increment_ip(&"10.10.10.10".parse().unwrap())
+    );
+    assert_eq!(
+        Some("10.0.1.0".parse().unwrap()),
+        increment_ip(&"10.0.0.255".parse().unwrap())
+    );
+    assert_eq!(None, increment_ip(&"255.255.255.255".parse().unwrap()));
+}
+
+#[test]
 fn test_hardware_addr_string_round_trip() {
     assert_eq!(
         "0c:c4:7a:7f:b6:32",
@@ -105,5 +122,35 @@ fn test_ip_net_bit_order() {
             .parse::<IpNet>()
             .unwrap()
             .get_mask()
+    );
+}
+
+#[test]
+fn test_ip_net_contains() {
+    assert_eq!(
+        true,
+        "10.10.10.0/24"
+            .parse::<IpNet>()
+            .unwrap()
+            .contains(&"10.10.10.123".parse().unwrap())
+    );
+    assert_eq!(
+        false,
+        "10.10.10.0/24"
+            .parse::<IpNet>()
+            .unwrap()
+            .contains(&"10.10.0.123".parse().unwrap())
+    );
+}
+
+#[test]
+fn test_ip_net_first_address() {
+    assert_eq!(
+        Some("10.10.10.1".parse().unwrap()),
+        "10.10.10.0/24".parse::<IpNet>().unwrap().first()
+    );
+    assert_eq!(
+        Some("10.10.0.1".parse().unwrap()),
+        "10.10.0.0/16".parse::<IpNet>().unwrap().first()
     );
 }

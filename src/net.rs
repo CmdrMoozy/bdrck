@@ -18,7 +18,7 @@ use serde::de::{Deserialize, Deserializer, Unexpected, Visitor};
 use serde::ser::{Serialize, Serializer};
 use std::fmt;
 use std::marker::PhantomData;
-use std::net::{IpAddr, Ipv6Addr};
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 use std::str::FromStr;
 
 struct ParseableVisitor<T: FromStr<Err = Error>> {
@@ -47,6 +47,42 @@ impl<T: FromStr<Err = Error>> Default for ParseableVisitor<T> {
     fn default() -> Self {
         ParseableVisitor {
             phantom: PhantomData,
+        }
+    }
+}
+
+fn increment_ip_bytes(bytes: &mut [u8]) {
+    for byte in bytes.iter_mut().rev() {
+        match byte.checked_add(1) {
+            None => *byte = 0,
+            Some(new_byte) => {
+                *byte = new_byte;
+                return;
+            }
+        }
+    }
+}
+
+/// Returns the IP address which immediately follows the given IP address. If
+/// the increment overflowed (i.e., the given input IP was already the largest
+/// possible IP address), None is returned instead.
+pub fn increment_ip(ip: &IpAddr) -> Option<IpAddr> {
+    match ip {
+        &IpAddr::V4(ip) => {
+            let mut bytes: [u8; 4] = ip.octets();
+            increment_ip_bytes(&mut bytes);
+            if bytes.iter().fold(true, |acc, byte| acc && *byte == 0) {
+                return None;
+            }
+            Some(Ipv4Addr::from(bytes).into())
+        }
+        &IpAddr::V6(ip) => {
+            let mut bytes: [u8; 16] = ip.octets();
+            increment_ip_bytes(&mut bytes);
+            if bytes.iter().fold(true, |acc, byte| acc && *byte == 0) {
+                return None;
+            }
+            Some(Ipv6Addr::from(bytes).into())
         }
     }
 }
@@ -190,6 +226,17 @@ impl IpNet {
             .iter()
             .skip(first_zero_bit + 1)
             .fold(true, |acc, byte| acc && (*byte == 0x00_u8))
+    }
+
+    /// Return whether or not the given IP address is contained within this
+    /// network.
+    pub fn contains(&self, ip: &IpAddr) -> bool {
+        apply_ip_mask(ip, &self.mask) == self.ip
+    }
+
+    /// Return the first IP address which falls within this network.
+    pub fn first(&self) -> Option<IpAddr> {
+        increment_ip(&self.ip)
     }
 }
 
