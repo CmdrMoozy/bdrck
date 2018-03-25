@@ -1,5 +1,7 @@
 # Bdrck
 
+[![Build Status](https://travis-ci.org/CmdrMoozy/pwm.svg?branch=master)](https://travis-ci.org/CmdrMoozy/pwm) [![Coverage Status](https://coveralls.io/repos/github/CmdrMoozy/pwm/badge.svg?branch=master)](https://coveralls.io/github/CmdrMoozy/pwm?branch=master)
+
 Bdrck is a crate containing generic common utilities. In particular, it has several top-level modules which provide various functionality:
 
 | Module        | Description                        |
