@@ -18,6 +18,7 @@ use serde::de::{Deserialize, Deserializer, Unexpected, Visitor};
 use serde::ser::{Serialize, Serializer};
 use std::fmt;
 use std::marker::PhantomData;
+use std::net::{IpAddr, Ipv6Addr};
 use std::str::FromStr;
 
 struct ParseableVisitor<T: FromStr<Err = Error>> {
@@ -114,5 +115,154 @@ impl Serialize for HardwareAddr {
 impl<'de> Deserialize<'de> for HardwareAddr {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> ::std::result::Result<Self, D::Error> {
         deserializer.deserialize_str(ParseableVisitor::<HardwareAddr>::default())
+    }
+}
+
+/// Modify the given IP address in-place, using the given mask, by turning off
+/// any bits which are not "1" bits in the given mask. The mask should always
+/// be 16-bytes long, and the given IP address should already have been
+/// converted to an IPv6-compatible address (the caller should convert it back).
+fn apply_ip_mask_bytes(ip: &mut [u8], mask: &[u8]) {
+    debug_assert!(ip.len() == mask.len());
+    for (byte, mask) in ip.iter_mut().zip(mask.iter()) {
+        *byte &= *mask;
+    }
+}
+
+/// Apply the given mask to the given IP address, turning off any bits in the IP
+/// address which are not "1" bits in the mask, returning the modified copy.
+fn apply_ip_mask(ip: &IpAddr, mask: &[u8]) -> IpAddr {
+    debug_assert!(mask.len() == 16);
+    let mut bytes: [u8; 16] = match ip {
+        &IpAddr::V4(ip) => ip.to_ipv6_compatible().octets(),
+        &IpAddr::V6(ip) => ip.octets(),
+    };
+    apply_ip_mask_bytes(&mut bytes, mask);
+    let masked_ip = Ipv6Addr::from(bytes);
+    match ip.is_ipv4() {
+        false => IpAddr::V6(masked_ip),
+        true => IpAddr::V4(masked_ip.to_ipv4().unwrap()),
+    }
+}
+
+/// An IpNet represents an IP network. Networks are typically identified in CIDR
+/// notation, like (for example) "192.0.0.0/24".
+#[derive(Clone, Copy, Debug, Hash, Eq, PartialEq)]
+pub struct IpNet {
+    ip: IpAddr,
+    mask: [u8; 16],
+}
+
+impl IpNet {
+    /// Return the network IP. This address will have been normalized, such that
+    /// any non-masked bits will have been turned off during construction.
+    pub fn get_ip(&self) -> &IpAddr {
+        &self.ip
+    }
+
+    /// Return the network mask, as a byte slice. This slice will always be 16
+    /// bytes long, even if this is an IPv4 network.
+    pub fn get_mask(&self) -> &[u8] {
+        &self.mask
+    }
+
+    /// Returns the number of "1" bits in this network's mask. Although the mask
+    /// is always 16 bytes long, for IPv4 networks only the last 4 bytes of the
+    /// mask are considered.
+    pub fn get_one_bits(&self) -> usize {
+        self.mask
+            .iter()
+            .skip(if self.ip.is_ipv4() { 12 } else { 0 })
+            .fold(0_u32, |acc, &b| acc + b.count_ones()) as usize
+    }
+
+    /// Returns whether or not this network's mask is "canonical" - i.e., if all
+    /// of its mask's "1" bits are contiguous (no "0" bits in-between them).
+    pub fn is_canonical(&self) -> bool {
+        let first_zero_bit = match self.mask.iter().position(|b| *b != 0xff_u8) {
+            None => return true,
+            Some(idx) => idx,
+        };
+        if self.mask[first_zero_bit].count_zeros() != self.mask[first_zero_bit].trailing_zeros() {
+            return false;
+        }
+        self.mask
+            .iter()
+            .skip(first_zero_bit + 1)
+            .fold(true, |acc, byte| acc && (*byte == 0x00_u8))
+    }
+}
+
+impl fmt::Display for IpNet {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "{}/{}",
+            self.ip,
+            match self.is_canonical() {
+                false => HEXLOWER_PERMISSIVE
+                    .encode(&self.mask)
+                    .chars()
+                    .skip(if self.ip.is_ipv4() { 24 } else { 0 })
+                    .collect::<String>(),
+                true => self.get_one_bits().to_string(),
+            }
+        )
+    }
+}
+
+impl FromStr for IpNet {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self> {
+        let (ip, mask): (&str, &str) = s.split_at(match s.find('/') {
+            None => bail!("Invalid IP network specifier '{}'", s),
+            Some(idx) => idx,
+        });
+        let ip: IpAddr = ip.parse()?;
+        let mask: &str = &mask[1..];
+
+        let mut mask_vec: Vec<u8> = vec![
+            0xff_u8;
+            match ip.is_ipv4() {
+                false => 0,
+                true => 12,
+            }
+        ];
+
+        let mask_is_hex = (ip.is_ipv4() && mask.len() == 8) || (ip.is_ipv6() && mask.len() == 32);
+        if mask_is_hex {
+            mask_vec.extend(HEXLOWER_PERMISSIVE.decode(mask.as_bytes())?.into_iter());
+        } else {
+            let ones = u8::from_str_radix(mask, 10)?;
+            let mut v = vec![0xff_u8; (ones / 8) as usize];
+            let extra_ones = ones % 8;
+            if extra_ones > 0 {
+                v.push((0xff_u8 >> (8 - extra_ones)) << (8 - extra_ones));
+            }
+            mask_vec.extend(v.into_iter());
+        }
+
+        let mut mask = [0_u8; 16];
+        for (dst, src) in mask.iter_mut().zip(mask_vec.into_iter()) {
+            *dst = src;
+        }
+
+        Ok(IpNet {
+            ip: apply_ip_mask(&ip, &mask),
+            mask: mask,
+        })
+    }
+}
+
+impl Serialize for IpNet {
+    fn serialize<S: Serializer>(&self, serializer: S) -> ::std::result::Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.to_string().as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for IpNet {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> ::std::result::Result<Self, D::Error> {
+        deserializer.deserialize_str(ParseableVisitor::<IpNet>::default())
     }
 }

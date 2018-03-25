@@ -56,3 +56,54 @@ fn test_hardware_addr_string_bit_order() {
     );
     assert_eq!("12:34:56:78:9a:bc", parsed.to_string());
 }
+
+#[test]
+fn test_ip_net_string_round_trip() {
+    assert_eq!(
+        "10.0.0.0/24",
+        "10.0.0.0/24".parse::<IpNet>().unwrap().to_string()
+    );
+    assert_eq!(
+        "10.0.0.0/14",
+        "10.0.0.0/14".parse::<IpNet>().unwrap().to_string()
+    );
+    assert_eq!(
+        "10.0.0.0/14",
+        "10.0.0.0/fffc0000".parse::<IpNet>().unwrap().to_string()
+    );
+}
+
+#[test]
+fn test_ip_net_bit_order() {
+    assert_eq!(
+        [
+            0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+            0xff, 0x00,
+        ],
+        "10.0.0.0/24".parse::<IpNet>().unwrap().get_mask()
+    );
+    assert_eq!(
+        [
+            0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xfc,
+            0x00, 0x00,
+        ],
+        "10.0.0.0/14".parse::<IpNet>().unwrap().get_mask()
+    );
+    assert_eq!(
+        [
+            0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x0a, 0x37,
+            0x50, 0x4e,
+        ],
+        "10.0.0.0/0a37504e".parse::<IpNet>().unwrap().get_mask()
+    );
+    assert_eq!(
+        [
+            0x4e, 0xd6, 0x2c, 0x4b, 0x1f, 0xb2, 0xbb, 0x41, 0x80, 0x80, 0x1d, 0xe9, 0xcf, 0x77,
+            0xd1, 0x6e,
+        ],
+        "::1/4ed62c4b1fb2bb4180801de9cf77d16e"
+            .parse::<IpNet>()
+            .unwrap()
+            .get_mask()
+    );
+}
