@@ -33,6 +33,26 @@ fn test_increment_ip() {
 }
 
 #[test]
+fn test_min_max_ip() {
+    assert_eq!(
+        Some("10.0.0.1".parse().unwrap()),
+        min_ip("10.0.0.2".parse().unwrap(), "10.0.0.1".parse().unwrap())
+    );
+    assert_eq!(
+        Some("10.0.0.2".parse().unwrap()),
+        max_ip("10.0.0.2".parse().unwrap(), "10.0.0.1".parse().unwrap())
+    );
+    assert_eq!(
+        None,
+        min_ip("10.0.0.1".parse().unwrap(), "::1".parse().unwrap())
+    );
+    assert_eq!(
+        None,
+        max_ip("10.0.0.1".parse().unwrap(), "::1".parse().unwrap())
+    );
+}
+
+#[test]
 fn test_hardware_addr_string_round_trip() {
     assert_eq!(
         "0c:c4:7a:7f:b6:32",
