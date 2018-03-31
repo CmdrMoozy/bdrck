@@ -19,17 +19,17 @@ use std::net::IpAddr;
 fn test_increment_ip() {
     assert_eq!(
         Some("10.0.0.1".parse().unwrap()),
-        increment_ip(&"10.0.0.0".parse().unwrap())
+        increment_ip("10.0.0.0".parse().unwrap())
     );
     assert_eq!(
         Some("10.10.10.11".parse().unwrap()),
-        increment_ip(&"10.10.10.10".parse().unwrap())
+        increment_ip("10.10.10.10".parse().unwrap())
     );
     assert_eq!(
         Some("10.0.1.0".parse().unwrap()),
-        increment_ip(&"10.0.0.255".parse().unwrap())
+        increment_ip("10.0.0.255".parse().unwrap())
     );
-    assert_eq!(None, increment_ip(&"255.255.255.255".parse().unwrap()));
+    assert_eq!(None, increment_ip("255.255.255.255".parse().unwrap()));
 }
 
 #[test]
@@ -165,14 +165,14 @@ fn test_ip_net_contains() {
         "10.10.10.0/24"
             .parse::<IpNet>()
             .unwrap()
-            .contains(&"10.10.10.123".parse().unwrap())
+            .contains("10.10.10.123".parse().unwrap())
     );
     assert_eq!(
         false,
         "10.10.10.0/24"
             .parse::<IpNet>()
             .unwrap()
-            .contains(&"10.10.0.123".parse().unwrap())
+            .contains("10.10.0.123".parse().unwrap())
     );
 }
 
