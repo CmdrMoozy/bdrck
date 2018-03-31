@@ -154,36 +154,33 @@ impl<'de> Deserialize<'de> for HardwareAddr {
     }
 }
 
-/// Modify the given IP address in-place, using the given mask, by turning off
-/// any bits which are not "1" bits in the given mask. The mask should always
-/// be 16-bytes long, and the given IP address should already have been
-/// converted to an IPv6-compatible address (the caller should convert it back).
-///
-/// If "set" is true, then the behavior changes: bitwise OR instead of bitwise
-/// AND, the behavior described above.
-fn apply_ip_mask_bytes(ip: &mut [u8], mask: &[u8], set: bool) {
+/// Apply the given mask to the given IP address bytes. See IpNet::apply_mask
+/// for details on behavior.
+fn apply_ip_mask_bytes(ip: &mut [u8], mask: &[u8], invert: bool, set: bool) {
     debug_assert!(ip.len() == mask.len());
-    for (byte, mask) in ip.iter_mut().zip(mask.iter()) {
+    for (b, m) in ip.iter_mut().zip(mask.iter()) {
+        let m: u8 = match invert {
+            false => *m,
+            true => !*m,
+        };
+
         if set {
-            *byte |= *mask;
+            *b |= m;
         } else {
-            *byte &= *mask;
+            *b &= m;
         }
     }
 }
 
-/// Apply the given mask to the given IP address, turning off any bits in the IP
-/// address which are not "1" bits in the mask, returning the modified copy.
-///
-/// If "set" is true, then the behavior changes: bitwise OR instead of bitwise
-/// AND, the behavior described above.
-fn apply_ip_mask(ip: IpAddr, mask: &[u8], set: bool) -> IpAddr {
+/// Apply the given mask to the given IP address. See IpNet::apply_mask for
+/// details on behavior.
+fn apply_ip_mask(ip: IpAddr, mask: &[u8], invert: bool, set: bool) -> IpAddr {
     debug_assert!(mask.len() == 16);
     let mut bytes: [u8; 16] = match ip {
         IpAddr::V4(ip) => ip.to_ipv6_compatible().octets(),
         IpAddr::V6(ip) => ip.octets(),
     };
-    apply_ip_mask_bytes(&mut bytes, mask, set);
+    apply_ip_mask_bytes(&mut bytes, mask, invert, set);
     let masked_ip = Ipv6Addr::from(bytes);
     match ip.is_ipv4() {
         false => IpAddr::V6(masked_ip),
@@ -215,6 +212,24 @@ impl IpNet {
         &self.mask
     }
 
+    /// Apply this network's mask to the given IP address, returning the
+    /// modified copy.
+    ///
+    /// The "default" behavior is when invert=false and set=false. In this
+    /// case, any bits which are "0" in the mask are turned off in the given
+    /// IP address' bytes.
+    ///
+    /// If invert=true, then each bit in the mask is flipped before it is
+    /// applied - in other words, we apply the inverse mask.
+    ///
+    /// If set=true, then we switch from bitwise AND to bitwise OR, meaning
+    /// instead of the behavior described above, any bits which are "1" in the
+    /// mask are turned *on* in the IP address, and other bits are left
+    /// unchanged.
+    pub fn apply_mask(&self, ip: IpAddr, invert: bool, set: bool) -> IpAddr {
+        apply_ip_mask(ip, &self.mask, invert, set)
+    }
+
     /// Returns the number of "1" bits in this network's mask. Although the mask
     /// is always 16 bytes long, for IPv4 networks only the last 4 bytes of the
     /// mask are considered.
@@ -243,22 +258,18 @@ impl IpNet {
 
     /// Return the netmask IP address for this network.
     pub fn netmask(&self) -> IpAddr {
-        apply_ip_mask(self.ip, &self.mask, true)
+        self.apply_mask(self.ip, false, true)
     }
 
     /// Return the broadcast IP address for this network.
     pub fn broadcast(&self) -> IpAddr {
-        let mut brd_mask = self.mask.clone();
-        for byte in brd_mask.iter_mut() {
-            *byte = !*byte;
-        }
-        apply_ip_mask(self.ip, &brd_mask, true)
+        self.apply_mask(self.ip, true, true)
     }
 
     /// Return whether or not the given IP address is contained within this
     /// network.
     pub fn contains(&self, ip: IpAddr) -> bool {
-        apply_ip_mask(ip, &self.mask, false) == self.ip
+        self.apply_mask(ip, false, false) == self.ip
     }
 
     /// Return the first IP address which falls within this network.
@@ -342,7 +353,7 @@ impl FromStr for IpNet {
         }
 
         Ok(IpNet {
-            ip: apply_ip_mask(ip, &mask, false),
+            ip: apply_ip_mask(ip, &mask, false, false),
             mask: mask,
         })
     }
