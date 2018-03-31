@@ -165,14 +165,42 @@ fn test_ip_net_contains() {
         "10.10.10.0/24"
             .parse::<IpNet>()
             .unwrap()
-            .contains("10.10.10.123".parse().unwrap())
+            .contains("10.10.10.123".parse().unwrap(), false)
     );
     assert_eq!(
         false,
         "10.10.10.0/24"
             .parse::<IpNet>()
             .unwrap()
-            .contains("10.10.0.123".parse().unwrap())
+            .contains("10.10.0.123".parse().unwrap(), false)
+    );
+    assert_eq!(
+        true,
+        "10.10.10.0/24"
+            .parse::<IpNet>()
+            .unwrap()
+            .contains("10.10.10.0".parse().unwrap(), false)
+    );
+    assert_eq!(
+        false,
+        "10.10.10.0/24"
+            .parse::<IpNet>()
+            .unwrap()
+            .contains("10.10.10.0".parse().unwrap(), true)
+    );
+    assert_eq!(
+        true,
+        "10.10.10.0/24"
+            .parse::<IpNet>()
+            .unwrap()
+            .contains("10.10.10.255".parse().unwrap(), false)
+    );
+    assert_eq!(
+        false,
+        "10.10.10.0/24"
+            .parse::<IpNet>()
+            .unwrap()
+            .contains("10.10.10.255".parse().unwrap(), true)
     );
 }
 

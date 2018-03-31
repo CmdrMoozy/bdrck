@@ -267,9 +267,30 @@ impl IpNet {
     }
 
     /// Return whether or not the given IP address is contained within this
-    /// network.
-    pub fn contains(&self, ip: IpAddr) -> bool {
-        self.apply_mask(ip, false, false) == self.ip
+    /// network. If strict=true, then the "network address" and "broadcast
+    /// address" are both not considered to be "within" this network (this is
+    /// useful if you want to check if the given IP address is actually usable
+    /// for a host on the network).
+    pub fn contains(&self, ip: IpAddr, strict: bool) -> bool {
+        let contains = self.apply_mask(ip, false, false) == self.ip;
+        match strict {
+            false => contains,
+            true => contains && ip != self.ip && ip != self.broadcast(),
+        }
+    }
+
+    /// Increment the given IP address as if with increment_ip(), but returning
+    /// None if the resulting IP address does not lie within this network. The
+    /// "strict" parameter behaves as IpNet::contains() describes.
+    pub fn increment_in(&self, ip: IpAddr, strict: bool) -> Option<IpAddr> {
+        let next_ip = match increment_ip(ip) {
+            None => return None,
+            Some(ip) => ip,
+        };
+        match self.contains(next_ip, strict) {
+            false => None,
+            true => Some(next_ip),
+        }
     }
 
     /// Return the first IP address which falls within this network.
