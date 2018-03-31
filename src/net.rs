@@ -16,6 +16,7 @@ use data_encoding::HEXLOWER_PERMISSIVE;
 use error::*;
 use serde::de::{Deserialize, Deserializer, Unexpected, Visitor};
 use serde::ser::{Serialize, Serializer};
+use std::cmp::Ordering;
 use std::fmt;
 use std::marker::PhantomData;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
@@ -84,6 +85,46 @@ pub fn increment_ip(ip: IpAddr) -> Option<IpAddr> {
             }
             Some(Ipv6Addr::from(bytes).into())
         }
+    }
+}
+
+/// Compare the two given IP addresses, returning the ordering between them. If
+/// the given IP addresses are not of the same type (V4/V6), returns None
+/// instead.
+pub fn compare_ips(a: IpAddr, b: IpAddr) -> Option<Ordering> {
+    Some(match a {
+        IpAddr::V4(a) => match b {
+            IpAddr::V4(b) => a.cmp(&b),
+            IpAddr::V6(_) => return None,
+        },
+        IpAddr::V6(a) => match b {
+            IpAddr::V4(_) => return None,
+            IpAddr::V6(b) => a.cmp(&b),
+        },
+    })
+}
+
+/// Return the smaller of the two IP addresses, or None if they cannot be
+/// compared (see compare_ips).
+pub fn min_ip(a: IpAddr, b: IpAddr) -> Option<IpAddr> {
+    match compare_ips(a, b) {
+        None => None,
+        Some(ordering) => Some(match ordering {
+            Ordering::Greater => b,
+            _ => a,
+        }),
+    }
+}
+
+/// Return the larger of the two IP addresses, or None if they cannot be
+/// compared (see compare_ips).
+pub fn max_ip(a: IpAddr, b: IpAddr) -> Option<IpAddr> {
+    match compare_ips(a, b) {
+        None => None,
+        Some(ordering) => Some(match ordering {
+            Ordering::Less => b,
+            _ => a,
+        }),
     }
 }
 
