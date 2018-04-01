@@ -8,6 +8,7 @@ Bdrck is a crate containing generic common utilities. In particular, it has seve
 | ------------- | ---------------------------------- |
 | configuration | Application configuration tooling. |
 | flags         | Command-line flag parsing.         |
+| fs            | Filesystem utilities.              |
 | logging       | Log message formatting utilities.  |
 | net           | Networking utilities / types.      |
 | testing       | Unit testing utilities.            |
