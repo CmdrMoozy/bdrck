@@ -13,7 +13,16 @@
 // limitations under the License.
 
 use fs::*;
+use std::path::PathBuf;
 use testing::temp;
+
+#[test]
+fn test_path_bytes_round_trip() {
+    let expected_path = PathBuf::from("/tmp/test_path");
+    let bytes = path_to_bytes(expected_path.as_path()).unwrap();
+    let path = path_from_bytes(bytes).unwrap();
+    assert_eq!(expected_path, path);
+}
 
 #[test]
 fn test_create_file() {
