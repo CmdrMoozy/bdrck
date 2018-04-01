@@ -14,10 +14,12 @@
 
 extern crate chrono;
 extern crate data_encoding;
+extern crate errno;
 #[macro_use]
 extern crate error_chain;
 #[macro_use]
 extern crate lazy_static;
+extern crate libc;
 #[macro_use]
 extern crate log;
 extern crate rand;

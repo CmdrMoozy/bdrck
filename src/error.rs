@@ -20,6 +20,7 @@ error_chain! {
         Io(::std::io::Error);
         MsgDecode(::msgpack::decode::Error);
         MsgEncode(::msgpack::encode::Error);
+        Nul(::std::ffi::NulError);
         ParseInt(::std::num::ParseIntError);
         ParseIpAddr(::std::net::AddrParseError);
         Regex(::regex::Error);
