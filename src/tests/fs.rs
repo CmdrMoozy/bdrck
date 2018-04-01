@@ -65,3 +65,20 @@ fn test_create_symlink() {
     );
     assert_eq!(TEST_CONTENTS, contents.as_str());
 }
+
+#[test]
+fn test_set_permissions_mode() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let temp_file = temp::File::new_file().unwrap();
+    set_permissions_mode(temp_file.path(), 0o444).unwrap();
+    assert_eq!(
+        0o444,
+        fs::metadata(temp_file.path()).unwrap().permissions().mode() & 0x1FF
+    );
+    set_permissions_mode(temp_file.path(), 0o666).unwrap();
+    assert_eq!(
+        0o666,
+        fs::metadata(temp_file.path()).unwrap().permissions().mode() & 0x1FF
+    );
+}
