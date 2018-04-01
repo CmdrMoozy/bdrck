@@ -13,6 +13,8 @@
 // limitations under the License.
 
 use fs::*;
+use std::fs::{self, File};
+use std::io::{Read, Write};
 use std::path::PathBuf;
 use testing::temp;
 
@@ -34,4 +36,32 @@ fn test_create_file() {
     create_file(file_path.as_path()).unwrap();
     assert!(file_path.exists());
     assert!(file_path.is_file());
+}
+
+#[test]
+fn test_create_symlink() {
+    const TEST_CONTENTS: &'static str = "this is a test";
+
+    let dir = temp::Dir::new("bdrck").unwrap();
+
+    let file_path = dir.path().join("test_file");
+    let mut f = File::create(&file_path).unwrap();
+    f.write_all(TEST_CONTENTS.as_bytes()).unwrap();
+    f.flush().unwrap();
+
+    let symlink_path = dir.path().join("test_symlink");
+    create_symlink(&file_path, &symlink_path).unwrap();
+    assert!(
+        fs::symlink_metadata(&symlink_path)
+            .unwrap()
+            .file_type()
+            .is_symlink()
+    );
+    let mut contents = String::new();
+    let mut f = File::open(&symlink_path).unwrap();
+    assert_eq!(
+        TEST_CONTENTS.len(),
+        f.read_to_string(&mut contents).unwrap()
+    );
+    assert_eq!(TEST_CONTENTS, contents.as_str());
 }
