@@ -203,76 +203,6 @@ std::string resolvePath(std::string const &p)
 	return normalizePath(resolved.string());
 }
 
-std::string combinePaths(std::string const &a, std::string const &b)
-{
-	if(a.length() == 0)
-		return b;
-
-	auto aEnd = a.find_last_not_of("\\/");
-	auto bStart = b.find_first_not_of("\\/");
-
-	std::ostringstream oss;
-	if(aEnd != std::string::npos)
-	{
-		// If a is not an empty string or the root directory, add it
-		// to the result (excluding the last /, if any).
-		oss << a.substr(0, aEnd + 1);
-	}
-
-	if(a.length() > 0)
-	{
-		// If a was nonempty, add a slash to separate a from b.
-		oss << "/";
-	}
-
-	// If b wasn't just a "/", then append it to the result.
-	if(bStart != std::string::npos)
-		oss << b.substr(bStart);
-
-	return oss.str();
-}
-
-std::string combinePaths(std::vector<std::string> const &c)
-{
-	if(c.empty())
-		return "";
-	if(c.size() == 1)
-		return *c.begin();
-	std::string ret = combinePaths(c[0], c[1]);
-	for(std::size_t i = 2; i < c.size(); ++i)
-		ret = combinePaths(ret, c[i]);
-	return ret;
-}
-
-std::string combinePaths(std::string const &a,
-                         std::vector<std::string> const &c)
-{
-	std::vector<std::string> components;
-	components.reserve(c.size() + 1);
-	components.emplace_back(a);
-	for(auto const &component : c)
-		components.emplace_back(component);
-	return combinePaths(components);
-}
-
-std::string dirname(std::string const &p)
-{
-	std::string path = normalizePath(p);
-	std::string::size_type lastSeparator = path.find_last_of('/');
-	if(lastSeparator == std::string::npos)
-		return path;
-	return path.substr(0, lastSeparator);
-}
-
-std::string basename(std::string const &p)
-{
-	std::string path = normalizePath(p);
-	std::string::size_type lastSeparator = path.find_last_of('/');
-	if(lastSeparator == std::string::npos)
-		return path;
-	return path.substr(lastSeparator + 1);
-}
-
 std::string commonParentPath(std::vector<std::string> const &paths)
 {
 	if(paths.empty())
@@ -320,45 +250,6 @@ std::vector<std::string> glob(std::string const &pattern)
 	return paths;
 }
 
-bool exists(const std::string &p)
-{
-	struct stat stats;
-	int ret = stat(p.c_str(), &stats);
-	return ret == 0;
-}
-
-bool isFile(std::string const &p)
-{
-	boost::system::error_code ec;
-	bool ret = boost::filesystem::is_regular_file(p, ec);
-	if(ec)
-	{
-		if(ec.value() == boost::system::errc::no_such_file_or_directory)
-		{
-			return false;
-		}
-
-		throw std::runtime_error(ec.message());
-	}
-	return ret;
-}
-
-bool isDirectory(std::string const &p)
-{
-	boost::system::error_code ec;
-	bool ret = boost::filesystem::is_directory(p, ec);
-	if(ec)
-	{
-		if(ec.value() == boost::system::errc::no_such_file_or_directory)
-		{
-			return false;
-		}
-
-		throw std::runtime_error(ec.message());
-	}
-	return ret;
-}
-
 bool isExecutable(std::string const &p)
 {
 #ifdef _WIN32
@@ -368,20 +259,6 @@ bool isExecutable(std::string const &p)
 	int ret = access(p.c_str(), X_OK);
 	return ret == 0;
 #endif
-}
-
-void createFile(std::string const &p)
-{
-	std::ofstream out(p, std::ios_base::ate | std::ios_base::out);
-}
-
-std::uintmax_t fileSize(std::string const &p)
-{
-	struct stat stats;
-	int ret = stat(p.c_str(), &stats);
-	if(ret != 0)
-		bdrck::util::error::throwErrnoError();
-	return static_cast<std::uintmax_t>(stats.st_size);
 }
 
 FilesystemTime lastWriteTime(std::string const &p)
@@ -471,104 +348,6 @@ void lastWriteTime(std::string const &p, FilesystemTime const &t)
 #endif
 }
 
-void copyFile(std::string const &src, std::string const &dst)
-{
-	std::ofstream out(dst, std::ios_base::out | std::ios_base::binary |
-	                               std::ios_base::trunc);
-	std::ifstream in(src, std::ios_base::in | std::ios_base::binary);
-
-	std::istreambuf_iterator<char> inBegin(in);
-	std::istreambuf_iterator<char> inEnd;
-	std::ostreambuf_iterator<char> outBegin(out);
-	std::copy(inBegin, inEnd, outBegin);
-}
-
-std::string readEntireFile(std::string const &p)
-{
-	std::ostringstream out;
-	std::ifstream in(p, std::ios_base::in | std::ios_base::binary);
-
-	std::istreambuf_iterator<char> inBegin(in);
-	std::istreambuf_iterator<char> inEnd;
-	std::ostreambuf_iterator<char> outBegin(out);
-	std::copy(inBegin, inEnd, outBegin);
-
-	return out.str();
-}
-
-void removeFile(std::string const &p)
-{
-	if(!exists(p))
-		return;
-	if(!isFile(p))
-	{
-		throw std::runtime_error(
-		        "Cannot remove non-file paths with this function.");
-	}
-	int ret = std::remove(p.c_str());
-	if(ret != 0)
-		throw std::runtime_error("Removing file failed.");
-}
-
-void createDirectory(std::string const &p)
-{
-	boost::system::error_code ec;
-	boost::filesystem::create_directory(p);
-	if(ec)
-		throw std::runtime_error(ec.message());
-}
-
-void removeDirectory(std::string const &p, bool recursive)
-{
-	if(recursive)
-	{
-		boost::system::error_code ec;
-		boost::filesystem::remove_all(p, ec);
-		if(ec)
-			throw std::runtime_error(ec.message());
-	}
-	else
-	{
-		boost::system::error_code ec;
-		boost::filesystem::remove(p, ec);
-		if(ec)
-			throw std::runtime_error(ec.message());
-	}
-}
-
-void createPath(const std::string &p)
-{
-	std::vector<std::string> components =
-	        bdrck::algorithm::string::split(normalizePath(p), '/');
-	std::string currentPath = "/";
-
-	for(const auto &component : components)
-	{
-		currentPath = combinePaths(currentPath, component);
-		if(isDirectory(currentPath))
-			continue;
-		if(!exists(currentPath))
-		{
-			createDirectory(currentPath);
-		}
-		else
-		{
-			throw std::runtime_error("Create path failed because "
-			                         "some path component already "
-			                         "exists and is not a "
-			                         "directory.");
-		}
-	}
-}
-
-void createSymlink(std::string const &target, std::string const &link)
-{
-	boost::system::error_code ec;
-	boost::filesystem::create_symlink(target, link, ec);
-	if(ec)
-		throw std::runtime_error(ec.message());
-}
-
 std::string getCurrentExecutable()
 {
 #ifdef _WIN32
@@ -587,29 +366,6 @@ std::string getCurrentExecutable()
 std::string getCurrentDirectory()
 {
 	return dirname(getCurrentExecutable());
-}
-
-std::string getTemporaryDirectoryPath()
-{
-#ifdef _WIN32
-	std::vector<TCHAR> buffer(MAX_PATH + 1);
-	DWORD length =
-	        GetTempPath(static_cast<DWORD>(buffer.size()), buffer.data());
-	return resolvePath(bdrck::util::tstrToStdString(
-	        buffer.data(), static_cast<std::size_t>(length)));
-#else
-	std::string path("/tmp");
-
-	char const *tmpdir = std::getenv("TMPDIR");
-	if(tmpdir != nullptr)
-	{
-		std::string tmpdirStr(tmpdir);
-		if(isDirectory(tmpdirStr))
-			path = tmpdirStr;
-	}
-
-	return path;
-#endif
 }
 
 std::string

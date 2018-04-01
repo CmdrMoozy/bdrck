@@ -8,8 +8,6 @@ set(bdrck-test_SOURCES
 	config/UtilTest.cpp
 
 	fs/IteratorTest.cpp
-	fs/TemporaryStorageTest.cpp
-	fs/UtilTest.cpp
 
 	git/CommitTest.cpp
 	git/IndexTest.cpp

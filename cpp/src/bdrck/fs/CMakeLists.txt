@@ -4,10 +4,6 @@ set(bdrck-fs_SOURCES
 	ExclusiveFileLock.hpp
 	Iterator.cpp
 	Iterator.hpp
-	TemporaryStorage.cpp
-	TemporaryStorage.hpp
-	Util.cpp
-	Util.hpp
 
 )
 
