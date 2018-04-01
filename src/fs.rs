@@ -156,6 +156,6 @@ pub fn set_ownership<P: AsRef<Path>>(
 /// Windows there is no concept of file ownership, so this function is a
 /// no-op.
 #[cfg(target_os = "windows")]
-pub fn set_ownership<P: AsRef<Path>>(_: P, _: u32, _: u32, _: bool) -> Result<()> {
+pub fn set_ownership<P: AsRef<Path>>(_: P, _: u32, _: u32, _: bool, _: bool) -> Result<()> {
     Ok(())
 }
