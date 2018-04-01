@@ -12,11 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use errno;
 use error::*;
 use libc;
-use std::ffi::OsString;
+use std::ffi::{CString, OsString};
 use std::fs::{self, Permissions};
 use std::path::{Path, PathBuf};
+use std::ptr;
 
 /// Returns the given Path as a byte vector. This function may be useful for
 /// some kinds of serialization, or for calling C functions.
@@ -159,5 +161,116 @@ pub fn set_ownership<P: AsRef<Path>>(
 /// no-op.
 #[cfg(target_os = "windows")]
 pub fn set_ownership<P: AsRef<Path>>(_: P, _: u32, _: u32, _: bool, _: bool) -> Result<()> {
+    Ok(())
+}
+
+/// Returns the UNIX uid for the user with the given name.
+#[cfg(not(target_os = "windows"))]
+fn lookup_uid(name: &str) -> Result<u32> {
+    let mut passwd = libc::passwd {
+        pw_name: ptr::null_mut(),
+        pw_passwd: ptr::null_mut(),
+        pw_uid: 0,
+        pw_gid: 0,
+        pw_gecos: ptr::null_mut(),
+        pw_dir: ptr::null_mut(),
+        pw_shell: ptr::null_mut(),
+    };
+    let mut passwd_ptr: *mut libc::passwd = ptr::null_mut();
+    let cname = CString::new(name)?;
+    let buf_len = unsafe { libc::sysconf(libc::_SC_GETPW_R_SIZE_MAX) } as usize;
+    let mut buf = vec![0_i8; buf_len];
+    let ret = unsafe {
+        libc::getpwnam_r(
+            cname.as_ptr(),
+            &mut passwd,
+            buf.as_mut_ptr(),
+            buf_len,
+            &mut passwd_ptr,
+        )
+    };
+    if passwd_ptr.is_null() {
+        if ret == 0 || ret == libc::ENOENT || ret == libc::ESRCH || ret == libc::EBADF
+            || ret == libc::EPERM
+        {
+            bail!(
+                "Failed to lookup UID for '{}': The given user name was not found",
+                name
+            );
+        } else {
+            bail!("Failed to lookup UID for '{}': {}", name, errno::Errno(ret));
+        }
+    }
+    Ok(passwd.pw_uid)
+}
+
+/// Returns the UNIX gid for the group with the given name.
+#[cfg(not(target_os = "windows"))]
+fn lookup_gid(name: &str) -> Result<u32> {
+    let mut group = libc::group {
+        gr_name: ptr::null_mut(),
+        gr_passwd: ptr::null_mut(),
+        gr_gid: 0,
+        gr_mem: ptr::null_mut(),
+    };
+    let mut group_ptr: *mut libc::group = ptr::null_mut();
+    let cname = CString::new(name)?;
+    let buf_len = unsafe { libc::sysconf(libc::_SC_GETGR_R_SIZE_MAX) } as usize;
+    let mut buf = vec![0_i8; buf_len];
+    let ret = unsafe {
+        libc::getgrnam_r(
+            cname.as_ptr(),
+            &mut group,
+            buf.as_mut_ptr(),
+            buf_len,
+            &mut group_ptr,
+        )
+    };
+    if group_ptr.is_null() {
+        if ret == 0 || ret == libc::ENOENT || ret == libc::ESRCH || ret == libc::EBADF
+            || ret == libc::EPERM
+        {
+            bail!(
+                "Failed to lookup GID for '{}': The given group name was not found",
+                name
+            );
+        } else {
+            bail!("Failed to lookup GID for '{}': {}", name, errno::Errno(ret));
+        }
+    }
+    Ok(group.gr_gid)
+}
+
+/// Set the user and group ownership of a file or directory. This is a
+/// convenience wrapper around `set_ownership` which allows the user and group
+/// to be specified by name instead of by ID.
+#[cfg(not(target_os = "windows"))]
+pub fn set_ownership_by_name<P: AsRef<Path>>(
+    path: P,
+    user: &str,
+    group: &str,
+    fail_on_access_denied: bool,
+    follow: bool,
+) -> Result<()> {
+    set_ownership(
+        path,
+        lookup_uid(user)?,
+        lookup_gid(group)?,
+        fail_on_access_denied,
+        follow,
+    )
+}
+
+/// Set the user and group ownership of a file or directory. This is a
+/// convenience wrapper around `set_ownership` which allows the user and group
+/// to be specified by name instead of by ID.
+#[cfg(target_os = "windows")]
+pub fn set_ownership_by_name<P: AsRef<Path>>(
+    _: P,
+    _: &str,
+    _: &str,
+    _: bool,
+    _: bool,
+) -> Result<()> {
     Ok(())
 }
