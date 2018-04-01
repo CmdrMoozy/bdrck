@@ -13,6 +13,7 @@
 // limitations under the License.
 
 use error::*;
+use libc;
 use std::ffi::OsString;
 use std::fs::{self, Permissions};
 use std::path::{Path, PathBuf};
@@ -139,10 +140,11 @@ pub fn set_ownership<P: AsRef<Path>>(
 
     if ret == -1 {
         let error = errno();
-        if error.0 == libc::EACCES && !fail_on_access_denied {
+        if (error.0 == libc::EACCES || error.0 == libc::EPERM) && !fail_on_access_denied {
             warn!(
-                "Failed to change ownership of '{}': access denied",
-                path.as_ref().display()
+                "Failed to change ownership of '{}': {}",
+                path.as_ref().display(),
+                error
             );
         } else {
             bail!(error.to_string());
