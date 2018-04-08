@@ -97,11 +97,21 @@ fn normalize_log_output(output: &str) -> String {
 
 #[test]
 fn test_logger_enabled() {
-    let logger = Logger::new(Some("error".parse().unwrap()), None, false).unwrap();
+    let logger = Logger::new(
+        OptionsBuilder::new()
+            .set_filters("error".parse().unwrap())
+            .build()
+            .unwrap(),
+    );
     assert!(logger.enabled(&test_metadata(Level::Error)));
     assert!(!logger.enabled(&test_metadata(Level::Warn)));
 
-    let logger = Logger::new(Some("info".parse().unwrap()), None, false).unwrap();
+    let logger = Logger::new(
+        OptionsBuilder::new()
+            .set_filters("info".parse().unwrap())
+            .build()
+            .unwrap(),
+    );
     assert!(logger.enabled(&test_metadata(Level::Warn)));
     assert!(logger.enabled(&test_metadata(Level::Info)));
     assert!(!logger.enabled(&test_metadata(Level::Debug)));
@@ -112,10 +122,13 @@ fn test_logging_output() {
     let log_output_buffer: Vec<u8> = Vec::new();
     let adapter = SyncWriteAdapter::new(log_output_buffer);
     let logger = Logger::new(
-        Some("info".parse().unwrap()),
-        Some(new_log_output_factory(adapter.clone())),
-        true,
-    ).unwrap();
+        OptionsBuilder::new()
+            .set_filters("info".parse().unwrap())
+            .set_output_to(adapter.clone())
+            .set_panic_on_output_failure(true)
+            .build()
+            .unwrap(),
+    );
 
     logger.log(&test_record(format_args!("foo"), Level::Error));
     logger.log(&test_record(format_args!("bar"), Level::Warn));
