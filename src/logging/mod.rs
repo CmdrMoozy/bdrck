@@ -123,6 +123,11 @@ pub struct Options {
     /// defaults to the value of the RUST_LOG environment variable. If that is
     /// also unspecified, then by default all logging statements are enabled.
     pub filters: Option<LogFilters>,
+    /// The global maximum enabled logging level. This is basically the highest
+    /// level configured in any of `filters`, or `LevelFilter::Trace` by default
+    /// (meaning that all log messages are enabled, if no filters are
+    /// specified).
+    pub max_level: Level,
     /// Where to write log output to. If unspecified, defaults to stderr.
     pub output_factory: LogOutputFactory,
     /// Whether or not a log output (or flush) failure should result in a panic.
@@ -180,14 +185,26 @@ impl OptionsBuilder {
     }
 
     pub fn build(self) -> Result<Options> {
-        Ok(Options {
-            filters: match self.filters {
-                None => match get_env_var(RUST_LOG_ENV_VAR)? {
-                    None => None,
-                    Some(filters_str) => Some(filters_str.parse()?),
-                },
-                Some(filters) => Some(filters),
+        let filters: Option<LogFilters> = match self.filters {
+            None => match get_env_var(RUST_LOG_ENV_VAR)? {
+                None => None,
+                Some(filters_str) => Some(filters_str.parse()?),
             },
+            Some(filters) => Some(filters),
+        };
+        let max_level: Level = match filters {
+            None => Level::Trace,
+            Some(ref filters) => filters
+                .0
+                .iter()
+                .filter_map(|f| f.level.to_level())
+                .max()
+                .unwrap_or(Level::Trace),
+        };
+
+        Ok(Options {
+            filters: filters,
+            max_level: max_level,
             output_factory: self.output_factory
                 .unwrap_or_else(|| Box::new(|| Box::new(::std::io::stderr()))),
             panic_on_output_failure: self.panic_on_output_failure.unwrap_or(false),
@@ -223,30 +240,17 @@ pub fn format_log_record(record: &Record) -> String {
 
 pub struct Logger {
     options: Options,
-    max_level: Option<LevelFilter>,
 }
 
 impl Logger {
     pub fn new(options: Options) -> Self {
-        let max_level: Option<LevelFilter> = match options.filters {
-            None => None,
-            Some(ref fs) => fs.0.iter().map(|f| f.level).max(),
-        };
-
-        Logger {
-            options: options,
-            max_level: max_level,
-        }
+        Logger { options: options }
     }
 }
 
 impl Log for Logger {
     fn enabled(&self, metadata: &Metadata) -> bool {
-        let max_level: Option<Level> = self.max_level.map(|lf| lf.to_level()).unwrap_or(None);
-        match max_level {
-            None => true,
-            Some(level) => metadata.level() <= level,
-        }
+        metadata.level() <= self.options.max_level
     }
 
     fn log(&self, record: &Record) {
