@@ -47,11 +47,19 @@ pub fn parse_log_level_filter(s: &str) -> Result<LevelFilter> {
 }
 
 pub struct LogFilter {
+    /// This LogFilter is intended to be applied to any modules which match this
+    /// regular expression. If this field is None instead, then this LogFilter
+    /// should be applied to *all* modules.
     pub module: Option<Regex>,
+
+    /// The LevelFilter which should be applied to matching modules.
     pub level: LevelFilter,
 }
 
 impl LogFilter {
+    /// The LevelFilter this LogFilter applies to the given module. If this
+    /// LogFilter does not match the given module, then None is returned
+    /// instead.
     pub fn max_level_for(&self, module_path: &str) -> Option<LevelFilter> {
         match self.module {
             None => Some(self.level),
@@ -87,6 +95,9 @@ impl FromStr for LogFilter {
 pub struct LogFilters(pub Vec<LogFilter>);
 
 impl LogFilters {
+    /// Returns the LevelFilter which should be applied to the given module. If
+    /// no LogFilter entries apply to the given module, None is returned
+    /// instead.
     pub fn max_level_for(&self, module_path: &str) -> Option<LevelFilter> {
         self.0
             .iter()
