@@ -66,6 +66,8 @@ fn test_log_filters() {
         "foo::bar::baz",
         Some(LevelFilter::Debug),
     );
+    assert_log_filters_level("main=info;main=debug", "main", Some(LevelFilter::Info));
+    assert_log_filters_level("main=debug;main=info", "main", Some(LevelFilter::Info));
 }
 
 fn test_metadata(level: Level) -> Metadata<'static> {
