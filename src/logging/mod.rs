@@ -118,6 +118,71 @@ impl FromStr for LogFilters {
     }
 }
 
+pub struct Options {
+    /// Filters controlling which log statements are enabled. If unspecified,
+    /// defaults to the value of the RUST_LOG environment variable. If that is
+    /// also unspecified, then by default all logging statements are enabled.
+    pub filters: Option<LogFilters>,
+    /// Where to write log output to. If unspecified, defaults to stderr.
+    pub output_factory: LogOutputFactory,
+    /// Whether or not a log output (or flush) failure should result in a panic.
+    /// Panicing is the "safest" option in some sense, but the default behavior
+    /// is to silently ignore failures (under the assumption that most of the
+    /// time users will want the application to continue working even if it
+    /// can't produce log output).
+    pub panic_on_output_failure: bool,
+}
+
+pub struct OptionsBuilder {
+    filters: Option<LogFilters>,
+    output_factory: Option<LogOutputFactory>,
+    panic_on_output_failure: Option<bool>,
+}
+
+impl OptionsBuilder {
+    pub fn new() -> Self {
+        OptionsBuilder {
+            filters: None,
+            output_factory: None,
+            panic_on_output_failure: None,
+        }
+    }
+
+    pub fn set_filters(mut self, filters: LogFilters) -> Self {
+        self.filters = Some(filters);
+        self
+    }
+
+    pub fn set_output_factory(mut self, output_factory: LogOutputFactory) -> Self {
+        self.output_factory = Some(output_factory);
+        self
+    }
+
+    pub fn set_output_to<T: Write + Send + 'static>(self, output_writer: T) -> Self {
+        self.set_output_factory(new_log_output_factory(output_writer))
+    }
+
+    pub fn set_panic_on_output_failure(mut self, panic_on_output_failure: bool) -> Self {
+        self.panic_on_output_failure = Some(panic_on_output_failure);
+        self
+    }
+
+    pub fn build(self) -> Result<Options> {
+        Ok(Options {
+            filters: match self.filters {
+                None => match get_env_var(RUST_LOG_ENV_VAR)? {
+                    None => None,
+                    Some(filters_str) => Some(filters_str.parse()?),
+                },
+                Some(filters) => Some(filters),
+            },
+            output_factory: self.output_factory
+                .unwrap_or_else(|| Box::new(|| Box::new(::std::io::stderr()))),
+            panic_on_output_failure: self.panic_on_output_failure.unwrap_or(false),
+        })
+    }
+}
+
 fn get_env_var(key: &str) -> Result<Option<String>> {
     match ::std::env::var(key) {
         Ok(v) => Ok(Some(v)),
@@ -144,37 +209,21 @@ pub fn format_log_record(record: &Record) -> String {
 }
 
 pub struct Logger {
-    filters: Option<LogFilters>,
+    options: Options,
     max_level: Option<LevelFilter>,
-    output_factory: LogOutputFactory,
-    panic_on_output_failure: bool,
 }
 
 impl Logger {
-    pub fn new(
-        mut filters: Option<LogFilters>,
-        output_factory: Option<LogOutputFactory>,
-        panic_on_output_failure: bool,
-    ) -> Result<Logger> {
-        if filters.is_none() {
-            let filters_str: Option<String> = get_env_var(RUST_LOG_ENV_VAR)?;
-            if let Some(filters_str) = filters_str {
-                filters = Some(filters_str.parse()?);
-            }
-        }
-
-        let max_level: Option<LevelFilter> = match filters {
+    pub fn new(options: Options) -> Self {
+        let max_level: Option<LevelFilter> = match options.filters {
             None => None,
             Some(ref fs) => fs.0.iter().map(|f| f.level).max(),
         };
 
-        Ok(Logger {
-            filters: filters,
+        Logger {
+            options: options,
             max_level: max_level,
-            output_factory: output_factory
-                .unwrap_or_else(|| Box::new(|| Box::new(::std::io::stderr()))),
-            panic_on_output_failure: panic_on_output_failure,
-        })
+        }
     }
 }
 
@@ -189,7 +238,8 @@ impl Log for Logger {
 
     fn log(&self, record: &Record) {
         let module_path: &str = record.module_path().unwrap_or("UNKNOWN_MODULE");
-        let max_level_filter: Option<LevelFilter> = self.filters
+        let max_level_filter: Option<LevelFilter> = self.options
+            .filters
             .as_ref()
             .map(|fs| fs.max_level_for(module_path))
             .unwrap_or(None);
@@ -200,8 +250,12 @@ impl Log for Logger {
             Some(level) => record.level() <= level,
         };
         if enabled {
-            let res = write!((self.output_factory)(), "{}\n", format_log_record(record));
-            if self.panic_on_output_failure {
+            let res = write!(
+                (self.options.output_factory)(),
+                "{}\n",
+                format_log_record(record)
+            );
+            if self.options.panic_on_output_failure {
                 if let Err(e) = res {
                     panic!("Failed to write log output: {}", e);
                 }
@@ -210,8 +264,8 @@ impl Log for Logger {
     }
 
     fn flush(&self) {
-        let res = (self.output_factory)().flush();
-        if self.panic_on_output_failure {
+        let res = (self.options.output_factory)().flush();
+        if self.options.panic_on_output_failure {
             if let Err(e) = res {
                 panic!("Failed to flush log output: {}", e);
             }
@@ -219,42 +273,11 @@ impl Log for Logger {
     }
 }
 
-pub fn try_init(
-    filters: Option<LogFilters>,
-    output_factory: Option<LogOutputFactory>,
-    panic_on_output_failure: bool,
-) -> Result<()> {
-    Ok(log::set_boxed_logger(Box::new(Logger::new(
-        filters,
-        output_factory,
-        panic_on_output_failure,
-    )?))?)
+pub fn try_init(options: Options) -> Result<()> {
+    log::set_boxed_logger(Box::new(Logger::new(options)))?;
+    Ok(())
 }
 
-pub fn try_init_to<T: Write + Send + 'static>(
-    filters: Option<LogFilters>,
-    output_writer: T,
-    panic_on_output_failure: bool,
-) -> Result<()> {
-    try_init(
-        filters,
-        Some(new_log_output_factory(output_writer)),
-        panic_on_output_failure,
-    )
-}
-
-pub fn init(
-    filters: Option<LogFilters>,
-    output_factory: Option<LogOutputFactory>,
-    panic_on_output_failure: bool,
-) {
-    try_init(filters, output_factory, panic_on_output_failure).unwrap()
-}
-
-pub fn init_to<T: Write + Send + 'static>(
-    filters: Option<LogFilters>,
-    output_writer: T,
-    panic_on_output_failure: bool,
-) {
-    try_init_to(filters, output_writer, panic_on_output_failure).unwrap()
+pub fn init(options: Options) {
+    try_init(options).unwrap();
 }
