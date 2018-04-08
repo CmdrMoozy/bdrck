@@ -16,7 +16,7 @@ pub mod write;
 
 use chrono;
 use error::*;
-use log::{set_boxed_logger, Level, LevelFilter, Log, Metadata, Record};
+use log::{self, Level, LevelFilter, Log, Metadata, Record};
 use logging::write::*;
 use regex::Regex;
 use std::collections::HashMap;
@@ -224,7 +224,7 @@ pub fn try_init(
     output_factory: Option<LogOutputFactory>,
     panic_on_output_failure: bool,
 ) -> Result<()> {
-    Ok(set_boxed_logger(Box::new(Logger::new(
+    Ok(log::set_boxed_logger(Box::new(Logger::new(
         filters,
         output_factory,
         panic_on_output_failure,
