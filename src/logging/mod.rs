@@ -97,14 +97,13 @@ pub struct LogFilters(pub Vec<LogFilter>);
 impl LogFilters {
     /// Returns the LevelFilter which should be applied to the given module. If
     /// no LogFilter entries apply to the given module, None is returned
-    /// instead.
+    /// instead. If multiple LevelFilters matched the given module, then the
+    /// *lowest* (i.e., most restrictive) LevelFilter is returned.
     pub fn max_level_for(&self, module_path: &str) -> Option<LevelFilter> {
         self.0
             .iter()
-            .map(|f| f.max_level_for(module_path))
-            .filter(|l| l.is_some())
-            .next()
-            .unwrap_or(None)
+            .filter_map(|f| f.max_level_for(module_path))
+            .min()
     }
 }
 
