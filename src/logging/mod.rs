@@ -131,12 +131,18 @@ pub struct Options {
     /// time users will want the application to continue working even if it
     /// can't produce log output).
     pub panic_on_output_failure: bool,
+    /// If true, *always* call flush() after each log statement. This has a
+    /// significant negative impact on performance, but it does mean that log
+    /// statements will appear immediately, which may be useful e.g. for
+    /// debugging. By default, this feature is disabled.
+    pub always_flush: bool,
 }
 
 pub struct OptionsBuilder {
     filters: Option<LogFilters>,
     output_factory: Option<LogOutputFactory>,
     panic_on_output_failure: Option<bool>,
+    always_flush: Option<bool>,
 }
 
 impl OptionsBuilder {
@@ -145,6 +151,7 @@ impl OptionsBuilder {
             filters: None,
             output_factory: None,
             panic_on_output_failure: None,
+            always_flush: None,
         }
     }
 
@@ -167,6 +174,11 @@ impl OptionsBuilder {
         self
     }
 
+    pub fn set_always_flush(mut self, always_flush: bool) -> Self {
+        self.always_flush = Some(always_flush);
+        self
+    }
+
     pub fn build(self) -> Result<Options> {
         Ok(Options {
             filters: match self.filters {
@@ -179,6 +191,7 @@ impl OptionsBuilder {
             output_factory: self.output_factory
                 .unwrap_or_else(|| Box::new(|| Box::new(::std::io::stderr()))),
             panic_on_output_failure: self.panic_on_output_failure.unwrap_or(false),
+            always_flush: self.always_flush.unwrap_or(false),
         })
     }
 }
@@ -258,7 +271,12 @@ impl Log for Logger {
             if self.options.panic_on_output_failure {
                 if let Err(e) = res {
                     panic!("Failed to write log output: {}", e);
+                } else {
+                    return;
                 }
+            }
+            if self.options.always_flush {
+                self.flush();
             }
         }
     }
