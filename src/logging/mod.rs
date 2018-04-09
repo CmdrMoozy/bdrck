@@ -299,7 +299,9 @@ impl Log for Logger {
 }
 
 pub fn try_init(options: Options) -> Result<()> {
-    log::set_boxed_logger(Box::new(Logger::new(options)))?;
+    let logger = Logger::new(options);
+    log::set_max_level(logger.options.max_level);
+    log::set_boxed_logger(Box::new(logger))?;
     Ok(())
 }
 
