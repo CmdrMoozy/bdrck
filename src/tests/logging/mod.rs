@@ -41,33 +41,29 @@ fn test_parse_log_level_filter() {
     assert!(parse_log_level_filter("   ").is_err());
 }
 
-fn assert_log_filters_level(filters: &str, module_path: &str, expected_level: Option<LevelFilter>) {
+fn assert_log_filters_level(filters: &str, module_path: &str, expected_level: LevelFilter) {
     let filters: LogFilters = filters.parse().unwrap();
     assert_eq!(expected_level, filters.max_level_for(module_path));
 }
 
 #[test]
 fn test_log_filters() {
-    assert_log_filters_level("info", "main", Some(LevelFilter::Info));
+    assert_log_filters_level("info", "main", LevelFilter::Info);
     assert_log_filters_level(
         "main=info;foo::bar=debug",
         "main::submodule",
-        Some(LevelFilter::Info),
+        LevelFilter::Info,
     );
-    assert_log_filters_level("main=info;foo::bar=debug", "bar", None);
-    assert_log_filters_level("main=info;foo::bar=debug", "foo", None);
-    assert_log_filters_level(
-        "main=info;foo::bar=debug",
-        "foo::bar",
-        Some(LevelFilter::Debug),
-    );
+    assert_log_filters_level("main=info;foo::bar=debug", "bar", LevelFilter::Trace);
+    assert_log_filters_level("main=info;foo::bar=debug", "foo", LevelFilter::Trace);
+    assert_log_filters_level("main=info;foo::bar=debug", "foo::bar", LevelFilter::Debug);
     assert_log_filters_level(
         "main=info;foo::bar=debug",
         "foo::bar::baz",
-        Some(LevelFilter::Debug),
+        LevelFilter::Debug,
     );
-    assert_log_filters_level("main=info;main=debug", "main", Some(LevelFilter::Info));
-    assert_log_filters_level("main=debug;main=info", "main", Some(LevelFilter::Info));
+    assert_log_filters_level("main=info;main=debug", "main", LevelFilter::Info);
+    assert_log_filters_level("main=debug;main=info", "main", LevelFilter::Info);
 }
 
 fn test_metadata(level: Level) -> Metadata<'static> {

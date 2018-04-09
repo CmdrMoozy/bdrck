@@ -16,7 +16,7 @@ pub mod write;
 
 use chrono;
 use error::*;
-use log::{self, Level, LevelFilter, Log, Metadata, Record};
+use log::{self, LevelFilter, Log, Metadata, Record};
 use logging::write::*;
 use regex::Regex;
 use std::collections::HashMap;
@@ -96,14 +96,16 @@ pub struct LogFilters(pub Vec<LogFilter>);
 
 impl LogFilters {
     /// Returns the LevelFilter which should be applied to the given module. If
-    /// no LogFilter entries apply to the given module, None is returned
-    /// instead. If multiple LevelFilters matched the given module, then the
-    /// *lowest* (i.e., most restrictive) LevelFilter is returned.
-    pub fn max_level_for(&self, module_path: &str) -> Option<LevelFilter> {
+    /// no LogFilter entries apply to the given module, Trace is returned
+    /// instead, since logging messages are enabled by default in this library.
+    /// If multiple LevelFilters matched the given module, then the *lowest*
+    /// (i.e., most restrictive) LevelFilter is returned.
+    pub fn max_level_for(&self, module_path: &str) -> LevelFilter {
         self.0
             .iter()
             .filter_map(|f| f.max_level_for(module_path))
             .min()
+            .unwrap_or(LevelFilter::Trace)
     }
 }
 
@@ -132,7 +134,7 @@ pub struct Options {
     /// Filters controlling which log statements are enabled. If unspecified,
     /// defaults to the value of the RUST_LOG environment variable. If that is
     /// also unspecified, then by default all logging statements are enabled.
-    pub filters: Option<LogFilters>,
+    pub filters: LogFilters,
     /// The global maximum enabled logging level. This is basically the highest
     /// level configured in any of `filters`, or `LevelFilter::Trace` by default
     /// (meaning that all log messages are enabled, if no filters are
@@ -195,22 +197,19 @@ impl OptionsBuilder {
     }
 
     pub fn build(self) -> Result<Options> {
-        let filters: Option<LogFilters> = match self.filters {
+        let filters: LogFilters = match self.filters {
             None => match get_env_var(RUST_LOG_ENV_VAR)? {
-                None => None,
-                Some(filters_str) => Some(filters_str.parse()?),
+                None => LogFilters(vec![]),
+                Some(filters_str) => filters_str.parse()?,
             },
-            Some(filters) => Some(filters),
+            Some(filters) => filters,
         };
-        let max_level: LevelFilter = match filters {
-            None => LevelFilter::Trace,
-            Some(ref filters) => filters
-                .0
-                .iter()
-                .map(|f| f.level)
-                .max()
-                .unwrap_or(LevelFilter::Trace),
-        };
+        let max_level: LevelFilter = filters
+            .0
+            .iter()
+            .map(|f| f.level)
+            .max()
+            .unwrap_or(LevelFilter::Trace);
 
         Ok(Options {
             filters: filters,
@@ -264,34 +263,28 @@ impl Log for Logger {
     }
 
     fn log(&self, record: &Record) {
-        let module_path: &str = record.module_path().unwrap_or("UNKNOWN_MODULE");
-        let max_level_filter: Option<LevelFilter> = self.options
-            .filters
-            .as_ref()
-            .map(|fs| fs.max_level_for(module_path))
-            .unwrap_or(None);
-        let max_level: Option<Level> = max_level_filter.map(|mlf| mlf.to_level()).unwrap_or(None);
+        if record.level()
+            > self.options
+                .filters
+                .max_level_for(record.module_path().unwrap_or(""))
+        {
+            return;
+        }
 
-        let enabled = match max_level {
-            None => true,
-            Some(level) => record.level() <= level,
-        };
-        if enabled {
-            let res = write!(
-                (self.options.output_factory)(),
-                "{}\n",
-                format_log_record(record)
-            );
-            if self.options.panic_on_output_failure {
-                if let Err(e) = res {
-                    panic!("Failed to write log output: {}", e);
-                } else {
-                    return;
-                }
+        let res = write!(
+            (self.options.output_factory)(),
+            "{}\n",
+            format_log_record(record)
+        );
+        if self.options.panic_on_output_failure {
+            if let Err(e) = res {
+                panic!("Failed to write log output: {}", e);
+            } else {
+                return;
             }
-            if self.options.always_flush {
-                self.flush();
-            }
+        }
+        if self.options.always_flush {
+            self.flush();
         }
     }
 
