@@ -137,7 +137,7 @@ pub struct Options {
     /// level configured in any of `filters`, or `LevelFilter::Trace` by default
     /// (meaning that all log messages are enabled, if no filters are
     /// specified).
-    pub max_level: Level,
+    pub max_level: LevelFilter,
     /// Where to write log output to. If unspecified, defaults to stderr.
     pub output_factory: LogOutputFactory,
     /// Whether or not a log output (or flush) failure should result in a panic.
@@ -202,14 +202,14 @@ impl OptionsBuilder {
             },
             Some(filters) => Some(filters),
         };
-        let max_level: Level = match filters {
-            None => Level::Trace,
+        let max_level: LevelFilter = match filters {
+            None => LevelFilter::Trace,
             Some(ref filters) => filters
                 .0
                 .iter()
-                .filter_map(|f| f.level.to_level())
+                .map(|f| f.level)
                 .max()
-                .unwrap_or(Level::Trace),
+                .unwrap_or(LevelFilter::Trace),
         };
 
         Ok(Options {
