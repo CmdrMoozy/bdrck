@@ -29,12 +29,30 @@ pub fn parse_log_level_filter(s: &str) -> Result<LevelFilter> {
     lazy_static! {
         static ref STRING_MAPPING: HashMap<String, LevelFilter> = {
             let mut m = HashMap::new();
-            m.insert(LevelFilter::Off.to_string().to_lowercase(), LevelFilter::Off);
-            m.insert(LevelFilter::Error.to_string().to_lowercase(), LevelFilter::Error);
-            m.insert(LevelFilter::Warn.to_string().to_lowercase(), LevelFilter::Warn);
-            m.insert(LevelFilter::Info.to_string().to_lowercase(), LevelFilter::Info);
-            m.insert(LevelFilter::Debug.to_string().to_lowercase(), LevelFilter::Debug);
-            m.insert(LevelFilter::Trace.to_string().to_lowercase(), LevelFilter::Trace);
+            m.insert(
+                LevelFilter::Off.to_string().to_lowercase(),
+                LevelFilter::Off,
+            );
+            m.insert(
+                LevelFilter::Error.to_string().to_lowercase(),
+                LevelFilter::Error,
+            );
+            m.insert(
+                LevelFilter::Warn.to_string().to_lowercase(),
+                LevelFilter::Warn,
+            );
+            m.insert(
+                LevelFilter::Info.to_string().to_lowercase(),
+                LevelFilter::Info,
+            );
+            m.insert(
+                LevelFilter::Debug.to_string().to_lowercase(),
+                LevelFilter::Debug,
+            );
+            m.insert(
+                LevelFilter::Trace.to_string().to_lowercase(),
+                LevelFilter::Trace,
+            );
             m
         };
     }

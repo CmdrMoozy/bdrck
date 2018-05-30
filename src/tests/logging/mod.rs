@@ -13,8 +13,8 @@
 // limitations under the License.
 
 use log::{Level, LevelFilter, Log, Metadata, Record};
-use logging::*;
 use logging::write::*;
+use logging::*;
 use regex::Regex;
 use std::fmt::Arguments;
 

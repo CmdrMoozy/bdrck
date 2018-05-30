@@ -14,8 +14,8 @@
 
 use error::{Error, Result};
 use msgpack::{Deserializer, Serializer};
-use serde::{Deserialize, Serialize};
 use serde::de::DeserializeOwned;
+use serde::{Deserialize, Serialize};
 use std::any::Any;
 use std::boxed::Box;
 use std::collections::HashMap;

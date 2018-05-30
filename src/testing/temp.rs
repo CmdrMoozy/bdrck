@@ -14,8 +14,8 @@
 
 use error::*;
 use fs::{create_file, create_symlink};
-use rand::{thread_rng, Rng};
 use rand::distributions::Alphanumeric;
+use rand::{thread_rng, Rng};
 use std::env;
 use std::fs;
 use std::io;

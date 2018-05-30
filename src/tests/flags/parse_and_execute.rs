@@ -197,20 +197,18 @@ fn test_default_values() {
 
     parse_and_execute_test_impl(
         vec!["foo"],
-        vec![
-            build_test_command(
-                "foo",
-                Specs::new(vec![
-                    Spec::required("a", "a", None, Some("a")),
-                    Spec::required("b", "b", Some('b'), Some("b")),
-                    Spec::optional("c", "c", None),
-                    Spec::optional("d", "d", Some('d')),
-                    Spec::boolean("e", "e", None),
-                    Spec::boolean("f", "f", Some('f')),
-                ]).unwrap(),
-                expected_vs,
-            ),
-        ],
+        vec![build_test_command(
+            "foo",
+            Specs::new(vec![
+                Spec::required("a", "a", None, Some("a")),
+                Spec::required("b", "b", Some('b'), Some("b")),
+                Spec::optional("c", "c", None),
+                Spec::optional("d", "d", Some('d')),
+                Spec::boolean("e", "e", None),
+                Spec::boolean("f", "f", Some('f')),
+            ]).unwrap(),
+            expected_vs,
+        )],
         "foo",
     );
 }
@@ -220,20 +218,18 @@ fn test_default_values() {
 fn test_missing_required_flag() {
     parse_and_execute_test_impl(
         vec!["foo"],
-        vec![
-            build_test_command(
-                "foo",
-                Specs::new(vec![
-                    Spec::required("a", "a", None, None),
-                    Spec::required("b", "b", Some('b'), Some("b")),
-                    Spec::optional("c", "c", None),
-                    Spec::optional("d", "d", Some('d')),
-                    Spec::boolean("e", "e", None),
-                    Spec::boolean("f", "f", Some('f')),
-                ]).unwrap(),
-                into_expected_values(vec![]),
-            ),
-        ],
+        vec![build_test_command(
+            "foo",
+            Specs::new(vec![
+                Spec::required("a", "a", None, None),
+                Spec::required("b", "b", Some('b'), Some("b")),
+                Spec::optional("c", "c", None),
+                Spec::optional("d", "d", Some('d')),
+                Spec::boolean("e", "e", None),
+                Spec::boolean("f", "f", Some('f')),
+            ]).unwrap(),
+            into_expected_values(vec![]),
+        )],
         "foo",
     );
 }
@@ -243,13 +239,11 @@ fn test_missing_required_flag() {
 fn test_parse_invalid_flag() {
     parse_and_execute_test_impl(
         vec!["foo", "--foo=bar"],
-        vec![
-            build_test_command(
-                "foo",
-                Specs::new(vec![]).unwrap(),
-                into_expected_values(vec![]),
-            ),
-        ],
+        vec![build_test_command(
+            "foo",
+            Specs::new(vec![]).unwrap(),
+            into_expected_values(vec![]),
+        )],
         "foo",
     );
 }
@@ -259,16 +253,14 @@ fn test_parse_invalid_flag() {
 fn test_parse_missing_flag_value() {
     parse_and_execute_test_impl(
         vec!["foo", "--foobar", "--barbaz"],
-        vec![
-            build_test_command(
-                "foo",
-                Specs::new(vec![
-                    Spec::required("foobar", "foobar", None, None),
-                    Spec::required("barbaz", "barbaz", None, None),
-                ]).unwrap(),
-                into_expected_values(vec![]),
-            ),
-        ],
+        vec![build_test_command(
+            "foo",
+            Specs::new(vec![
+                Spec::required("foobar", "foobar", None, None),
+                Spec::required("barbaz", "barbaz", None, None),
+            ]).unwrap(),
+            into_expected_values(vec![]),
+        )],
         "foo",
     );
 }
@@ -284,18 +276,16 @@ fn test_parse_flag_format_variations() {
 
     parse_and_execute_test_impl(
         vec!["foo", "--flaga=a", "--b=b", "-flagc", "c", "-d", "d"],
-        vec![
-            build_test_command(
-                "foo",
-                Specs::new(vec![
-                    Spec::required("flaga", "flaga", Some('a'), None),
-                    Spec::required("flagb", "flagb", Some('b'), None),
-                    Spec::required("flagc", "flagc", Some('c'), None),
-                    Spec::required("flagd", "flagd", Some('d'), None),
-                ]).unwrap(),
-                expected_vs,
-            ),
-        ],
+        vec![build_test_command(
+            "foo",
+            Specs::new(vec![
+                Spec::required("flaga", "flaga", Some('a'), None),
+                Spec::required("flagb", "flagb", Some('b'), None),
+                Spec::required("flagc", "flagc", Some('c'), None),
+                Spec::required("flagd", "flagd", Some('d'), None),
+            ]).unwrap(),
+            expected_vs,
+        )],
         "foo",
     );
 }
@@ -311,18 +301,16 @@ fn test_parse_boolean_flag_format_variations() {
 
     parse_and_execute_test_impl(
         vec!["foo", "--boola", "-b", "--boolc=true", "-d=false"],
-        vec![
-            build_test_command(
-                "foo",
-                Specs::new(vec![
-                    Spec::boolean("boola", "boola", Some('a')),
-                    Spec::boolean("boolb", "boolb", Some('b')),
-                    Spec::boolean("boolc", "boolc", Some('c')),
-                    Spec::boolean("boold", "boold", Some('d')),
-                ]).unwrap(),
-                expected_vs,
-            ),
-        ],
+        vec![build_test_command(
+            "foo",
+            Specs::new(vec![
+                Spec::boolean("boola", "boola", Some('a')),
+                Spec::boolean("boolb", "boolb", Some('b')),
+                Spec::boolean("boolc", "boolc", Some('c')),
+                Spec::boolean("boold", "boold", Some('d')),
+            ]).unwrap(),
+            expected_vs,
+        )],
         "foo",
     );
 }
@@ -350,22 +338,20 @@ fn test_parse_named_flags() {
             "-g",
             "--h=false",
         ],
-        vec![
-            build_test_command(
-                "foobar",
-                Specs::new(vec![
-                    Spec::required("flaga", "flaga", Some('a'), None),
-                    Spec::required("flagb", "flagb", Some('b'), Some("defaultb")),
-                    Spec::required("flagc", "flagc", Some('c'), None),
-                    Spec::optional("flagd", "flagd", Some('d')),
-                    Spec::optional("flage", "flage", Some('e')),
-                    Spec::boolean("flagf", "flagf", Some('f')),
-                    Spec::boolean("flagg", "flagg", Some('g')),
-                    Spec::boolean("flagh", "flagh", Some('h')),
-                ]).unwrap(),
-                expected_vs,
-            ),
-        ],
+        vec![build_test_command(
+            "foobar",
+            Specs::new(vec![
+                Spec::required("flaga", "flaga", Some('a'), None),
+                Spec::required("flagb", "flagb", Some('b'), Some("defaultb")),
+                Spec::required("flagc", "flagc", Some('c'), None),
+                Spec::optional("flagd", "flagd", Some('d')),
+                Spec::optional("flage", "flage", Some('e')),
+                Spec::boolean("flagf", "flagf", Some('f')),
+                Spec::boolean("flagg", "flagg", Some('g')),
+                Spec::boolean("flagh", "flagh", Some('h')),
+            ]).unwrap(),
+            expected_vs,
+        )],
         "foobar",
     );
 }
@@ -394,21 +380,19 @@ fn test_parse_positional_flags() {
             "bar",
             "baz",
         ],
-        vec![
-            build_test_command(
-                "foobar",
-                Specs::new(vec![
-                    Spec::required("flaga", "flaga", Some('a'), None),
-                    Spec::required("flagb", "flagb", Some('b'), None),
-                    Spec::boolean("flagc", "flagc", Some('c')),
-                    Spec::boolean("flagd", "flagd", Some('d')),
-                    Spec::positional("posa", "posa", None, false).unwrap(),
-                    Spec::positional("posb", "posb", None, false).unwrap(),
-                    Spec::positional("posc", "posc", None, false).unwrap(),
-                ]).unwrap(),
-                expected_vs,
-            ),
-        ],
+        vec![build_test_command(
+            "foobar",
+            Specs::new(vec![
+                Spec::required("flaga", "flaga", Some('a'), None),
+                Spec::required("flagb", "flagb", Some('b'), None),
+                Spec::boolean("flagc", "flagc", Some('c')),
+                Spec::boolean("flagd", "flagd", Some('d')),
+                Spec::positional("posa", "posa", None, false).unwrap(),
+                Spec::positional("posb", "posb", None, false).unwrap(),
+                Spec::positional("posc", "posc", None, false).unwrap(),
+            ]).unwrap(),
+            expected_vs,
+        )],
         "foobar",
     );
 }
@@ -424,18 +408,16 @@ fn test_parse_variadic_flag_empty() {
 
     parse_and_execute_test_impl(
         vec!["foobar", "--flaga=oof", "foo", "bar"],
-        vec![
-            build_test_command(
-                "foobar",
-                Specs::new(vec![
-                    Spec::required("flaga", "flaga", Some('a'), None),
-                    Spec::positional("posa", "posa", None, false).unwrap(),
-                    Spec::positional("posb", "posb", None, false).unwrap(),
-                    Spec::positional("posc", "posc", None, true).unwrap(),
-                ]).unwrap(),
-                expected_vs,
-            ),
-        ],
+        vec![build_test_command(
+            "foobar",
+            Specs::new(vec![
+                Spec::required("flaga", "flaga", Some('a'), None),
+                Spec::positional("posa", "posa", None, false).unwrap(),
+                Spec::positional("posb", "posb", None, false).unwrap(),
+                Spec::positional("posc", "posc", None, true).unwrap(),
+            ]).unwrap(),
+            expected_vs,
+        )],
         "foobar",
     );
 }
@@ -454,18 +436,16 @@ fn test_parse_variadic_flag_many() {
 
     parse_and_execute_test_impl(
         vec!["foobar", "--flaga=oof", "foo", "bar", "baz", "quux"],
-        vec![
-            build_test_command(
-                "foobar",
-                Specs::new(vec![
-                    Spec::required("flaga", "flaga", Some('a'), None),
-                    Spec::positional("posa", "posa", None, false).unwrap(),
-                    Spec::positional("posb", "posb", None, false).unwrap(),
-                    Spec::positional("posc", "posc", None, true).unwrap(),
-                ]).unwrap(),
-                expected_vs,
-            ),
-        ],
+        vec![build_test_command(
+            "foobar",
+            Specs::new(vec![
+                Spec::required("flaga", "flaga", Some('a'), None),
+                Spec::positional("posa", "posa", None, false).unwrap(),
+                Spec::positional("posb", "posb", None, false).unwrap(),
+                Spec::positional("posc", "posc", None, true).unwrap(),
+            ]).unwrap(),
+            expected_vs,
+        )],
         "foobar",
     );
 }
@@ -481,18 +461,16 @@ fn test_parse_default_positional_values() {
 
     parse_and_execute_test_impl(
         vec!["foobar", "--flaga=oof", "foo"],
-        vec![
-            build_test_command(
-                "foobar",
-                Specs::new(vec![
-                    Spec::required("flaga", "flaga", Some('a'), None),
-                    Spec::positional("posa", "posa", Some(&["dva"]), false).unwrap(),
-                    Spec::positional("posb", "posb", Some(&["dvb"]), false).unwrap(),
-                    Spec::positional("posc", "posc", Some(&["dvc"]), false).unwrap(),
-                ]).unwrap(),
-                expected_vs,
-            ),
-        ],
+        vec![build_test_command(
+            "foobar",
+            Specs::new(vec![
+                Spec::required("flaga", "flaga", Some('a'), None),
+                Spec::positional("posa", "posa", Some(&["dva"]), false).unwrap(),
+                Spec::positional("posb", "posb", Some(&["dvb"]), false).unwrap(),
+                Spec::positional("posc", "posc", Some(&["dvc"]), false).unwrap(),
+            ]).unwrap(),
+            expected_vs,
+        )],
         "foobar",
     );
 }
@@ -511,18 +489,16 @@ fn test_parse_default_variadic_values() {
 
     parse_and_execute_test_impl(
         vec!["foobar", "--flaga=oof", "foo"],
-        vec![
-            build_test_command(
-                "foobar",
-                Specs::new(vec![
-                    Spec::required("flaga", "flaga", Some('a'), None),
-                    Spec::positional("posa", "posa", Some(&["dva"]), false).unwrap(),
-                    Spec::positional("posb", "posb", Some(&["dvb"]), false).unwrap(),
-                    Spec::positional("posc", "posc", Some(&["dvc1", "dvc2"]), true).unwrap(),
-                ]).unwrap(),
-                expected_vs,
-            ),
-        ],
+        vec![build_test_command(
+            "foobar",
+            Specs::new(vec![
+                Spec::required("flaga", "flaga", Some('a'), None),
+                Spec::positional("posa", "posa", Some(&["dva"]), false).unwrap(),
+                Spec::positional("posb", "posb", Some(&["dvb"]), false).unwrap(),
+                Spec::positional("posc", "posc", Some(&["dvc1", "dvc2"]), true).unwrap(),
+            ]).unwrap(),
+            expected_vs,
+        )],
         "foobar",
     );
 }

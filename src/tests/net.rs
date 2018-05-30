@@ -16,21 +16,21 @@ use net::*;
 use std::net::IpAddr;
 
 macro_rules! ip {
-    ($e:expr) => (
+    ($e:expr) => {
         $e.parse::<IpAddr>().unwrap()
-    )
+    };
 }
 
 macro_rules! mac {
-    ($e:expr) => (
+    ($e:expr) => {
         $e.parse::<HardwareAddr>().unwrap()
-    )
+    };
 }
 
 macro_rules! net {
-    ($e:expr) => (
+    ($e:expr) => {
         $e.parse::<IpNet>().unwrap()
-    )
+    };
 }
 
 #[test]

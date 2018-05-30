@@ -15,11 +15,11 @@
 #[cfg(test)]
 mod configuration;
 #[cfg(test)]
+mod flags;
+#[cfg(test)]
 mod fs;
 #[cfg(test)]
 mod logging;
-#[cfg(test)]
-mod flags;
 #[cfg(test)]
 mod net;
 #[cfg(test)]
