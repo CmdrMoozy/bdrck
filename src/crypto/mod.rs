@@ -12,32 +12,4 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-extern crate chrono;
-extern crate data_encoding;
-extern crate errno;
-#[macro_use]
-extern crate error_chain;
-#[macro_use]
-extern crate lazy_static;
-extern crate libc;
-#[macro_use]
-extern crate log;
-extern crate rand;
-extern crate regex;
-extern crate rmp_serde as msgpack;
-extern crate serde;
-#[macro_use]
-extern crate serde_derive;
-extern crate sodiumoxide;
-
-pub mod configuration;
-pub mod crypto;
-pub mod error;
-pub mod flags;
-pub mod fs;
-pub mod logging;
-pub mod net;
-pub mod testing;
-
-#[cfg(test)]
-mod tests;
+pub mod key;
