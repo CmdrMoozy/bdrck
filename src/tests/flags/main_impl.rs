@@ -17,7 +17,7 @@ use flags::main_impl::*;
 
 #[test]
 fn test_handle_result() {
-    assert_eq!(EXIT_SUCCESS, handle_result::<Error>(Ok(Ok((())))));
+    assert_eq!(EXIT_SUCCESS, handle_result::<Error>(Ok(Ok(()))));
     assert_eq!(
         EXIT_FAILURE,
         handle_result::<Error>(Err("arbitrary internal error".into()))

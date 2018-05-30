@@ -15,6 +15,7 @@
 use error::*;
 use fs::{create_file, create_symlink};
 use rand::{thread_rng, Rng};
+use rand::distributions::Alphanumeric;
 use std::env;
 use std::fs;
 use std::io;
@@ -43,7 +44,7 @@ impl Dir {
     fn new_in<P: AsRef<Path>>(temp_dir: P, prefix: &str) -> Result<Dir> {
         let mut rng = thread_rng();
         for _ in 0..TEMP_DIR_RAND_RETRIES {
-            let suffix: String = rng.gen_ascii_chars()
+            let suffix: String = rng.sample_iter(&Alphanumeric)
                 .take(TEMP_DIR_NAME_RAND_CHARS)
                 .collect();
             let name = if prefix.is_empty() {
