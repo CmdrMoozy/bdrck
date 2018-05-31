@@ -111,9 +111,20 @@ impl Digest {
 /// derivation.
 pub struct Salt([u8; SALT_BYTES]);
 
+pub trait AbstractKey {
+    /// Return a digest/signature computed from this key.
+    fn get_digest(&self) -> Digest;
+}
+
 /// In this module's terminology, a Key is a cryptographic key of any type
 /// *which is suitable to use for encryption* (i.e., is has not been wrapped).
 pub struct Key([u8; KEY_BYTES]);
+
+impl AbstractKey for Key {
+    fn get_digest(&self) -> Digest {
+        Digest::from_bytes(self.0.as_ref())
+    }
+}
 
 impl Key {
     /// This is a utility used to implement our various public constructors.
@@ -165,11 +176,6 @@ impl Key {
         }
 
         Self::from_bytes(key_buffer)
-    }
-
-    /// Return a digest/signature computed from this key.
-    pub fn get_digest(&self) -> Digest {
-        Digest::from_bytes(self.0.as_ref())
     }
 }
 
