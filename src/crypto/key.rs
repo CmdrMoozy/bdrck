@@ -20,6 +20,7 @@ use sodiumoxide::crypto::hash;
 use sodiumoxide::crypto::pwhash;
 use sodiumoxide::crypto::secretbox;
 use sodiumoxide::randombytes::randombytes;
+use std::collections::VecDeque;
 use std::fmt;
 
 /// This module uses xsalsa20poly1305, whose nonces are 24 bytes long.
@@ -100,6 +101,12 @@ impl<'de> Deserialize<'de> for Digest {
     }
 }
 
+impl Digest {
+    pub fn from_bytes(data: &[u8]) -> Self {
+        Digest(hash::hash(data).0)
+    }
+}
+
 /// A salt is an arbitrary byte sequence which is used for password-based key
 /// derivation.
 pub struct Salt([u8; SALT_BYTES]);
@@ -159,6 +166,11 @@ impl Key {
 
         Self::from_bytes(key_buffer)
     }
+
+    /// Return a digest/signature computed from this key.
+    pub fn get_digest(&self) -> Digest {
+        Digest::from_bytes(self.0.as_ref())
+    }
 }
 
 /// A wrapped key is a Key which has been wrapped (encrypted) with another key.
@@ -173,6 +185,21 @@ pub struct WrappedKey {
     data: Vec<u8>,
     /// The nonce used to encrypt this wrapped key, if applicable.
     nonce: Option<secretbox::Nonce>,
-    /// The signature of the key used to wrap the underlying key.
-    signature: hash::Digest,
+    /// The digests of the keys used to wrap the underlying Key. When this key
+    /// is unwrapped, the *last* digest is popped. If this key is wrapped yet
+    /// again, the new wrapping key's digest is pushed onto the *back* of this
+    /// deque.
+    wrapping_digests: VecDeque<Digest>,
+}
+
+impl WrappedKey {
+    /// Return a digest/signature computed from this key.
+    pub fn get_digest(&self) -> Digest {
+        Digest::from_bytes(self.data.as_slice())
+    }
+
+    /// Return the digest/signature of the outermost key used to wrap this key.
+    pub fn get_wrapping_digest(&self) -> &Digest {
+        self.wrapping_digests.back().unwrap()
+    }
 }
