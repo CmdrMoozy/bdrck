@@ -35,7 +35,17 @@ pub const KEY_BYTES: usize = secretbox::KEYBYTES;
 /// A cryptographic nonce is an arbitrary number that can be used only once
 /// (e.g. for encryption).
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub struct Nonce([u8; NONCE_BYTES]);
+pub struct Nonce {
+    nonce: secretbox::Nonce,
+}
+
+impl Default for Nonce {
+    fn default() -> Self {
+        Nonce {
+            nonce: secretbox::gen_nonce(),
+        }
+    }
+}
 
 /// A digest is a cryptographic hash of some arbitrary input data, with the goal
 /// of identifying it or detecting changes with high probability.
@@ -114,15 +124,42 @@ pub struct Salt([u8; SALT_BYTES]);
 pub trait AbstractKey {
     /// Return a digest/signature computed from this key.
     fn get_digest(&self) -> Digest;
+
+    fn encrypt(&self, plaintext: &[u8]) -> Result<(Option<Nonce>, Vec<u8>)>;
+
+    fn decrypt(&self, nonce: Option<&Nonce>, ciphertext: &[u8]) -> Result<Vec<u8>>;
 }
 
 /// In this module's terminology, a Key is a cryptographic key of any type
 /// *which is suitable to use for encryption* (i.e., is has not been wrapped).
-pub struct Key([u8; KEY_BYTES]);
+pub struct Key {
+    key: secretbox::Key,
+}
 
 impl AbstractKey for Key {
     fn get_digest(&self) -> Digest {
-        Digest::from_bytes(self.0.as_ref())
+        Digest::from_bytes(self.key.0.as_ref())
+    }
+
+    fn encrypt(&self, plaintext: &[u8]) -> Result<(Option<Nonce>, Vec<u8>)> {
+        let nonce = Nonce::default();
+        let ciphertext = secretbox::seal(plaintext, &nonce.nonce, &self.key);
+        Ok((Some(nonce), ciphertext))
+    }
+
+    fn decrypt(&self, nonce: Option<&Nonce>, ciphertext: &[u8]) -> Result<Vec<u8>> {
+        let result = secretbox::open(
+            ciphertext,
+            match nonce {
+                None => bail!("Decrypting with a Key requires a nonce"),
+                Some(nonce) => &nonce.nonce,
+            },
+            &self.key,
+        );
+        if result.is_err() {
+            bail!("Decryption with the provided key failed");
+        }
+        Ok(result.ok().unwrap())
     }
 }
 
@@ -138,7 +175,8 @@ impl Key {
                 data.len()
             );
         }
-        Ok(Key(key.unwrap().0))
+
+        Ok(Key { key: key.unwrap() })
     }
 
     /// Generate a new random key.
