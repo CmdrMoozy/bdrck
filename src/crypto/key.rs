@@ -40,10 +40,30 @@ pub struct Nonce {
 }
 
 impl Default for Nonce {
+    /// Return a new randomly generated nonce. This is the default, because it's
+    /// safer / less error prone vs. e.g. accidentally using a zeroed out nonce
+    /// twice.
     fn default() -> Self {
         Nonce {
             nonce: secretbox::gen_nonce(),
         }
+    }
+}
+
+impl Nonce {
+    /// Return a new, zero-initialized nonce.
+    pub fn new() -> Self {
+        Nonce {
+            nonce: secretbox::Nonce([0; NONCE_BYTES]),
+        }
+    }
+
+    /// Increment this nonce's bytes by 1. This is useful for counter-style
+    /// nonces.
+    pub fn increment(self) -> Self {
+        let mut nonce = self.nonce;
+        nonce.increment_le_inplace();
+        Nonce { nonce: nonce }
     }
 }
 
