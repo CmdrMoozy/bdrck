@@ -20,7 +20,6 @@ use sodiumoxide::crypto::hash;
 use sodiumoxide::crypto::pwhash;
 use sodiumoxide::crypto::secretbox;
 use sodiumoxide::randombytes::randombytes;
-use std::collections::VecDeque;
 use std::fmt;
 
 /// This module uses xsalsa20poly1305, whose nonces are 24 bytes long.
@@ -229,11 +228,8 @@ pub struct WrappedKey {
     data: Vec<u8>,
     /// The nonce used to encrypt this wrapped key, if applicable.
     nonce: Option<secretbox::Nonce>,
-    /// The digests of the keys used to wrap the underlying Key. When this key
-    /// is unwrapped, the *last* digest is popped. If this key is wrapped yet
-    /// again, the new wrapping key's digest is pushed onto the *back* of this
-    /// deque.
-    wrapping_digests: VecDeque<Digest>,
+    /// The digest of the key used to wrap this key.
+    wrapping_digest: Digest,
 }
 
 impl WrappedKey {
@@ -244,6 +240,6 @@ impl WrappedKey {
 
     /// Return the digest/signature of the outermost key used to wrap this key.
     pub fn get_wrapping_digest(&self) -> &Digest {
-        self.wrapping_digests.back().unwrap()
+        &self.wrapping_digest
     }
 }
