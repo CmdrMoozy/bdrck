@@ -13,6 +13,7 @@
 // limitations under the License.
 
 use error::*;
+use msgpack;
 use serde::de::{SeqAccess, Visitor};
 use serde::ser::SerializeSeq;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -120,17 +121,39 @@ impl Digest {
 /// derivation.
 pub struct Salt([u8; SALT_BYTES]);
 
+/// An AbstractKey is any cryptographic structure which supports encryption and
+/// decryption.
 pub trait AbstractKey {
     /// Return a digest/signature computed from this key.
     fn get_digest(&self) -> Digest;
 
+    /// Encrypt the given plaintext with this key. This returns a nonce if one
+    /// was used (in which case it must be passed into decrypt later), as well
+    /// as the ciphertext.
     fn encrypt(&self, plaintext: &[u8]) -> Result<(Option<Nonce>, Vec<u8>)>;
 
+    /// Decrypt the given ciphertext using this key and the nonce which was
+    /// generated at encryption time (if any), returning the plaintext.
     fn decrypt(&self, nonce: Option<&Nonce>, ciphertext: &[u8]) -> Result<Vec<u8>>;
+}
+
+/// A WrappedPayload is the data which was wrapped by a key. Because keys can be
+/// wrapped arbitrarily many times, the unwrapped payload may either be a real
+/// key, or it may be another wrapped key.
+#[derive(Deserialize, Serialize)]
+pub enum WrappedPayload {
+    Key(Key),
+    WrappedKey(WrappedKey),
+}
+
+/// A Wrappable is any object it is useful to "wrap" (encrypt) with a key.
+pub trait Wrappable {
+    fn wrap<K: AbstractKey>(self, key: &K) -> Result<WrappedKey>;
 }
 
 /// In this module's terminology, a Key is a cryptographic key of any type
 /// *which is suitable to use for encryption* (i.e., is has not been wrapped).
+#[derive(Deserialize, Serialize)]
 pub struct Key {
     key: secretbox::Key,
 }
@@ -159,6 +182,14 @@ impl AbstractKey for Key {
             bail!("Decryption with the provided key failed");
         }
         Ok(result.ok().unwrap())
+    }
+}
+
+impl Wrappable for Key {
+    /// Wrap this Wrappable type by encrypting it with the given key.
+    fn wrap<K: AbstractKey>(self, key: &K) -> Result<WrappedKey> {
+        let payload = WrappedPayload::Key(self);
+        WrappedKey::wrap_payload(payload, key)
     }
 }
 
@@ -227,12 +258,31 @@ pub struct WrappedKey {
     /// before it can be used.
     data: Vec<u8>,
     /// The nonce used to encrypt this wrapped key, if applicable.
-    nonce: Option<secretbox::Nonce>,
+    nonce: Option<Nonce>,
     /// The digest of the key used to wrap this key.
     wrapping_digest: Digest,
 }
 
+impl Wrappable for WrappedKey {
+    fn wrap<K: AbstractKey>(self, key: &K) -> Result<WrappedKey> {
+        let payload = WrappedPayload::WrappedKey(self);
+        WrappedKey::wrap_payload(payload, key)
+    }
+}
+
 impl WrappedKey {
+    fn wrap_payload<K: AbstractKey>(payload: WrappedPayload, key: &K) -> Result<Self> {
+        let serialized = msgpack::to_vec(&payload)?;
+        let (nonce, ciphertext) = key.encrypt(serialized.as_slice())?;
+        let digest = key.get_digest();
+
+        Ok(WrappedKey {
+            data: ciphertext,
+            nonce: nonce,
+            wrapping_digest: digest,
+        })
+    }
+
     /// Return a digest/signature computed from this key.
     pub fn get_digest(&self) -> Digest {
         Digest::from_bytes(self.data.as_slice())
@@ -241,5 +291,16 @@ impl WrappedKey {
     /// Return the digest/signature of the outermost key used to wrap this key.
     pub fn get_wrapping_digest(&self) -> &Digest {
         &self.wrapping_digest
+    }
+
+    /// Unwrap this WrappedKey using the given key for decryption. This can
+    /// return either a Key, or another WrappedKey if the underlying key was
+    /// wrapped more than one time.
+    pub fn unwrap<K: AbstractKey>(self, key: &K) -> Result<WrappedPayload> {
+        if key.get_digest() != self.wrapping_digest {
+            bail!("The specified key is not the correct wrapping key");
+        }
+        let plaintext = key.decrypt(self.nonce.as_ref(), self.data.as_slice())?;
+        Ok(msgpack::from_slice(plaintext.as_slice())?)
     }
 }
