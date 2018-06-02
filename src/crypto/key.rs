@@ -32,6 +32,17 @@ pub const SALT_BYTES: usize = pwhash::SALTBYTES;
 /// xsalsa20poly1305 uses 32 byte keys.
 pub const KEY_BYTES: usize = secretbox::KEYBYTES;
 
+/// Safe ops_limit base line for password-based key derivation, for interactive
+/// password hashing.
+pub const OPS_LIMIT_INTERACTIVE: usize = pwhash::OPSLIMIT_INTERACTIVE.0;
+/// ops_limit for highly sensitive data.
+pub const OPS_LIMIT_SENSITIVE: usize = pwhash::OPSLIMIT_SENSITIVE.0;
+/// Safe mem_limit base line for password-based key derivation, for interactive
+/// password hashing.
+pub const MEM_LIMIT_INTERACTIVE: usize = pwhash::MEMLIMIT_INTERACTIVE.0;
+/// mem_limit for highly sensitive data.
+pub const MEM_LIMIT_SENSITIVE: usize = pwhash::MEMLIMIT_SENSITIVE.0;
+
 /// A cryptographic nonce is an arbitrary number that can be used only once
 /// (e.g. for encryption).
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -139,7 +150,13 @@ impl Digest {
 
 /// A salt is an arbitrary byte sequence which is used for password-based key
 /// derivation.
-pub struct Salt([u8; SALT_BYTES]);
+pub struct Salt(pwhash::Salt);
+
+impl Default for Salt {
+    fn default() -> Self {
+        Salt(pwhash::gen_salt())
+    }
+}
 
 /// An AbstractKey is any cryptographic structure which supports encryption and
 /// decryption.
@@ -160,7 +177,7 @@ pub trait AbstractKey {
 /// A WrappedPayload is the data which was wrapped by a key. Because keys can be
 /// wrapped arbitrarily many times, the unwrapped payload may either be a real
 /// key, or it may be another wrapped key.
-#[derive(Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub enum WrappedPayload {
     Key(Key),
     WrappedKey(WrappedKey),
@@ -173,7 +190,7 @@ pub trait Wrappable {
 
 /// In this module's terminology, a Key is a cryptographic key of any type
 /// *which is suitable to use for encryption* (i.e., is has not been wrapped).
-#[derive(Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct Key {
     key: secretbox::Key,
 }
@@ -244,14 +261,13 @@ impl Key {
         ops_limit: usize,
         mem_limit: usize,
     ) -> Result<Self> {
-        let salt = pwhash::Salt::from_slice(salt.0.as_ref()).unwrap();
         let mut key_buffer = vec![0; KEY_BYTES];
 
         {
             let result = pwhash::derive_key(
                 key_buffer.as_mut_slice(),
                 password,
-                &salt,
+                &salt.0,
                 pwhash::OpsLimit(ops_limit),
                 pwhash::MemLimit(mem_limit),
             );
