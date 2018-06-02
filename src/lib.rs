@@ -41,3 +41,24 @@ pub mod testing;
 
 #[cfg(test)]
 mod tests;
+
+lazy_static! {
+    static ref INIT_STATUS: ::std::sync::Mutex<bool> = ::std::sync::Mutex::new(false);
+}
+
+/// This function must be called before calling any other library code, or else
+/// undefined behavior (thread safety problems in particular) may result. This
+/// is due to underlying C library dependencies.
+pub fn init() -> ::error::Result<()> {
+    let mut lock = INIT_STATUS.lock().unwrap();
+    if *lock {
+        return Ok(());
+    }
+
+    if !::sodiumoxide::init() {
+        bail!("Initializing cryptographic dependencies failed");
+    }
+
+    *lock = true;
+    Ok(())
+}

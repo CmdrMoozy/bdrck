@@ -22,6 +22,8 @@ fn find_named_spec_works(specs: &Specs, query: &str, expected_name: &str) -> boo
 
 #[test]
 fn test_find_option() {
+    ::init().unwrap();
+
     let specs = Specs::new(vec![
         Spec::required("foo", "", Some('o'), None),
         Spec::required("bar", "", Some('r'), None),

@@ -20,6 +20,8 @@ use testing::temp;
 
 #[test]
 fn test_path_bytes_round_trip() {
+    ::init().unwrap();
+
     let expected_path = PathBuf::from("/tmp/test_path");
     let bytes = path_to_bytes(expected_path.as_path()).unwrap();
     let path = path_from_bytes(bytes).unwrap();
@@ -28,6 +30,8 @@ fn test_path_bytes_round_trip() {
 
 #[test]
 fn test_create_file() {
+    ::init().unwrap();
+
     let dir = temp::Dir::new("bdrck").unwrap();
     let mut file_path = dir.path().to_path_buf();
     file_path.push("test_file");
@@ -40,6 +44,8 @@ fn test_create_file() {
 
 #[test]
 fn test_create_symlink() {
+    ::init().unwrap();
+
     const TEST_CONTENTS: &'static str = "this is a test";
 
     let dir = temp::Dir::new("bdrck").unwrap();
@@ -69,6 +75,8 @@ fn test_create_symlink() {
 #[test]
 fn test_set_permissions_mode() {
     use std::os::unix::fs::PermissionsExt;
+
+    ::init().unwrap();
 
     let temp_file = temp::File::new_file().unwrap();
     set_permissions_mode(temp_file.path(), 0o444).unwrap();

@@ -106,6 +106,8 @@ fn parse_and_execute_test_impl(
 
 #[test]
 fn test_parse_and_execute() {
+    ::init().unwrap();
+
     let expected_vs = into_expected_values(vec![
         ("flaga", Value::Single("quuz".to_owned())),
         ("flagb", Value::Single("baz".to_owned())),
@@ -149,6 +151,8 @@ fn test_parse_and_execute() {
 #[test]
 #[should_panic(expected = "Unrecognized command 'biff'")]
 fn test_parse_invalid_command() {
+    ::init().unwrap();
+
     parse_and_execute_test_impl(
         vec!["biff", "foo", "bar", "baz"],
         vec![
@@ -162,6 +166,8 @@ fn test_parse_invalid_command() {
 
 #[test]
 fn test_parse_command_no_arguments() {
+    ::init().unwrap();
+
     parse_and_execute_test_impl(
         vec!["bar"],
         vec![
@@ -175,6 +181,8 @@ fn test_parse_command_no_arguments() {
 
 #[test]
 fn test_parse_command_with_unused_arguments() {
+    ::init().unwrap();
+
     parse_and_execute_test_impl(
         vec!["baz", "foo", "bar", "baz"],
         vec![
@@ -188,6 +196,8 @@ fn test_parse_command_with_unused_arguments() {
 
 #[test]
 fn test_default_values() {
+    ::init().unwrap();
+
     let expected_vs = into_expected_values(vec![
         ("a", Value::Single("a".to_owned())),
         ("b", Value::Single("b".to_owned())),
@@ -216,6 +226,8 @@ fn test_default_values() {
 #[test]
 #[should_panic(expected = "Unexpected missing value for flag 'a'")]
 fn test_missing_required_flag() {
+    ::init().unwrap();
+
     parse_and_execute_test_impl(
         vec!["foo"],
         vec![build_test_command(
@@ -237,6 +249,8 @@ fn test_missing_required_flag() {
 #[test]
 #[should_panic(expected = "Unrecognized flag 'foo'")]
 fn test_parse_invalid_flag() {
+    ::init().unwrap();
+
     parse_and_execute_test_impl(
         vec!["foo", "--foo=bar"],
         vec![build_test_command(
@@ -251,6 +265,8 @@ fn test_parse_invalid_flag() {
 #[test]
 #[should_panic(expected = "Missing value for flag 'foobar'")]
 fn test_parse_missing_flag_value() {
+    ::init().unwrap();
+
     parse_and_execute_test_impl(
         vec!["foo", "--foobar", "--barbaz"],
         vec![build_test_command(
@@ -267,6 +283,8 @@ fn test_parse_missing_flag_value() {
 
 #[test]
 fn test_parse_flag_format_variations() {
+    ::init().unwrap();
+
     let expected_vs = into_expected_values(vec![
         ("flaga", Value::Single("a".to_owned())),
         ("flagb", Value::Single("b".to_owned())),
@@ -292,6 +310,8 @@ fn test_parse_flag_format_variations() {
 
 #[test]
 fn test_parse_boolean_flag_format_variations() {
+    ::init().unwrap();
+
     let expected_vs = into_expected_values(vec![
         ("boola", Value::Boolean(true)),
         ("boolb", Value::Boolean(true)),
@@ -317,6 +337,8 @@ fn test_parse_boolean_flag_format_variations() {
 
 #[test]
 fn test_parse_named_flags() {
+    ::init().unwrap();
+
     let expected_vs = into_expected_values(vec![
         ("flaga", Value::Single("foo".to_owned())),
         ("flagb", Value::Single("defaultb".to_owned())),
@@ -358,6 +380,8 @@ fn test_parse_named_flags() {
 
 #[test]
 fn test_parse_positional_flags() {
+    ::init().unwrap();
+
     let expected_vs = into_expected_values(vec![
         ("flaga", Value::Single("oof".to_owned())),
         ("flagb", Value::Single("rab".to_owned())),
@@ -399,6 +423,8 @@ fn test_parse_positional_flags() {
 
 #[test]
 fn test_parse_variadic_flag_empty() {
+    ::init().unwrap();
+
     let expected_vs = into_expected_values(vec![
         ("flaga", Value::Single("oof".to_owned())),
         ("posa", Value::Repeated(vec!["foo".to_owned()])),
@@ -424,6 +450,8 @@ fn test_parse_variadic_flag_empty() {
 
 #[test]
 fn test_parse_variadic_flag_many() {
+    ::init().unwrap();
+
     let expected_vs = into_expected_values(vec![
         ("flaga", Value::Single("oof".to_owned())),
         ("posa", Value::Repeated(vec!["foo".to_owned()])),
@@ -452,6 +480,8 @@ fn test_parse_variadic_flag_many() {
 
 #[test]
 fn test_parse_default_positional_values() {
+    ::init().unwrap();
+
     let expected_vs = into_expected_values(vec![
         ("flaga", Value::Single("oof".to_owned())),
         ("posa", Value::Repeated(vec!["foo".to_owned()])),
@@ -477,6 +507,8 @@ fn test_parse_default_positional_values() {
 
 #[test]
 fn test_parse_default_variadic_values() {
+    ::init().unwrap();
+
     let expected_vs = into_expected_values(vec![
         ("flaga", Value::Single("oof".to_owned())),
         ("posa", Value::Repeated(vec!["foo".to_owned()])),

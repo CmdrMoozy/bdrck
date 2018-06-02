@@ -17,6 +17,8 @@ use flags::main_impl::*;
 
 #[test]
 fn test_handle_result() {
+    ::init().unwrap();
+
     assert_eq!(EXIT_SUCCESS, handle_result::<Error>(Ok(Ok(()))));
     assert_eq!(
         EXIT_FAILURE,

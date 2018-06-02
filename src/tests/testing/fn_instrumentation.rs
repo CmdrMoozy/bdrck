@@ -16,6 +16,8 @@ use testing::fn_instrumentation::*;
 
 #[test]
 fn test_fn_mut_instrumentation() {
+    ::init().unwrap();
+
     let instrumentation = FnInstrumentation::new();
     let mut function: Box<FnMut()> = Box::new(|| {
         instrumentation.record_call();

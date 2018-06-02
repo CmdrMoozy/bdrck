@@ -31,6 +31,8 @@ lazy_static! {
 
 #[test]
 fn test_persistence() {
+    ::init().unwrap();
+
     let file = temp::File::new_file().unwrap();
     let path: path::PathBuf = file.path().to_owned();
     // Remove the file: an empty file isn't a valid serialized configuration struct.

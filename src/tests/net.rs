@@ -35,6 +35,8 @@ macro_rules! net {
 
 #[test]
 fn test_increment_ip() {
+    ::init().unwrap();
+
     assert_eq!(Some(ip!("10.0.0.1")), increment_ip(ip!("10.0.0.0")));
     assert_eq!(Some(ip!("10.10.10.11")), increment_ip(ip!("10.10.10.10")));
     assert_eq!(Some(ip!("10.0.1.0")), increment_ip(ip!("10.0.0.255")));
@@ -43,6 +45,8 @@ fn test_increment_ip() {
 
 #[test]
 fn test_min_max_ip() {
+    ::init().unwrap();
+
     assert_eq!(
         Some(ip!("10.0.0.1")),
         min_ip(ip!("10.0.0.2"), ip!("10.0.0.1"))
@@ -57,6 +61,8 @@ fn test_min_max_ip() {
 
 #[test]
 fn test_hardware_addr_string_round_trip() {
+    ::init().unwrap();
+
     assert_eq!("0c:c4:7a:7f:b6:32", mac!("0c:c4:7a:7f:b6:32").to_string());
     assert_eq!("0c:c4:7a:7f:b6:32", mac!("0c-c4-7a-7f-b6-32").to_string());
     assert_eq!("0c:c4:7a:7f:b6:32", mac!("0cc4.7a7f.b632").to_string());
@@ -64,6 +70,8 @@ fn test_hardware_addr_string_round_trip() {
 
 #[test]
 fn test_hardware_addr_parse_error() {
+    ::init().unwrap();
+
     assert!("00:00:00:00:00:00:00".parse::<HardwareAddr>().is_err());
     assert!("00:00:00:00:00".parse::<HardwareAddr>().is_err());
     assert!("00_00_00_00_00_00".parse::<HardwareAddr>().is_err());
@@ -72,6 +80,8 @@ fn test_hardware_addr_parse_error() {
 
 #[test]
 fn test_hardware_addr_string_bit_order() {
+    ::init().unwrap();
+
     let parsed = mac!("12-34-56-78-9A-BC");
     assert_eq!(
         &[0x12_u8, 0x34_u8, 0x56_u8, 0x78_u8, 0x9a_u8, 0xbc_u8],
@@ -82,6 +92,8 @@ fn test_hardware_addr_string_bit_order() {
 
 #[test]
 fn test_ip_net_string_round_trip() {
+    ::init().unwrap();
+
     assert_eq!("10.0.0.0/24", net!("10.0.0.0/24").to_string());
     assert_eq!("10.0.0.0/14", net!("10.0.0.0/14").to_string());
     assert_eq!("10.0.0.0/14", net!("10.0.0.0/fffc0000").to_string());
@@ -89,6 +101,8 @@ fn test_ip_net_string_round_trip() {
 
 #[test]
 fn test_ip_net_bit_order() {
+    ::init().unwrap();
+
     assert_eq!(
         [
             0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
@@ -121,6 +135,8 @@ fn test_ip_net_bit_order() {
 
 #[test]
 fn test_ip_net_netmask() {
+    ::init().unwrap();
+
     assert_eq!(ip!("255.255.0.0"), net!("10.10.0.0/16").netmask());
     assert_eq!(ip!("255.255.255.0"), net!("10.10.0.0/24").netmask());
     assert_eq!(ip!("255.255.240.0"), net!("10.10.0.0/20").netmask());
@@ -128,6 +144,8 @@ fn test_ip_net_netmask() {
 
 #[test]
 fn test_ip_net_broadcast() {
+    ::init().unwrap();
+
     assert_eq!(ip!("10.10.255.255"), net!("10.10.0.0/16").broadcast());
     assert_eq!(ip!("10.10.10.255"), net!("10.10.10.0/24").broadcast());
     assert_eq!(ip!("172.31.255.255"), net!("172.16.0.0/12").broadcast());
@@ -135,6 +153,8 @@ fn test_ip_net_broadcast() {
 
 #[test]
 fn test_ip_net_contains() {
+    ::init().unwrap();
+
     assert_eq!(
         true,
         net!("10.10.10.0/24").contains(ip!("10.10.10.123"), false)
@@ -163,12 +183,16 @@ fn test_ip_net_contains() {
 
 #[test]
 fn test_ip_net_first_address() {
+    ::init().unwrap();
+
     assert_eq!(Some(ip!("10.10.10.1")), net!("10.10.10.0/24").first());
     assert_eq!(Some(ip!("10.10.0.1")), net!("10.10.0.0/16").first());
 }
 
 #[test]
 fn test_ip_net_last_address() {
+    ::init().unwrap();
+
     assert_eq!(ip!("10.10.10.254"), net!("10.10.10.0/24").last());
     assert_eq!(ip!("10.10.255.254"), net!("10.10.0.0/16").last());
 }
