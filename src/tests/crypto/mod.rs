@@ -14,3 +14,5 @@
 
 #[cfg(test)]
 mod key;
+#[cfg(test)]
+mod keystore;
