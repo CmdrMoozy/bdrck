@@ -26,6 +26,8 @@ lazy_static! {
     static ref AUTH_TOKEN_CONTENTS: Vec<u8> = "3c017f717b39247c351154a41d2850e4187284da4b928f13c723d54440ba2dfe".bytes().collect();
 }
 
+/// KeyStoreContents is an implementation detail of KeyStore, which encapsulates
+/// the portion of the KeyStore's data which is actually persisted to disk.
 #[derive(Deserialize, Serialize)]
 struct KeyStoreContents {
     pub token_nonce: Option<Nonce>,
@@ -34,6 +36,8 @@ struct KeyStoreContents {
 }
 
 impl KeyStoreContents {
+    /// Constrct a new KeyStoreContents from scratch, using the given master
+    /// key.
     pub fn new(master_key: &Key) -> Result<KeyStoreContents> {
         let (nonce, ciphertext) = master_key.encrypt(AUTH_TOKEN_CONTENTS.as_slice())?;
         Ok(KeyStoreContents {
@@ -43,17 +47,23 @@ impl KeyStoreContents {
         })
     }
 
+    /// Deserialize this structure from its binary serialized format in the
+    /// given file.
     pub fn open<P: AsRef<Path>>(path: P) -> Result<KeyStoreContents> {
         let file = File::open(path)?;
         Ok(msgpack::from_read(file)?)
     }
 
+    /// Write this KeyStoreContents as a binary serialized structure to a file
+    /// at the given path.
     pub fn save<P: AsRef<Path>>(&self, path: P) -> Result<()> {
         let data = msgpack::to_vec(self)?;
         let mut file = File::create(path)?;
         Ok(file.write_all(data.as_slice())?)
     }
 
+    /// Returns true if the given key is this structure's "master key" which was
+    /// used to encrypt the "token" upon construction.
     pub fn is_master_key(&self, key: &Key) -> bool {
         let decrypted = match key.decrypt(self.token_nonce.as_ref(), self.token.as_slice()) {
             Err(_) => return false,
@@ -62,6 +72,9 @@ impl KeyStoreContents {
         decrypted.as_slice() == AUTH_TOKEN_CONTENTS.as_slice()
     }
 
+    /// Add the given wrapped key to this KeyStoreContents. No real validation
+    /// is performed on this wrapped key, other than to check if it already
+    /// exists in this structure (in which case false is returned).
     pub fn add_key(&mut self, wrapped_key: WrappedKey) -> bool {
         if self.wrapped_keys
             .iter()
@@ -74,6 +87,10 @@ impl KeyStoreContents {
         true
     }
 
+    /// Remove the wrapped key which was wrapped using the given wrapping key
+    /// from this KeyStoreContents. True/false is returned to indicate whether
+    /// a matching key was actually found. It is an error to remove the last
+    /// wrapped key from this structure.
     pub fn remove_key<K: AbstractKey>(&mut self, wrapping_key: &K) -> Result<bool> {
         let original_length = self.wrapped_keys.len();
         let wrapped_keys: Vec<WrappedKey> = self.wrapped_keys
@@ -89,6 +106,18 @@ impl KeyStoreContents {
     }
 }
 
+/// A KeyStore is a structure which contains a single "master key", wrapped with
+/// one or more other keys. This is useful in cases where we want to encrypt
+/// data with a single key, while allowing users to add or remove keys at will,
+/// without having to a) re-encrypt the data when the keys change, or b) store
+/// multiple copies of the plaintext encrypted with the various different keys.
+///
+/// For example, users may want to be able to access a resource with *either* a
+/// password or a hardware authentication key, and the data they want to encrypt
+/// is relatively large (so re-encryption is expensive).
+///
+/// A KeyStore essentially contains a set of one or more wrapped keys, which it
+/// automatically loads from / persists to disk.
 pub struct KeyStore {
     path: PathBuf,
     master_key: Key,
@@ -96,6 +125,8 @@ pub struct KeyStore {
 }
 
 impl KeyStore {
+    /// Construct a new KeyStore, which will be persisted to the given path. If
+    /// a file already exists at the given path, it will be overwritten.
     fn new<P: AsRef<Path>>(path: P) -> Result<KeyStore> {
         let master_key = Key::new_random()?;
         let contents = KeyStoreContents::new(&master_key)?;
@@ -107,6 +138,10 @@ impl KeyStore {
         })
     }
 
+    /// Open an existing KeyStore which was previously persisted to the given
+    /// path. If the given path does not contain a valid KeyStore, or if the
+    /// KeyStore at the given path can't be "unwrapped" with the given key, an
+    /// error is returned instead.
     fn open<P: AsRef<Path>, K: AbstractKey>(path: P, key: &K) -> Result<KeyStore> {
         let contents = KeyStoreContents::open(path.as_ref())?;
         let mut master_key: Option<Key> = None;
@@ -134,6 +169,8 @@ impl KeyStore {
         })
     }
 
+    /// Open an existing KeyStore if the given path exists, or create a brand
+    /// new KeyStore otherwise and add the given key to it.
     pub fn open_or_new<P: AsRef<Path>, K: AbstractKey>(path: P, key: &K) -> Result<KeyStore> {
         if path.as_ref().exists() {
             Self::open(path, key)
@@ -144,14 +181,24 @@ impl KeyStore {
         }
     }
 
+    /// Return the unwrapped master key from this KeyStore.
     pub fn get_master_key(&self) -> &Key {
         &self.master_key
     }
 
+    /// Add the given wrapping key to this KeyStore. On future
+    /// open_or_new calls, this new key can be used to open the KeStore. Return
+    /// whether the key was successfully added (true), or if it was already
+    /// present in the KeyStore (false).
     pub fn add_key<K: AbstractKey>(&mut self, key: &K) -> Result<bool> {
         Ok(self.contents.add_key(self.master_key.clone().wrap(key)?))
     }
 
+    /// Remove the given key from this KeyStore, so it can no longer be used to
+    /// unwrap / open the KeyStore. Returns true if the key was removed, or
+    /// false if the given key wasn't found in this KeyStore. It is an error to
+    /// remove the last wrapping key from a KeyStore (doing so would leave it
+    /// unopenable in the future).
     pub fn remove_key<K: AbstractKey>(&mut self, key: &K) -> Result<bool> {
         self.contents.remove_key(key)
     }
