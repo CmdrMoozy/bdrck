@@ -56,7 +56,7 @@ fn test_basic_key_digest_comparison() {
 
 #[test]
 fn test_encryption_roundtrip() {
-    let key = Key::new_random().unwrap();
+    let mut key = Key::new_random().unwrap();
     let plaintext = randombytes(1024);
     let (nonce, ciphertext) = key.encrypt(plaintext.as_slice()).unwrap();
     assert_ne!(plaintext.as_slice(), ciphertext.as_slice());
@@ -66,12 +66,12 @@ fn test_encryption_roundtrip() {
 
 #[test]
 fn test_decrypting_with_wrong_key_fails() {
-    let key = Key::new_random().unwrap();
+    let mut key = Key::new_random().unwrap();
     let plaintext = randombytes(1024);
     let (nonce, ciphertext) = key.encrypt(plaintext.as_slice()).unwrap();
     assert_ne!(plaintext.as_slice(), ciphertext.as_slice());
 
-    let wrong_key = Key::new_random().unwrap();
+    let mut wrong_key = Key::new_random().unwrap();
     let decrypted_result = wrong_key.decrypt(nonce.as_ref(), ciphertext.as_slice());
     assert!(decrypted_result.is_err());
 }
@@ -79,16 +79,16 @@ fn test_decrypting_with_wrong_key_fails() {
 #[test]
 fn test_wrapping_roundtrip() {
     let a = Key::new_random().unwrap();
-    let b = Key::new_random().unwrap();
-    let c = Key::new_random().unwrap();
+    let mut b = Key::new_random().unwrap();
+    let mut c = Key::new_random().unwrap();
 
-    let wrapped_once = a.clone().wrap(&b).unwrap();
-    let wrapped_twice = wrapped_once.clone().wrap(&c).unwrap();
-    let unwrapped_once = match wrapped_twice.unwrap(&c).unwrap() {
+    let wrapped_once = a.clone().wrap(&mut b).unwrap();
+    let wrapped_twice = wrapped_once.clone().wrap(&mut c).unwrap();
+    let unwrapped_once = match wrapped_twice.unwrap(&mut c).unwrap() {
         WrappedPayload::Key(_) => panic!("Expected nested wrapped key, got raw key"),
         WrappedPayload::WrappedKey(w) => w,
     };
-    let unwrapped = match unwrapped_once.unwrap(&b).unwrap() {
+    let unwrapped = match unwrapped_once.unwrap(&mut b).unwrap() {
         WrappedPayload::Key(k) => k,
         WrappedPayload::WrappedKey(_) => panic!("Expected raw key, got nested wrapped key"),
     };
@@ -98,13 +98,13 @@ fn test_wrapping_roundtrip() {
 #[test]
 fn test_unwrapping_with_wrong_key_fails() {
     let a = Key::new_random().unwrap();
-    let b = Key::new_random().unwrap();
-    let wrong_key = Key::new_random().unwrap();
+    let mut b = Key::new_random().unwrap();
+    let mut wrong_key = Key::new_random().unwrap();
 
-    let wrapped = a.clone().wrap(&b).unwrap();
-    assert!(wrapped.clone().unwrap(&wrong_key).is_err());
+    let wrapped = a.clone().wrap(&mut b).unwrap();
+    assert!(wrapped.clone().unwrap(&mut wrong_key).is_err());
 
-    let unwrapped = match wrapped.unwrap(&b).unwrap() {
+    let unwrapped = match wrapped.unwrap(&mut b).unwrap() {
         WrappedPayload::Key(k) => k,
         WrappedPayload::WrappedKey(_) => panic!("Expected raw key, got nested wrapped key"),
     };

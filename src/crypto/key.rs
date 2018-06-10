@@ -161,17 +161,26 @@ impl Default for Salt {
 /// An AbstractKey is any cryptographic structure which supports encryption and
 /// decryption.
 pub trait AbstractKey {
+    type Err: ::std::error::Error;
+
     /// Return a digest/signature computed from this key.
     fn get_digest(&self) -> Digest;
 
     /// Encrypt the given plaintext with this key. This returns a nonce if one
     /// was used (in which case it must be passed into decrypt later), as well
     /// as the ciphertext.
-    fn encrypt(&self, plaintext: &[u8]) -> Result<(Option<Nonce>, Vec<u8>)>;
+    fn encrypt(
+        &mut self,
+        plaintext: &[u8],
+    ) -> ::std::result::Result<(Option<Nonce>, Vec<u8>), Self::Err>;
 
     /// Decrypt the given ciphertext using this key and the nonce which was
     /// generated at encryption time (if any), returning the plaintext.
-    fn decrypt(&self, nonce: Option<&Nonce>, ciphertext: &[u8]) -> Result<Vec<u8>>;
+    fn decrypt(
+        &mut self,
+        nonce: Option<&Nonce>,
+        ciphertext: &[u8],
+    ) -> ::std::result::Result<Vec<u8>, Self::Err>;
 }
 
 /// A WrappedPayload is the data which was wrapped by a key. Because keys can be
@@ -185,7 +194,7 @@ pub enum WrappedPayload {
 
 /// A Wrappable is any object it is useful to "wrap" (encrypt) with a key.
 pub trait Wrappable {
-    fn wrap<K: AbstractKey>(self, key: &K) -> Result<WrappedKey>;
+    fn wrap<K: AbstractKey>(self, key: &mut K) -> Result<WrappedKey>;
 }
 
 /// In this module's terminology, a Key is a cryptographic key of any type
@@ -196,17 +205,19 @@ pub struct Key {
 }
 
 impl AbstractKey for Key {
+    type Err = Error;
+
     fn get_digest(&self) -> Digest {
         Digest::from_bytes(self.key.0.as_ref())
     }
 
-    fn encrypt(&self, plaintext: &[u8]) -> Result<(Option<Nonce>, Vec<u8>)> {
+    fn encrypt(&mut self, plaintext: &[u8]) -> Result<(Option<Nonce>, Vec<u8>)> {
         let nonce = Nonce::default();
         let ciphertext = secretbox::seal(plaintext, &nonce.nonce, &self.key);
         Ok((Some(nonce), ciphertext))
     }
 
-    fn decrypt(&self, nonce: Option<&Nonce>, ciphertext: &[u8]) -> Result<Vec<u8>> {
+    fn decrypt(&mut self, nonce: Option<&Nonce>, ciphertext: &[u8]) -> Result<Vec<u8>> {
         let result = secretbox::open(
             ciphertext,
             match nonce {
@@ -224,7 +235,7 @@ impl AbstractKey for Key {
 
 impl Wrappable for Key {
     /// Wrap this Wrappable type by encrypting it with the given key.
-    fn wrap<K: AbstractKey>(self, key: &K) -> Result<WrappedKey> {
+    fn wrap<K: AbstractKey>(self, key: &mut K) -> Result<WrappedKey> {
         let payload = WrappedPayload::Key(self);
         WrappedKey::wrap_payload(payload, key)
     }
@@ -300,16 +311,19 @@ pub struct WrappedKey {
 }
 
 impl Wrappable for WrappedKey {
-    fn wrap<K: AbstractKey>(self, key: &K) -> Result<WrappedKey> {
+    fn wrap<K: AbstractKey>(self, key: &mut K) -> Result<WrappedKey> {
         let payload = WrappedPayload::WrappedKey(self);
         WrappedKey::wrap_payload(payload, key)
     }
 }
 
 impl WrappedKey {
-    fn wrap_payload<K: AbstractKey>(payload: WrappedPayload, key: &K) -> Result<Self> {
+    fn wrap_payload<K: AbstractKey>(payload: WrappedPayload, key: &mut K) -> Result<Self> {
         let serialized = msgpack::to_vec(&payload)?;
-        let (nonce, ciphertext) = key.encrypt(serialized.as_slice())?;
+        let (nonce, ciphertext) = match key.encrypt(serialized.as_slice()) {
+            Err(e) => bail!(e.to_string()),
+            Ok(tuple) => tuple,
+        };
         let digest = key.get_digest();
 
         Ok(WrappedKey {
@@ -332,11 +346,14 @@ impl WrappedKey {
     /// Unwrap this WrappedKey using the given key for decryption. This can
     /// return either a Key, or another WrappedKey if the underlying key was
     /// wrapped more than one time.
-    pub fn unwrap<K: AbstractKey>(self, key: &K) -> Result<WrappedPayload> {
+    pub fn unwrap<K: AbstractKey>(self, key: &mut K) -> Result<WrappedPayload> {
         if key.get_digest() != self.wrapping_digest {
             bail!("The specified key is not the correct wrapping key");
         }
-        let plaintext = key.decrypt(self.nonce.as_ref(), self.data.as_slice())?;
+        let plaintext = match key.decrypt(self.nonce.as_ref(), self.data.as_slice()) {
+            Err(e) => bail!(e.to_string()),
+            Ok(pt) => pt,
+        };
         Ok(msgpack::from_slice(plaintext.as_slice())?)
     }
 }
