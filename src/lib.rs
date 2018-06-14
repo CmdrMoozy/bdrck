@@ -55,7 +55,7 @@ pub fn init() -> ::error::Result<()> {
         return Ok(());
     }
 
-    if !::sodiumoxide::init() {
+    if !::sodiumoxide::init().is_ok() {
         bail!("Initializing cryptographic dependencies failed");
     }
 
