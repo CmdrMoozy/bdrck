@@ -150,6 +150,7 @@ impl Digest {
 
 /// A salt is an arbitrary byte sequence which is used for password-based key
 /// derivation.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct Salt(pwhash::Salt);
 
 impl Default for Salt {

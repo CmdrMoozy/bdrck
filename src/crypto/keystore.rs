@@ -186,6 +186,11 @@ impl KeyStore {
         &self.master_key
     }
 
+    /// Return the mutable unwrapped master key from this KeyStore.
+    pub fn get_master_key_mut(&mut self) -> &mut Key {
+        &mut self.master_key
+    }
+
     /// Add the given wrapping key to this KeyStore. On future
     /// open_or_new calls, this new key can be used to open the KeStore. Return
     /// whether the key was successfully added (true), or if it was already
