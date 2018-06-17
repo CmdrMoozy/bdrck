@@ -13,6 +13,7 @@
 // limitations under the License.
 
 use error::*;
+use failure::Fail;
 use msgpack;
 use serde::de::{SeqAccess, Visitor};
 use serde::ser::SerializeSeq;
@@ -162,7 +163,7 @@ impl Default for Salt {
 /// An AbstractKey is any cryptographic structure which supports encryption and
 /// decryption.
 pub trait AbstractKey {
-    type Err: ::std::error::Error;
+    type Err: Fail;
 
     /// Return a digest/signature computed from this key.
     fn get_digest(&self) -> Digest;
@@ -222,13 +223,19 @@ impl AbstractKey for Key {
         let result = secretbox::open(
             ciphertext,
             match nonce {
-                None => bail!("Decrypting with a Key requires a nonce"),
+                None => {
+                    return Err(Error::InvalidArgument(format_err!(
+                        "Decrypting with a Key requires a nonce"
+                    )))
+                }
                 Some(nonce) => &nonce.nonce,
             },
             &self.key,
         );
         if result.is_err() {
-            bail!("Decryption with the provided key failed");
+            return Err(Error::InvalidArgument(format_err!(
+                "Failed to decrypt with incorrect Key"
+            )));
         }
         Ok(result.ok().unwrap())
     }
@@ -248,11 +255,11 @@ impl Key {
     fn from_bytes(data: Vec<u8>) -> Result<Self> {
         let key = secretbox::Key::from_slice(data.as_slice());
         if key.is_none() {
-            bail!(
-                "Invalid key; expected {} bytes, got {}",
+            return Err(Error::InvalidArgument(format_err!(
+                "Invalid Key; expected {} bytes, got {}",
                 KEY_BYTES,
                 data.len()
-            );
+            )));
         }
 
         Ok(Key { key: key.unwrap() })
@@ -287,7 +294,9 @@ impl Key {
                 // NOTE: We handle this error gracefully, but in reality (by inspecting the
                 // libsodium source code) the only way this can actually fail is if the input
                 // password is *enormous*. So, this won't really fail in practice.
-                bail!("Deriving key from password failed");
+                return Err(Error::Internal(format_err!(
+                    "Deriving key from password failed"
+                )));
             }
         }
 
@@ -322,7 +331,7 @@ impl WrappedKey {
     fn wrap_payload<K: AbstractKey>(payload: WrappedPayload, key: &mut K) -> Result<Self> {
         let serialized = msgpack::to_vec(&payload)?;
         let (nonce, ciphertext) = match key.encrypt(serialized.as_slice()) {
-            Err(e) => bail!(e.to_string()),
+            Err(e) => return Err(Error::Unknown(format_err!("Wrapping key failed: {}", e))),
             Ok(tuple) => tuple,
         };
         let digest = key.get_digest();
@@ -349,10 +358,12 @@ impl WrappedKey {
     /// wrapped more than one time.
     pub fn unwrap<K: AbstractKey>(self, key: &mut K) -> Result<WrappedPayload> {
         if key.get_digest() != self.wrapping_digest {
-            bail!("The specified key is not the correct wrapping key");
+            return Err(Error::InvalidArgument(format_err!(
+                "The specified key is not the correct wrapping key"
+            )));
         }
         let plaintext = match key.decrypt(self.nonce.as_ref(), self.data.as_slice()) {
-            Err(e) => bail!(e.to_string()),
+            Err(e) => return Err(Error::Unknown(format_err!("Unwrapping key failed: {}", e))),
             Ok(pt) => pt,
         };
         Ok(msgpack::from_slice(plaintext.as_slice())?)

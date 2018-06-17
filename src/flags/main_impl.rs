@@ -13,11 +13,11 @@
 // limitations under the License.
 
 use error::*;
-use error_chain::ChainedError;
 use flags::command::{Command, CommandResult};
 use flags::parse_and_execute::parse_and_execute;
 use flags::parse_and_execute::parse_and_execute_command;
 use std::env;
+use std::fmt::{Debug, Display};
 use std::process;
 
 pub const EXIT_SUCCESS: i32 = 0;
@@ -32,7 +32,7 @@ pub fn get_program_parameters() -> Vec<String> {
         .collect()
 }
 
-pub fn handle_result<E: ChainedError>(r: Result<CommandResult<E>>) -> i32 {
+pub fn handle_result<E: Display + Debug>(r: Result<CommandResult<E>>) -> i32 {
     match r {
         Ok(command_result) => match command_result {
             Ok(_) => EXIT_SUCCESS,
@@ -41,7 +41,7 @@ pub fn handle_result<E: ChainedError>(r: Result<CommandResult<E>>) -> i32 {
                     "{}",
                     match cfg!(debug_assertions) {
                         false => e.to_string(),
-                        true => e.display_chain().to_string(),
+                        true => format!("{:?}", e),
                     }
                 );
                 EXIT_FAILURE
@@ -52,7 +52,7 @@ pub fn handle_result<E: ChainedError>(r: Result<CommandResult<E>>) -> i32 {
                 "Flag parsing error: {}",
                 match cfg!(debug_assertions) {
                     false => e.to_string(),
-                    true => e.display_chain().to_string(),
+                    true => format!("{:?}", e),
                 }
             );
             EXIT_FAILURE
@@ -68,7 +68,7 @@ pub fn handle_result<E: ChainedError>(r: Result<CommandResult<E>>) -> i32 {
 /// stack will be run. The caller should ensure that this function is called
 /// from the only thread, and that any destructors which need to be run are in
 /// the stack of the command callback.
-pub fn main_impl_multiple_commands<E: ChainedError>(commands: Vec<Command<E>>) -> ! {
+pub fn main_impl_multiple_commands<E: Display + Debug>(commands: Vec<Command<E>>) -> ! {
     process::exit(handle_result(parse_and_execute_command(
         env::args().next().unwrap().as_ref(),
         &get_program_parameters(),
@@ -85,7 +85,7 @@ pub fn main_impl_multiple_commands<E: ChainedError>(commands: Vec<Command<E>>) -
 /// stack will be run. The caller should ensure that this function is called
 /// from the only thread, and that any destructors which need to be run are in
 /// the stack of the command callback.
-pub fn main_impl_single_command<E: ChainedError>(command: Command<E>) -> ! {
+pub fn main_impl_single_command<E: Display + Debug>(command: Command<E>) -> ! {
     process::exit(handle_result(parse_and_execute(
         env::args().next().unwrap().as_ref(),
         &get_program_parameters(),

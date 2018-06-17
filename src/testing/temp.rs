@@ -59,7 +59,10 @@ impl Dir {
                 Err(e) => return Err(e.into()),
             }
         }
-        bail!("Failed to find unique random temporary directory name");
+        return Err(Error::Io(::std::io::Error::new(
+            ::std::io::ErrorKind::AlreadyExists,
+            "Failed to find unique random temporary directory name",
+        )));
     }
 
     pub fn path(&self) -> &Path {
@@ -70,10 +73,10 @@ impl Dir {
     /// temporary directory's absolute path.
     pub fn sub_path<P: AsRef<Path>>(&self, path: P) -> Result<PathBuf> {
         if path.as_ref().is_absolute() {
-            bail!(
+            return Err(Error::InvalidArgument(format_err!(
                 "Cannot add absolute path '{}' to temporary directory path",
                 path.as_ref().display()
-            );
+            )));
         }
         Ok(self.path.as_path().join(path))
     }

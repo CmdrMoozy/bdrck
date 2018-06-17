@@ -59,7 +59,12 @@ pub fn parse_log_level_filter(s: &str) -> Result<LevelFilter> {
 
     let normalized = s.trim().to_lowercase();
     match STRING_MAPPING.get(&normalized) {
-        None => bail!("Invalid LevelFilter '{}'", s),
+        None => {
+            return Err(Error::InvalidArgument(format_err!(
+                "Invalid LevelFilter '{}'",
+                s
+            )))
+        }
         Some(f) => Ok(*f),
     }
 }
@@ -245,9 +250,7 @@ fn get_env_var(key: &str) -> Result<Option<String>> {
         Ok(v) => Ok(Some(v)),
         Err(e) => match e {
             ::std::env::VarError::NotPresent => Ok(None),
-            ::std::env::VarError::NotUnicode(_) => {
-                bail!("Environment variable '{}' not valid unicode", key)
-            }
+            _ => Err(Error::EnvVar(e)),
         },
     }
 }

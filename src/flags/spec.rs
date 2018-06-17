@@ -104,7 +104,9 @@ impl Spec {
     ) -> Result<Spec> {
         if let Some(dvs) = default_value {
             if dvs.len() > 1 && !is_variadic {
-                bail!("Only variadic positional arguments can have multiple default values");
+                return Err(Error::InvalidArgument(format_err!(
+                    "Only variadic positional arguments can have multiple default values"
+                )));
             }
 
             if dvs.is_empty() {
@@ -239,7 +241,9 @@ impl Specs {
             .skip_while(|s| !s.has_default_value())
             .all(|s| s.has_default_value())
         {
-            bail!("Positional flags after the first one with a default must also have defaults");
+            return Err(Error::InvalidArgument(format_err!(
+                "Positional flags after the first one with a default must also have defaults"
+            )));
         }
 
         if !specs
@@ -249,9 +253,9 @@ impl Specs {
             .next()
             .map_or(true, |s| s.is_variadic() || s.default_value_len() <= 1)
         {
-            bail!(
+            return Err(Error::InvalidArgument(format_err!(
                 "The last positional flag can only have multiple default values if it is variadic"
-            );
+            )));
         }
 
         Ok(Specs { specs: specs })

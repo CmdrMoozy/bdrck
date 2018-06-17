@@ -99,7 +99,9 @@ impl KeyStoreContents {
             .cloned()
             .collect();
         if wrapped_keys.is_empty() {
-            bail!("Refusing to remove all valid keys from this KeyStore");
+            return Err(Error::Precondition(format_err!(
+                "Refusing to remove all valid keys from this KeyStore"
+            )));
         }
         self.wrapped_keys = wrapped_keys;
         Ok(self.wrapped_keys.len() != original_length)
@@ -159,7 +161,9 @@ impl KeyStore {
         }
 
         if master_key.is_none() {
-            bail!("Failed to unwrap master key with the provided wrapping key");
+            return Err(Error::InvalidArgument(format_err!(
+                "KeyStore unlocking failed: the given key is not present in this KeyStore"
+            )));
         }
 
         Ok(KeyStore {

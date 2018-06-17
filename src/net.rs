@@ -165,13 +165,16 @@ impl FromStr for HardwareAddr {
         let normalized = s.replace(":", "");
         let normalized = normalized.replace("-", "");
         let normalized = normalized.replace(".", "");
-        let address_vec = HEXLOWER_PERMISSIVE.decode(normalized.as_bytes())?;
+        let address_vec = match HEXLOWER_PERMISSIVE.decode(normalized.as_bytes()) {
+            Ok(data) => data,
+            Err(e) => return Err(Error::HexDecode(e)),
+        };
         if address_vec.len() != 6 {
-            bail!(
+            return Err(Error::InvalidArgument(format_err!(
                 "Invalid MAC address '{}', expected 6 bytes found {}",
                 s,
                 address_vec.len()
-            );
+            )));
         }
 
         let mut address = [0_u8; 6];
@@ -382,7 +385,12 @@ impl FromStr for IpNet {
 
     fn from_str(s: &str) -> Result<Self> {
         let (ip, mask): (&str, &str) = s.split_at(match s.find('/') {
-            None => bail!("Invalid IP network specifier '{}'", s),
+            None => {
+                return Err(Error::InvalidArgument(format_err!(
+                    "Invalid IP network specifier '{}'",
+                    s
+                )))
+            }
             Some(idx) => idx,
         });
         let ip: IpAddr = ip.parse()?;
@@ -398,7 +406,12 @@ impl FromStr for IpNet {
 
         let mask_is_hex = (ip.is_ipv4() && mask.len() == 8) || (ip.is_ipv6() && mask.len() == 32);
         if mask_is_hex {
-            mask_vec.extend(HEXLOWER_PERMISSIVE.decode(mask.as_bytes())?.into_iter());
+            mask_vec.extend(
+                match HEXLOWER_PERMISSIVE.decode(mask.as_bytes()) {
+                    Ok(data) => data,
+                    Err(e) => return Err(Error::HexDecode(e)),
+                }.into_iter(),
+            );
         } else {
             let ones = u8::from_str_radix(mask, 10)?;
             let mut v = vec![0xff_u8; (ones / 8) as usize];

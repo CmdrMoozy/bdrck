@@ -22,10 +22,14 @@ fn test_handle_result() {
     assert_eq!(EXIT_SUCCESS, handle_result::<Error>(Ok(Ok(()))));
     assert_eq!(
         EXIT_FAILURE,
-        handle_result::<Error>(Err("arbitrary internal error".into()))
+        handle_result::<Error>(Err(Error::Internal(format_err!(
+            "arbitrary internal error"
+        ))))
     );
     assert_eq!(
         EXIT_FAILURE,
-        handle_result::<Error>(Ok(Err("arbitrary command error".into())))
+        handle_result(Ok(Err(Error::Unknown(format_err!(
+            "arbitrary command error"
+        )))))
     );
 }

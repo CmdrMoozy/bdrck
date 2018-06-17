@@ -149,7 +149,11 @@ pub fn set_ownership<P: AsRef<Path>>(
                 error
             );
         } else {
-            bail!(error.to_string());
+            return Err(Error::Unknown(format_err!(
+                "Failed to change ownership of '{}': {}",
+                path.as_ref().display(),
+                error
+            )));
         }
     }
 
@@ -193,12 +197,16 @@ fn lookup_uid(name: &str) -> Result<u32> {
         if ret == 0 || ret == libc::ENOENT || ret == libc::ESRCH || ret == libc::EBADF
             || ret == libc::EPERM
         {
-            bail!(
-                "Failed to lookup UID for '{}': The given user name was not found",
+            return Err(Error::NotFound(format_err!(
+                "Unrecognized user name '{}'",
                 name
-            );
+            )));
         } else {
-            bail!("Failed to lookup UID for '{}': {}", name, errno::Errno(ret));
+            return Err(Error::Unknown(format_err!(
+                "Failed to lookup UID for '{}': {}",
+                name,
+                errno::Errno(ret)
+            )));
         }
     }
     Ok(passwd.pw_uid)
@@ -230,12 +238,16 @@ fn lookup_gid(name: &str) -> Result<u32> {
         if ret == 0 || ret == libc::ENOENT || ret == libc::ESRCH || ret == libc::EBADF
             || ret == libc::EPERM
         {
-            bail!(
-                "Failed to lookup GID for '{}': The given group name was not found",
+            return Err(Error::NotFound(format_err!(
+                "Unrecognized group name '{}'",
                 name
-            );
+            )));
         } else {
-            bail!("Failed to lookup GID for '{}': {}", name, errno::Errno(ret));
+            return Err(Error::Unknown(format_err!(
+                "Failed to lookup GID for '{}': {}",
+                name,
+                errno::Errno(ret)
+            )));
         }
     }
     Ok(group.gr_gid)

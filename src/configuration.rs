@@ -38,9 +38,10 @@ fn get_configuration_directory(application: &str) -> Result<PathBuf> {
 
     fs::create_dir_all(path.as_path())?;
     if !path.is_dir() {
-        return Err(Error::new(ErrorKind::Io {
-            cause: "Configuration directory is not a directory".to_owned(),
-        }));
+        return Err(Error::InvalidArgument(format_err!(
+            "Configuration path '{}' is not a directory",
+            path.as_path().display()
+        )));
     }
 
     Ok(path)
@@ -60,7 +61,10 @@ fn get_configuration_directory(application: &str) -> Result<PathBuf> {
 
     fs::create_dir_all(path.as_path())?;
     if !path.is_dir() {
-        bail!("Configuration directory is not a directory");
+        return Err(Error::InvalidArgument(format_err!(
+            "Configuration path '{}' is not a directory",
+            path.as_path().display()
+        )));
     }
 
     Ok(path)
@@ -175,13 +179,21 @@ pub fn remove<T: Clone + Serialize + DeserializeOwned + 'static>(id: &Identifier
         if let Some(config) = instance.downcast_ref::<Configuration<T>>() {
             config.persist()?;
         } else {
-            bail!("Wrong type specified for configuration with the given identifier");
+            return Err(Error::InvalidArgument(format_err!(
+                "Wrong type specified for configuration {:?}",
+                id
+            )));
         }
     }
 
     match guard.remove(id) {
         Some(_) => Ok(()),
-        None => bail!("Unrecognized configuration identifier"),
+        None => {
+            return Err(Error::InvalidArgument(format_err!(
+                "Unrecognized configuration identifier: {:?}",
+                id
+            )))
+        }
     }
 }
 
@@ -192,9 +204,19 @@ pub fn instance_apply<T: 'static, R, F: FnOnce(&Configuration<T>) -> R>(
     match lock(&SINGLETONS).get(id) {
         Some(instance) => match instance.downcast_ref() {
             Some(config) => Ok(f(config)),
-            None => bail!("Wrong type specified for configuration with the given identifier"),
+            None => {
+                return Err(Error::InvalidArgument(format_err!(
+                    "Wrong type specified for configuration {:?}",
+                    id
+                )))
+            }
         },
-        None => bail!("Unrecognized configuration identifier"),
+        None => {
+            return Err(Error::InvalidArgument(format_err!(
+                "Unrecognized configuration identifier: {:?}",
+                id
+            )))
+        }
     }
 }
 
@@ -205,9 +227,19 @@ pub fn instance_apply_mut<T: 'static, R, F: FnOnce(&mut Configuration<T>) -> R>(
     match lock(&SINGLETONS).get_mut(id) {
         Some(instance) => match instance.downcast_mut() {
             Some(config) => Ok(f(config)),
-            None => bail!("Wrong type specified for configuration with the given identifier"),
+            None => {
+                return Err(Error::InvalidArgument(format_err!(
+                    "Wrong type specified for configuration {:?}",
+                    id
+                )))
+            }
         },
-        None => bail!("Unrecognized configuration identifier"),
+        None => {
+            return Err(Error::InvalidArgument(format_err!(
+                "Unrecognized configuration identifier: {:?}",
+                id
+            )))
+        }
     }
 }
 

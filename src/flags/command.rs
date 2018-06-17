@@ -81,9 +81,12 @@ pub fn parse_command<'a, 'b, I: Iterator<Item = &'a String>, E, W: Write>(
             .position(|command| command.name == *command_arg)
         {
             Some(command) => Ok(command),
-            None => Err(format!("Unrecognized command '{}'", command_arg).into()),
+            None => Err(Error::InvalidArgument(format_err!(
+                "Unrecognized command '{}'",
+                command_arg
+            ))),
         },
-        None => Err("No command specified".into()),
+        None => Err(Error::InvalidArgument(format_err!("No command specified"))),
     };
 
     if let Err(e) = idx {

@@ -16,7 +16,7 @@ extern crate chrono;
 extern crate data_encoding;
 extern crate errno;
 #[macro_use]
-extern crate error_chain;
+extern crate failure;
 #[macro_use]
 extern crate lazy_static;
 extern crate libc;
@@ -56,7 +56,9 @@ pub fn init() -> ::error::Result<()> {
     }
 
     if !::sodiumoxide::init().is_ok() {
-        bail!("Initializing cryptographic dependencies failed");
+        return Err(::error::Error::Internal(format_err!(
+            "Initializing cryptographic dependencies failed"
+        )));
     }
 
     *lock = true;

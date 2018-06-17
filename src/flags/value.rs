@@ -49,7 +49,12 @@ fn parse_bool(value: &str) -> Result<bool> {
     match value.trim().to_lowercase().as_ref() {
         "true" => Ok(true),
         "false" => Ok(false),
-        _ => bail!("Invalid boolean value '{}'", value),
+        _ => {
+            return Err(Error::InvalidArgument(format_err!(
+                "Invalid boolean value '{}'",
+                value
+            )))
+        }
     }
 }
 
@@ -69,7 +74,12 @@ impl Value {
     pub fn new_named_flag_value(spec: &Spec, value: Option<String>) -> Result<Value> {
         Ok(match spec.is_boolean() {
             false => Value::Single(match value {
-                None => bail!("Missing value for flag '{}'", spec.get_name()),
+                None => {
+                    return Err(Error::InvalidArgument(format_err!(
+                        "Missing value for flag '{}'",
+                        spec.get_name()
+                    )))
+                }
                 Some(value) => value,
             }),
             true => Value::Boolean(match value {
@@ -116,7 +126,12 @@ impl<'a> NamedFlagSpec<'a> {
 
         let spec: &'a Spec = match specs.find_named_spec(name) {
             Some(s) => s,
-            None => bail!("Unrecognized flag '{}'", name),
+            None => {
+                return Err(Error::InvalidArgument(format_err!(
+                    "Unrecognized flag '{}'",
+                    name
+                )))
+            }
         };
 
         Ok(NamedFlagSpec {
@@ -272,7 +287,10 @@ impl Values {
 
         for s in specs.iter() {
             if s.is_required() && !values.contains_key(&s.name) {
-                bail!("Unexpected missing value for flag '{}'", s.name);
+                return Err(Error::InvalidArgument(format_err!(
+                    "Unexpected missing value for flag '{}'",
+                    s.name
+                )));
             }
         }
 
