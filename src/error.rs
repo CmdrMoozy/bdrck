@@ -17,8 +17,6 @@ pub enum Error {
     #[fail(display = "{}", _0)]
     EnvVar(#[cause] ::std::env::VarError),
     #[fail(display = "{}", _0)]
-    Fmt(#[cause] ::std::fmt::Error),
-    #[fail(display = "{}", _0)]
     HexDecode(#[cause] ::data_encoding::DecodeError),
     /// An internal unrecoverable error, usually due to some underlying library.
     #[fail(display = "{}", _0)]
@@ -59,8 +57,6 @@ impl From<::std::env::VarError> for Error {
         Error::EnvVar(e)
     }
 }
-
-/* remove fmt error? */
 
 impl From<::std::io::Error> for Error {
     fn from(e: ::std::io::Error) -> Self {
