@@ -172,14 +172,14 @@ pub trait AbstractKey {
     /// was used (in which case it must be passed into decrypt later), as well
     /// as the ciphertext.
     fn encrypt(
-        &mut self,
+        &self,
         plaintext: &[u8],
     ) -> ::std::result::Result<(Option<Nonce>, Vec<u8>), Self::Err>;
 
     /// Decrypt the given ciphertext using this key and the nonce which was
     /// generated at encryption time (if any), returning the plaintext.
     fn decrypt(
-        &mut self,
+        &self,
         nonce: Option<&Nonce>,
         ciphertext: &[u8],
     ) -> ::std::result::Result<Vec<u8>, Self::Err>;
@@ -196,7 +196,7 @@ pub enum WrappedPayload {
 
 /// A Wrappable is any object it is useful to "wrap" (encrypt) with a key.
 pub trait Wrappable {
-    fn wrap<K: AbstractKey>(self, key: &mut K) -> Result<WrappedKey>;
+    fn wrap<K: AbstractKey>(self, key: &K) -> Result<WrappedKey>;
 }
 
 /// In this module's terminology, a Key is a cryptographic key of any type
@@ -213,13 +213,13 @@ impl AbstractKey for Key {
         Digest::from_bytes(self.key.0.as_ref())
     }
 
-    fn encrypt(&mut self, plaintext: &[u8]) -> Result<(Option<Nonce>, Vec<u8>)> {
+    fn encrypt(&self, plaintext: &[u8]) -> Result<(Option<Nonce>, Vec<u8>)> {
         let nonce = Nonce::default();
         let ciphertext = secretbox::seal(plaintext, &nonce.nonce, &self.key);
         Ok((Some(nonce), ciphertext))
     }
 
-    fn decrypt(&mut self, nonce: Option<&Nonce>, ciphertext: &[u8]) -> Result<Vec<u8>> {
+    fn decrypt(&self, nonce: Option<&Nonce>, ciphertext: &[u8]) -> Result<Vec<u8>> {
         let result = secretbox::open(
             ciphertext,
             match nonce {
@@ -243,7 +243,7 @@ impl AbstractKey for Key {
 
 impl Wrappable for Key {
     /// Wrap this Wrappable type by encrypting it with the given key.
-    fn wrap<K: AbstractKey>(self, key: &mut K) -> Result<WrappedKey> {
+    fn wrap<K: AbstractKey>(self, key: &K) -> Result<WrappedKey> {
         let payload = WrappedPayload::Key(self);
         WrappedKey::wrap_payload(payload, key)
     }
@@ -321,14 +321,14 @@ pub struct WrappedKey {
 }
 
 impl Wrappable for WrappedKey {
-    fn wrap<K: AbstractKey>(self, key: &mut K) -> Result<WrappedKey> {
+    fn wrap<K: AbstractKey>(self, key: &K) -> Result<WrappedKey> {
         let payload = WrappedPayload::WrappedKey(self);
         WrappedKey::wrap_payload(payload, key)
     }
 }
 
 impl WrappedKey {
-    fn wrap_payload<K: AbstractKey>(payload: WrappedPayload, key: &mut K) -> Result<Self> {
+    fn wrap_payload<K: AbstractKey>(payload: WrappedPayload, key: &K) -> Result<Self> {
         let serialized = msgpack::to_vec(&payload)?;
         let (nonce, ciphertext) = match key.encrypt(serialized.as_slice()) {
             Err(e) => return Err(Error::Unknown(format_err!("Wrapping key failed: {}", e))),
@@ -356,7 +356,7 @@ impl WrappedKey {
     /// Unwrap this WrappedKey using the given key for decryption. This can
     /// return either a Key, or another WrappedKey if the underlying key was
     /// wrapped more than one time.
-    pub fn unwrap<K: AbstractKey>(self, key: &mut K) -> Result<WrappedPayload> {
+    pub fn unwrap<K: AbstractKey>(self, key: &K) -> Result<WrappedPayload> {
         if key.get_digest() != self.wrapping_digest {
             return Err(Error::InvalidArgument(format_err!(
                 "The specified key is not the correct wrapping key"

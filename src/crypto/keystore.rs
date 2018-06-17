@@ -38,7 +38,7 @@ struct KeyStoreContents {
 impl KeyStoreContents {
     /// Constrct a new KeyStoreContents from scratch, using the given master
     /// key.
-    pub fn new(master_key: &mut Key) -> Result<KeyStoreContents> {
+    pub fn new(master_key: &Key) -> Result<KeyStoreContents> {
         let (nonce, ciphertext) = master_key.encrypt(AUTH_TOKEN_CONTENTS.as_slice())?;
         Ok(KeyStoreContents {
             token_nonce: nonce,
@@ -64,7 +64,7 @@ impl KeyStoreContents {
 
     /// Returns true if the given key is this structure's "master key" which was
     /// used to encrypt the "token" upon construction.
-    pub fn is_master_key(&self, key: &mut Key) -> bool {
+    pub fn is_master_key(&self, key: &Key) -> bool {
         let decrypted = match key.decrypt(self.token_nonce.as_ref(), self.token.as_slice()) {
             Err(_) => return false,
             Ok(d) => d,
@@ -130,8 +130,8 @@ impl KeyStore {
     /// Construct a new KeyStore, which will be persisted to the given path. If
     /// a file already exists at the given path, it will be overwritten.
     fn new<P: AsRef<Path>>(path: P) -> Result<KeyStore> {
-        let mut master_key = Key::new_random()?;
-        let contents = KeyStoreContents::new(&mut master_key)?;
+        let master_key = Key::new_random()?;
+        let contents = KeyStoreContents::new(&master_key)?;
 
         Ok(KeyStore {
             path: path.as_ref().to_path_buf(),
@@ -144,16 +144,16 @@ impl KeyStore {
     /// path. If the given path does not contain a valid KeyStore, or if the
     /// KeyStore at the given path can't be "unwrapped" with the given key, an
     /// error is returned instead.
-    fn open<P: AsRef<Path>, K: AbstractKey>(path: P, key: &mut K) -> Result<KeyStore> {
+    fn open<P: AsRef<Path>, K: AbstractKey>(path: P, key: &K) -> Result<KeyStore> {
         let contents = KeyStoreContents::open(path.as_ref())?;
         let mut master_key: Option<Key> = None;
         for wrapped_key in contents.wrapped_keys.iter() {
             if let Ok(payload) = wrapped_key.clone().unwrap(key) {
-                let mut unwrapped_key = match payload {
+                let unwrapped_key = match payload {
                     WrappedPayload::Key(k) => k,
                     _ => continue,
                 };
-                if contents.is_master_key(&mut unwrapped_key) {
+                if contents.is_master_key(&unwrapped_key) {
                     master_key = Some(unwrapped_key);
                     break;
                 }
@@ -175,7 +175,7 @@ impl KeyStore {
 
     /// Open an existing KeyStore if the given path exists, or create a brand
     /// new KeyStore otherwise and add the given key to it.
-    pub fn open_or_new<P: AsRef<Path>, K: AbstractKey>(path: P, key: &mut K) -> Result<KeyStore> {
+    pub fn open_or_new<P: AsRef<Path>, K: AbstractKey>(path: P, key: &K) -> Result<KeyStore> {
         if path.as_ref().exists() {
             Self::open(path, key)
         } else {
@@ -190,16 +190,11 @@ impl KeyStore {
         &self.master_key
     }
 
-    /// Return the mutable unwrapped master key from this KeyStore.
-    pub fn get_master_key_mut(&mut self) -> &mut Key {
-        &mut self.master_key
-    }
-
     /// Add the given wrapping key to this KeyStore. On future
     /// open_or_new calls, this new key can be used to open the KeStore. Return
     /// whether the key was successfully added (true), or if it was already
     /// present in the KeyStore (false).
-    pub fn add_key<K: AbstractKey>(&mut self, key: &mut K) -> Result<bool> {
+    pub fn add_key<K: AbstractKey>(&mut self, key: &K) -> Result<bool> {
         Ok(self.contents.add_key(self.master_key.clone().wrap(key)?))
     }
 
