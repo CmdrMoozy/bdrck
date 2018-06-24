@@ -15,7 +15,7 @@
 use std::io::{self, Write};
 use std::sync::{Arc, Mutex, MutexGuard};
 
-pub type LogOutputFactory = Box<Fn() -> Box<Write> + Send + Sync>;
+pub type LogOutputFactory = Box<dyn Fn() -> Box<dyn Write> + Send + Sync>;
 
 pub struct SyncWriteAdapter<T: Write> {
     writer: Arc<Mutex<T>>,

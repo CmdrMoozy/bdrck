@@ -150,7 +150,8 @@ impl<T: Clone + Serialize + DeserializeOwned> Configuration<T> {
 }
 
 lazy_static! {
-    static ref SINGLETONS: Mutex<HashMap<Identifier, Box<Any + Send>>> = Mutex::new(HashMap::new());
+    static ref SINGLETONS: Mutex<HashMap<Identifier, Box<dyn Any + Send>>> =
+        Mutex::new(HashMap::new());
 }
 
 fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<T> {
