@@ -90,7 +90,8 @@ fn test_record<'a>(args: Arguments<'a>, level: Level) -> Record<'a> {
 // replacing things which are unpredictable in unit tests like timestamps.
 fn normalize_log_output(output: &str) -> String {
     lazy_static! {
-        static ref DATE_REGEX: Regex = Regex::new(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} UTC").unwrap();
+        static ref DATE_REGEX: Regex =
+            Regex::new(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} UTC").unwrap();
     }
     DATE_REGEX
         .replace_all(output, "2018-01-01 12:34:56 UTC")

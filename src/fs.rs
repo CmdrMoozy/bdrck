@@ -129,14 +129,14 @@ pub fn set_ownership<P: AsRef<Path>>(
     follow: bool,
 ) -> Result<()> {
     use errno::errno;
-    use libc::{self, c_int, gid_t, uid_t};
+    use libc::{self, c_int};
     use std::ffi::CString;
 
     let path_cstr = CString::new(::fs::path_to_bytes(path.as_ref())?)?;
     let ret: c_int = unsafe {
         match follow {
-            false => libc::lchown(path_cstr.as_ptr(), uid as uid_t, gid as gid_t),
-            true => libc::chown(path_cstr.as_ptr(), uid as uid_t, gid as gid_t),
+            false => libc::lchown(path_cstr.as_ptr(), uid, gid),
+            true => libc::chown(path_cstr.as_ptr(), uid, gid),
         }
     };
 
@@ -194,7 +194,10 @@ fn lookup_uid(name: &str) -> Result<u32> {
         )
     };
     if passwd_ptr.is_null() {
-        if ret == 0 || ret == libc::ENOENT || ret == libc::ESRCH || ret == libc::EBADF
+        if ret == 0
+            || ret == libc::ENOENT
+            || ret == libc::ESRCH
+            || ret == libc::EBADF
             || ret == libc::EPERM
         {
             return Err(Error::NotFound(format_err!(
@@ -235,7 +238,10 @@ fn lookup_gid(name: &str) -> Result<u32> {
         )
     };
     if group_ptr.is_null() {
-        if ret == 0 || ret == libc::ENOENT || ret == libc::ESRCH || ret == libc::EBADF
+        if ret == 0
+            || ret == libc::ENOENT
+            || ret == libc::ESRCH
+            || ret == libc::EBADF
             || ret == libc::EPERM
         {
             return Err(Error::NotFound(format_err!(

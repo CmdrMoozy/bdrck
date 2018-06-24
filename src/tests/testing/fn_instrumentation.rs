@@ -19,7 +19,7 @@ fn test_fn_mut_instrumentation() {
     ::init().unwrap();
 
     let instrumentation = FnInstrumentation::new();
-    let mut function: Box<FnMut()> = Box::new(|| {
+    let mut function: Box<dyn FnMut()> = Box::new(|| {
         instrumentation.record_call();
     });
 

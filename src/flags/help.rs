@@ -16,7 +16,7 @@ use error::*;
 use flags::command::Command;
 use std::io::Write;
 
-pub fn print_program_help<'cbl, W: Write, E>(
+pub(crate) fn print_program_help<'cbl, W: Write, E>(
     f: Option<&mut W>,
     program: &str,
     commands: &[Command<'cbl, E>],
@@ -35,7 +35,7 @@ pub fn print_program_help<'cbl, W: Write, E>(
     Ok(())
 }
 
-pub fn print_command_help<W: Write, E>(
+pub(crate) fn print_command_help<W: Write, E>(
     f: Option<&mut W>,
     program: &str,
     command: &Command<E>,
