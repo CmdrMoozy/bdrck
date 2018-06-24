@@ -30,15 +30,15 @@ lazy_static! {
 /// the portion of the KeyStore's data which is actually persisted to disk.
 #[derive(Deserialize, Serialize)]
 struct KeyStoreContents {
-    pub token_nonce: Option<Nonce>,
-    pub token: Vec<u8>,
-    pub wrapped_keys: Vec<WrappedKey>,
+    token_nonce: Option<Nonce>,
+    token: Vec<u8>,
+    wrapped_keys: Vec<WrappedKey>,
 }
 
 impl KeyStoreContents {
     /// Constrct a new KeyStoreContents from scratch, using the given master
     /// key.
-    pub fn new(master_key: &Key) -> Result<KeyStoreContents> {
+    fn new(master_key: &Key) -> Result<KeyStoreContents> {
         let (nonce, ciphertext) = master_key.encrypt(AUTH_TOKEN_CONTENTS.as_slice())?;
         Ok(KeyStoreContents {
             token_nonce: nonce,
@@ -49,14 +49,14 @@ impl KeyStoreContents {
 
     /// Deserialize this structure from its binary serialized format in the
     /// given file.
-    pub fn open<P: AsRef<Path>>(path: P) -> Result<KeyStoreContents> {
+    fn open<P: AsRef<Path>>(path: P) -> Result<KeyStoreContents> {
         let file = File::open(path)?;
         Ok(msgpack::from_read(file)?)
     }
 
     /// Write this KeyStoreContents as a binary serialized structure to a file
     /// at the given path.
-    pub fn save<P: AsRef<Path>>(&self, path: P) -> Result<()> {
+    fn save<P: AsRef<Path>>(&self, path: P) -> Result<()> {
         let data = msgpack::to_vec(self)?;
         let mut file = File::create(path)?;
         Ok(file.write_all(data.as_slice())?)
@@ -64,7 +64,7 @@ impl KeyStoreContents {
 
     /// Returns true if the given key is this structure's "master key" which was
     /// used to encrypt the "token" upon construction.
-    pub fn is_master_key(&self, key: &Key) -> bool {
+    fn is_master_key(&self, key: &Key) -> bool {
         let decrypted = match key.decrypt(self.token_nonce.as_ref(), self.token.as_slice()) {
             Err(_) => return false,
             Ok(d) => d,
@@ -75,7 +75,7 @@ impl KeyStoreContents {
     /// Add the given wrapped key to this KeyStoreContents. No real validation
     /// is performed on this wrapped key, other than to check if it already
     /// exists in this structure (in which case false is returned).
-    pub fn add_key(&mut self, wrapped_key: WrappedKey) -> bool {
+    fn add_key(&mut self, wrapped_key: WrappedKey) -> bool {
         if self.wrapped_keys
             .iter()
             .filter(|k| k.get_wrapping_digest() == wrapped_key.get_wrapping_digest())
@@ -91,7 +91,7 @@ impl KeyStoreContents {
     /// from this KeyStoreContents. True/false is returned to indicate whether
     /// a matching key was actually found. It is an error to remove the last
     /// wrapped key from this structure.
-    pub fn remove_key<K: AbstractKey>(&mut self, wrapping_key: &K) -> Result<bool> {
+    fn remove_key<K: AbstractKey>(&mut self, wrapping_key: &K) -> Result<bool> {
         let original_length = self.wrapped_keys.len();
         let wrapped_keys: Vec<WrappedKey> = self.wrapped_keys
             .iter()

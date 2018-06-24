@@ -103,8 +103,8 @@ struct ParsedNamedFlag {
 /// flag was passed as '--name=value', but it may not if the value was
 /// passed separately ('--name', 'value').
 struct NamedFlagSpec<'a> {
-    pub value: Option<String>,
-    pub spec: &'a Spec,
+    value: Option<String>,
+    spec: &'a Spec,
 }
 
 impl<'a> NamedFlagSpec<'a> {
@@ -114,7 +114,7 @@ impl<'a> NamedFlagSpec<'a> {
     /// after the hyphens but before the "=" is considered to be the flag name,
     /// and is used to look up the associated Spec. This name may be either the
     /// short or long name for the flag.
-    pub fn new<'b>(specs: &'a Specs, flag: &'b str) -> Result<NamedFlagSpec<'a>> {
+    fn new<'b>(specs: &'a Specs, flag: &'b str) -> Result<NamedFlagSpec<'a>> {
         let trimmed = if flag.starts_with("--") {
             &flag[2..]
         } else {
@@ -144,8 +144,8 @@ impl<'a> NamedFlagSpec<'a> {
 /// A PositionalFlagSpec encapsulates the metadata about a positional flag which
 /// is necessary to parse it from command-line arguments.
 struct PositionalFlagSpec {
-    pub name: String,
-    pub is_variadic: bool,
+    name: String,
+    is_variadic: bool,
 }
 
 /// Parse the next named flag from the given iterator over this program's
@@ -202,7 +202,7 @@ struct ValueIterator<'a, 'b, I: Iterator<Item = &'b String>> {
 impl<'a, 'b, I: Iterator<Item = &'b String>> ValueIterator<'a, 'b, I> {
     /// Initializes a new ValueIterator over the given command-line argument
     /// Iterator, which is ready to start parsing flags.
-    pub fn new(specs: &'a Specs, args: Peekable<I>) -> ValueIterator<'a, 'b, I> {
+    fn new(specs: &'a Specs, args: Peekable<I>) -> ValueIterator<'a, 'b, I> {
         ValueIterator {
             specs: specs,
             args: args,

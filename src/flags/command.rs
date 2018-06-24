@@ -21,7 +21,7 @@ use std::io::Write;
 use std::iter::Peekable;
 
 pub type CommandResult<E> = ::std::result::Result<(), E>;
-pub type CommandCallback<'a, E> = Box<FnMut(Values) -> CommandResult<E> + 'a>;
+pub type CommandCallback<'a, E> = Box<dyn FnMut(Values) -> CommandResult<E> + 'a>;
 
 /// A command is a single sub-command for a given program. Each command has
 /// its own description as well as sets of options and arguments that it
