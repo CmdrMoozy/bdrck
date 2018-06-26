@@ -12,5 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+/// key defines structures which represent cryptographic keys, and provides
+/// some generic code to implement basic operations like encryption, decryption,
+/// and key wrapping.
 pub mod key;
+/// keystore defines a structure for persisting a "master key" on disk, via key
+/// wrapping.
 pub mod keystore;

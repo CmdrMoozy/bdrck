@@ -37,10 +37,16 @@ pub struct Dir {
 }
 
 impl Dir {
+    /// This is a shortcut version of new_in, which just creates the directory
+    /// within the system's default temporary directory.
     pub fn new(prefix: &str) -> Result<Dir> {
         Dir::new_in(&env::temp_dir(), prefix)
     }
 
+    /// Create a new temporary directory, as a subdirectory of the given other
+    /// temporary directory, with the given prefix in its name. The prefix
+    /// should generally be something application-specific, so if the temporary
+    /// directory is somehow left over its origin can be identified.
     fn new_in<P: AsRef<Path>>(temp_dir: P, prefix: &str) -> Result<Dir> {
         let mut rng = thread_rng();
         for _ in 0..TEMP_DIR_RAND_RETRIES {
@@ -65,6 +71,7 @@ impl Dir {
         )));
     }
 
+    /// Return the path to this temporary directory.
     pub fn path(&self) -> &Path {
         self.path.as_path()
     }
@@ -85,6 +92,10 @@ impl Dir {
         Ok(fs::remove_dir_all(&self.path)?)
     }
 
+    /// "Close" this temporary directory, by deleting it along with all of its
+    /// contents. This is called automatically by the Drop implementation, but
+    /// it can also be called manually if you want to dispose of this instance
+    /// without just letting it go out of scope.
     pub fn close(self) -> Result<()> {
         self.close_impl()
     }
@@ -158,6 +169,7 @@ impl File {
         Ok(ret)
     }
 
+    /// Return the path to this temporary file.
     pub fn path(&self) -> &Path {
         self.path.as_path()
     }
@@ -166,6 +178,10 @@ impl File {
         Ok(fs::remove_file(self.path.as_path())?)
     }
 
+    /// "Close" this temporary file by deleting it. This is called automatically
+    /// by the Drop implementation, but it can also be called manually if you
+    /// want to dispose of this instance without just letting it go out of
+    /// scope.
     pub fn close(self) -> Result<()> {
         self.close_impl()
     }

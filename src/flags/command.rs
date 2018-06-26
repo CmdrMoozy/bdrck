@@ -20,20 +20,39 @@ use std::fmt;
 use std::io::Write;
 use std::iter::Peekable;
 
+/// An alias for Result, which has an arbitrary Error type. This is used to
+/// denote the actual Result returned by a caller-provided Command
+/// implementation.
+///
+/// Note that the Ok value accepted is just (); this library has no logic to
+/// deal with application-specific success return values.
 pub type CommandResult<E> = ::std::result::Result<(), E>;
+
+/// The caller-provided callback trait object which will be called for a
+/// particular Command.
 pub type CommandCallback<'a, E> = Box<dyn FnMut(Values) -> CommandResult<E> + 'a>;
 
 /// A command is a single sub-command for a given program. Each command has
 /// its own description as well as sets of options and arguments that it
 /// accepts.
 pub struct Command<'a, E> {
+    /// The name of the command. For the common case, the user must specify this
+    /// explicitly as the first argument, e.g.
+    /// "$BINARY command [ ... flags ... ]".
     pub name: String,
+    /// The help string which explains this command's purpose. This is displayed
+    /// to the user when appropriate.
     pub help: String,
+    /// The full set of flags this Command supports.
     pub flags: Specs,
+    /// The callback which is the actual Command's implementation. After parsing
+    /// command-line arguments, this callback is called with the flag values.
     pub callback: CommandCallback<'a, E>,
 }
 
 impl<'a, E> Command<'a, E> {
+    /// A convenience function to construct a new Command with the given
+    /// properties.
     pub fn new(name: &str, help: &str, flags: Specs, callback: CommandCallback<'a, E>) -> Self {
         Command {
             name: name.to_owned(),
@@ -43,6 +62,8 @@ impl<'a, E> Command<'a, E> {
         }
     }
 
+    /// A convenience function to call into this Command's implementation with
+    /// the given set of parsed command-line flag values.
     pub fn execute(&mut self, values: Values) -> CommandResult<E> {
         self.callback.as_mut()(values)
     }
