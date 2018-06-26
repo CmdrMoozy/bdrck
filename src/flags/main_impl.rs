@@ -20,7 +20,10 @@ use std::env;
 use std::fmt::{Debug, Display};
 use std::process;
 
+/// The integer which is returned from main() if the program exits successfully.
 pub const EXIT_SUCCESS: i32 = 0;
+/// The integer which is returned from main() if the program exits with any
+/// error.
 pub const EXIT_FAILURE: i32 = 1;
 
 /// Returns the current program's parameters (accessed essentialy via
@@ -32,6 +35,15 @@ pub fn get_program_parameters() -> Vec<String> {
         .collect()
 }
 
+/// This is a utility function, which handles the given result returned by a
+/// Command implementation. The *outer* Result being an Err means that something
+/// went wrong internally in the command-line argument parsing library. The
+/// *inner* Result, on the other hand, is the actual Result returned by the
+/// caller-provided Command implementation itself.
+///
+/// Overall, if an error is encountered, it is printed to standard output. In
+/// either case, the appropriate exit code (EXIT_SUCCESS or EXIT_FAILURE) is
+/// returned.
 pub fn handle_result<E: Display + Debug>(r: Result<CommandResult<E>>) -> i32 {
     match r {
         Ok(command_result) => match command_result {

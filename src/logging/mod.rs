@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+/// write provides adapters to use anything which implements Write as a logging
+/// destination.
 pub mod write;
 
 use chrono;
@@ -25,6 +27,9 @@ use std::str::FromStr;
 
 const RUST_LOG_ENV_VAR: &'static str = "RUST_LOG";
 
+/// This is a utility function which provides a way to parse a log::LevelFilter
+/// from a string. Upstream doesn't impl FromStr for this type, so this extra
+/// utility is necessary.
 pub fn parse_log_level_filter(s: &str) -> Result<LevelFilter> {
     lazy_static! {
         static ref STRING_MAPPING: HashMap<String, LevelFilter> = {
@@ -69,6 +74,8 @@ pub fn parse_log_level_filter(s: &str) -> Result<LevelFilter> {
     }
 }
 
+/// A LogFilter is a single filter, perhaps one of many, that can be applied to
+/// log messages before actually outputting them.
 pub struct LogFilter {
     /// This LogFilter is intended to be applied to any modules which match this
     /// regular expression. If this field is None instead, then this LogFilter
@@ -115,6 +122,8 @@ impl FromStr for LogFilter {
     }
 }
 
+/// LogFilters is a structure which defines the full set of filters a Logger
+/// should apply to log messages before actually outputting them.
 pub struct LogFilters(pub Vec<LogFilter>);
 
 impl LogFilters {
@@ -153,6 +162,9 @@ impl FromStr for LogFilters {
     }
 }
 
+/// Options is a structure which describes the options for a Logger. Generally
+/// these should be constructed using OptionsBuilder, instead of filling in all
+/// fields by hand.
 pub struct Options {
     /// Filters controlling which log statements are enabled. If unspecified,
     /// defaults to the value of the RUST_LOG environment variable. If that is
@@ -178,6 +190,7 @@ pub struct Options {
     pub always_flush: bool,
 }
 
+/// OptionsBuilder provides a builder-style interface to construct an Options.
 pub struct OptionsBuilder {
     filters: Option<LogFilters>,
     output_factory: Option<LogOutputFactory>,
@@ -186,6 +199,8 @@ pub struct OptionsBuilder {
 }
 
 impl OptionsBuilder {
+    /// Construct a new OptionsBuilder, which by default just sets the options
+    /// to their default values.
     pub fn new() -> Self {
         OptionsBuilder {
             filters: None,
@@ -195,30 +210,49 @@ impl OptionsBuilder {
         }
     }
 
+    /// Set the filters which will be applied to any logging calls before
+    /// actually logging them.
     pub fn set_filters(mut self, filters: LogFilters) -> Self {
         self.filters = Some(filters);
         self
     }
 
+    /// Set the output factory the Logger should use. This can be used to
+    /// redirect logging output more generically, although for the common case
+    /// set_output_to might be easier to use.
     pub fn set_output_factory(mut self, output_factory: LogOutputFactory) -> Self {
         self.output_factory = Some(output_factory);
         self
     }
 
+    /// Configure the Logger to write its log output to the given Write
+    /// implementation (e.g. a File). This is a convenience function which
+    /// just calls set_output_factory under the hood.
     pub fn set_output_to<T: Write + Send + 'static>(self, output_writer: T) -> Self {
         self.set_output_factory(new_log_output_factory(output_writer))
     }
 
+    /// Set whether or not the Logger should panic! if writing log output fails.
+    /// Generally this can be useful for debugging, but in real production code
+    /// losing a log entry might not be a good enough reason to terminate the
+    /// entire process.
     pub fn set_panic_on_output_failure(mut self, panic_on_output_failure: bool) -> Self {
         self.panic_on_output_failure = Some(panic_on_output_failure);
         self
     }
 
+    /// Set whether or not the Logger should flush its output after every
+    /// logging call. The benefit is that log messages show up immediately, and
+    /// are less susceptible to "corruption" when logging from multiple threads,
+    /// but the cost is a significant performance penalty for all logging calls.
     pub fn set_always_flush(mut self, always_flush: bool) -> Self {
         self.always_flush = Some(always_flush);
         self
     }
 
+    /// Build an Options structure from this builder's current state. This might
+    /// return an error if no custom filters were specified, and attempting to
+    /// retrieve filters from an environment variable fails.
     pub fn build(self) -> Result<Options> {
         let filters: LogFilters = match self.filters {
             None => match get_env_var(RUST_LOG_ENV_VAR)? {
@@ -255,6 +289,8 @@ fn get_env_var(key: &str) -> Result<Option<String>> {
     }
 }
 
+/// This function formats the given log Record into a string, which can then be
+/// written directly to the logging sink (e.g. stderr, a file, etc.).
 pub fn format_log_record(record: &Record) -> String {
     format!(
         "[{} {}:{}] {} - {}",
@@ -268,11 +304,16 @@ pub fn format_log_record(record: &Record) -> String {
     )
 }
 
+/// This is the standard Log implementation bdrck provides, which can be
+/// controlled by setting its Options. In general, this is intended to be a
+/// pretty versatile implementation, suitable for both command-line applications
+/// as well as serving daemons, given the right Options.
 pub struct Logger {
     options: Options,
 }
 
 impl Logger {
+    /// Construct a new Logger with the given Options controlling its behavior.
     pub fn new(options: Options) -> Self {
         Logger { options: options }
     }
@@ -319,6 +360,8 @@ impl Log for Logger {
     }
 }
 
+/// Try to set up a new global Logger, with the given Options controlling its
+/// behavior, returning a standard error if doing so fails in some way.
 pub fn try_init(options: Options) -> Result<()> {
     let logger = Logger::new(options);
     log::set_max_level(logger.options.max_level);
@@ -326,6 +369,9 @@ pub fn try_init(options: Options) -> Result<()> {
     Ok(())
 }
 
+/// This is a shortcut which just calls try_init(), but implicitly unwraps the
+/// resulting error. For applications which initialize a Logger first thing in
+/// main(), this is probably a reasonable choice.
 pub fn init(options: Options) {
     try_init(options).unwrap();
 }

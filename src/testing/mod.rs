@@ -12,6 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+/// fn_instrumentation provides utilities for instrumenting function calls
+/// during unit tests.
 pub mod fn_instrumentation;
+/// logging provides a Logger implementation which is suitable for unit tests.
 pub mod logging;
+/// temp provides utilities for creating temporary files or directories in unit
+/// tests.
 pub mod temp;

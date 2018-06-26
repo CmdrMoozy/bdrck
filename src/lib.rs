@@ -13,10 +13,14 @@
 // limitations under the License.
 
 #![deny(
-    anonymous_parameters, trivial_casts, trivial_numeric_casts, unused_extern_crates,
+    anonymous_parameters, missing_docs, trivial_casts, trivial_numeric_casts, unused_extern_crates,
     unused_import_braces
 )]
 #![warn(bare_trait_objects, unreachable_pub, unused_qualifications)]
+
+//! bdrck is a crate which contains some basic foundational tools. In general,
+// the intent is to provide the kind of utilties which might be found in std
+// some day, which are useful for most or all Rust programs.
 
 extern crate chrono;
 extern crate data_encoding;
@@ -36,13 +40,27 @@ extern crate serde;
 extern crate serde_derive;
 extern crate sodiumoxide;
 
+/// The configuration module contains utilities for persisting application
+/// configuration to disk.
 pub mod configuration;
+/// crypto contains some basic cryptographic primitives, built largely on top of
+/// NaCl, which are generally useful for any program which performs crypto ops.
 pub mod crypto;
+/// error defines error types specific to bdrck, which properly aggregates
+/// errors from all of bdrck's dependencies.
 pub mod error;
+/// flags defines a library for command-line argument parsing.
 pub mod flags;
+/// fs provides various utilities for interacting with the filesystem.
 pub mod fs;
+/// logging provides Logger implementations suitable for either command-line
+/// applications or serving daemons.
 pub mod logging;
+/// net provides additional network-related utilities, on top of what is
+/// available in std.
 pub mod net;
+/// testing provides utilities which are useful for unit testing real production
+/// code.
 pub mod testing;
 
 #[cfg(test)]
