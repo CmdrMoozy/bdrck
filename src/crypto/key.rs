@@ -144,6 +144,7 @@ impl<'de> Deserialize<'de> for Digest {
 }
 
 impl Digest {
+    /// Construct a new Digest object by hashing the given raw bytes.
     pub fn from_bytes(data: &[u8]) -> Self {
         Digest(hash::hash(data).0)
     }
@@ -163,6 +164,9 @@ impl Default for Salt {
 /// An AbstractKey is any cryptographic structure which supports encryption and
 /// decryption.
 pub trait AbstractKey {
+    /// The error type this AbstractKey implementation's functions return. This
+    /// is useful when implementing AbstractKey for types defined in other
+    /// libraries, which might have their own error types distinct from bdrck.
     type Err: Fail;
 
     /// Return a digest/signature computed from this key.
@@ -190,12 +194,18 @@ pub trait AbstractKey {
 /// key, or it may be another wrapped key.
 #[derive(Clone, Deserialize, Serialize)]
 pub enum WrappedPayload {
+    /// The thing which has been wrapped is a Key, so unwrapping this payload
+    /// will return the raw Key.
     Key(Key),
+    /// The thing that has been wrapped is another wrapped payload, so more than
+    /// one unwrap operation is needed to access the raw underlying Key.
     WrappedKey(WrappedKey),
 }
 
 /// A Wrappable is any object it is useful to "wrap" (encrypt) with a key.
 pub trait Wrappable {
+    /// This function "wraps" (encrypts, roughly) self with the given
+    /// AbstractKey.
     fn wrap<K: AbstractKey>(self, key: &K) -> Result<WrappedKey>;
 }
 

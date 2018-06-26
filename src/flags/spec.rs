@@ -18,13 +18,33 @@ use error::*;
 /// also contains extra metadata about the flag, if applicable for that type.
 #[derive(Clone, Debug)]
 pub enum Type {
+    /// A required flag, meaning it must have some string value (possibly its
+    /// default value) after command-line flags have been parsed, or an error
+    /// has occurred.
     Required {
+        /// The default value to give this flag if the user doesn't specify one.
+        /// This is optional, in which case it is an error for the user not to
+        /// specify a value explicitly.
         default_value: Option<String>,
     },
+    /// An optional flag - the value is treated the same way as a Required flag,
+    /// except it is *not* considered an error if there is no value associated
+    /// with it after command-line flags have been parsed.
     Optional,
+    /// A boolean flag, which may either be on or off.
     Boolean,
+    /// A positional flag, which, unlike all of the other flag types, must not
+    /// have its name specified explicitly (e.g. "--flag"), but which is
+    /// identified purely by its position in the list of command-line arguments.
     Positional {
+        /// The default value(s) for this flag, if any.
         default_value: Option<Vec<String>>,
+        /// Whether or not this flag is variadic. Variadic flags greedily scoop
+        /// up *all* of the remaining positional values at the end of the list
+        /// of command-line arguments.
+        ///
+        /// Note that because of this, it only makes sense for *one* flag to be
+        /// variadic, and it must always be the *last* Positional flag.
         is_variadic: bool,
     },
 }
@@ -33,9 +53,16 @@ pub enum Type {
 /// it in the set of arguments given on the command-line.
 #[derive(Clone, Debug)]
 pub struct Spec {
+    /// The name of this flag. For non-positional flags, this must be used to
+    /// identify its value, e.g. like "--flag=value".
     pub name: String,
+    /// The help string to print out for this flag when applicable.
     pub help: String,
+    /// The optional short name for this flag - e.g., for a flag named "flag",
+    /// it may be convenient to let users alternatively identify it by "--f".
     pub short_name: Option<char>,
+    /// The Type of flag, which identifies how its value should be identified,
+    /// how it should be parsed, etc.
     pub flag_type: Type,
 }
 
@@ -228,12 +255,20 @@ impl Spec {
     }
 }
 
+/// Specs is simply a list of flag Spec structures. Whereas each Spec defines
+/// the properties of a single flag, Specs defines the properties of multiple
+/// flags - generally, all of the flags assocaited with a single Command.
 #[derive(Clone, Debug)]
 pub struct Specs {
     specs: Vec<Spec>,
 }
 
 impl Specs {
+    /// Construct a new Specs structure from the given complete list of flag
+    /// Spec structures.
+    ///
+    /// This may return an error if the Spec structures, taken together, are
+    /// invalid (for example, if *multiple* variadic flags are defined).
     pub fn new(specs: Vec<Spec>) -> Result<Specs> {
         if !specs
             .iter()

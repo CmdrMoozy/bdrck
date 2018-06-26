@@ -25,9 +25,13 @@ use std::io;
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, MutexGuard};
 
+/// An Identifier uniquely identifies a configuration file.
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct Identifier {
+    /// The unique name of the application this configuration file belongs to.
     pub application: String,
+    /// The application-specific unique name for this particular configuration
+    /// file.
     pub name: String,
 }
 
@@ -101,6 +105,11 @@ fn deserialize<T: Clone + DeserializeOwned>(path: &PathBuf, default: &T) -> Resu
     }
 }
 
+/// A Configuration represents a set of configuration values, initially loaded
+/// from disk, and which can be persisted back to disk e.g. just before the
+/// application exits. Generally it is expected that only one instance per
+/// Identifier is needed globally, and the other functions in this module are
+/// intended to provide an easy singleton interface for this class.
 pub struct Configuration<T> {
     path: PathBuf,
     default: T,
@@ -108,6 +117,10 @@ pub struct Configuration<T> {
 }
 
 impl<T: Clone + Serialize + DeserializeOwned> Configuration<T> {
+    /// Initialize a new Configuration with the given identifier, default set of
+    /// configuration values, and custom disk persistence path (optional). An
+    /// error might occur if determining the persistence path to use fails, or
+    /// if deserializing the previously persisted configuration (if any) fails.
     pub fn new(id: Identifier, default: T, custom_path: Option<&Path>) -> Result<Configuration<T>> {
         let path: PathBuf = get_configuration_path(&id, custom_path)?;
         let current: T = deserialize(&path, &default)?;
@@ -119,18 +132,25 @@ impl<T: Clone + Serialize + DeserializeOwned> Configuration<T> {
         })
     }
 
+    /// Return this instance's current set of configuration values.
     pub fn get(&self) -> &T {
         &self.current
     }
 
+    /// Replace all existing configuration values with the given entirely new
+    /// set of configuration values.
     pub fn set(&mut self, config: T) {
         self.current = config
     }
 
+    /// Reset all of this instance's configuration values back to their default
+    /// values (specified previously on construction).
     pub fn reset(&mut self) {
         self.current = self.default.clone()
     }
 
+    /// Persist this instance's current configuration values to disk, so they
+    /// can be re-loaded on the next construction.
     pub fn persist(&self) -> Result<()> {
         use std::io::Write;
 
@@ -161,6 +181,11 @@ fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<T> {
     }
 }
 
+/// new initializes a new configuration singleton with the given identifer,
+/// default set of configuration values, and custom disk persistence path
+/// (optional). An error might occur if determining the persistence path to use
+/// fails, or if deserializing the previously persisted configuration (if any)
+/// fails.
 pub fn new<T: Clone + Serialize + DeserializeOwned + Send + 'static>(
     id: Identifier,
     default: T,
@@ -173,6 +198,9 @@ pub fn new<T: Clone + Serialize + DeserializeOwned + Send + 'static>(
     Ok(())
 }
 
+/// remove persists and then removes the configuration singleton matching the
+/// given identifier. After calling this function, the configuration in question
+/// will be unavailable.
 pub fn remove<T: Clone + Serialize + DeserializeOwned + 'static>(id: &Identifier) -> Result<()> {
     let mut guard = lock(&SINGLETONS);
 
@@ -198,6 +226,10 @@ pub fn remove<T: Clone + Serialize + DeserializeOwned + 'static>(id: &Identifier
     }
 }
 
+/// instance_apply is a very generic function which applies the given function
+/// to the configuration singleton matching the given identifier. It is an error
+/// if the identifier is unrecognized, or if the given callback operates on a
+/// Configuration of the wrong type.
 pub fn instance_apply<T: 'static, R, F: FnOnce(&Configuration<T>) -> R>(
     id: &Identifier,
     f: F,
@@ -221,6 +253,10 @@ pub fn instance_apply<T: 'static, R, F: FnOnce(&Configuration<T>) -> R>(
     }
 }
 
+/// instance_apply_mut is a very generic function which applies the given
+/// mutation function once to the configuration singleton matching the given
+/// identifier. It is an error if the identifier is unrecognized, or if the
+/// given callback operates on a Configuration of the wrong type.
 pub fn instance_apply_mut<T: 'static, R, F: FnOnce(&mut Configuration<T>) -> R>(
     id: &Identifier,
     f: F,
@@ -244,10 +280,15 @@ pub fn instance_apply_mut<T: 'static, R, F: FnOnce(&mut Configuration<T>) -> R>(
     }
 }
 
+/// get returns the entire current set of configuration values in the
+/// configuration singleton matching the given identifier.
 pub fn get<T: Clone + Serialize + DeserializeOwned + 'static>(id: &Identifier) -> Result<T> {
     instance_apply::<T, T, _>(id, |instance| instance.get().clone())
 }
 
+/// set replaces all existing configuration values with the given entirely new
+/// set of configuration values in the configuration singleton matching the
+/// given identifier..
 pub fn set<T: Clone + Serialize + DeserializeOwned + 'static>(
     id: &Identifier,
     config: T,
@@ -255,10 +296,14 @@ pub fn set<T: Clone + Serialize + DeserializeOwned + 'static>(
     instance_apply_mut(id, move |instance| instance.set(config))
 }
 
+/// reset modifies the configuration singleton matching the given identifier to
+/// its default values.
 pub fn reset<T: Clone + Serialize + DeserializeOwned + 'static>(id: &Identifier) -> Result<()> {
     instance_apply_mut::<T, _, _>(id, |instance| instance.reset())
 }
 
+/// persist writes the configuration singleton matching the given identifier to
+/// disk.
 pub fn persist<T: Clone + Serialize + DeserializeOwned + 'static>(id: &Identifier) -> Result<()> {
     instance_apply::<T, _, _>(id, |instance| instance.persist())?
 }

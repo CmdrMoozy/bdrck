@@ -62,8 +62,15 @@ fn parse_bool(value: &str) -> Result<bool> {
 /// is different depending on the type of flag it is associated with.
 #[derive(Debug, Eq, PartialEq)]
 pub enum Value {
+    /// A single string value (perhaps a string which the user of this library
+    /// can then further interpret / parse as some other type).
     Single(String),
+    /// A boolean value, from a flag defined as a boolean in its associated
+    /// pec.
     Boolean(bool),
+    /// A flag with repeated values. These should be treated the same as one
+    /// would a Single string value, except there are potentially zero or more
+    /// of them.
     Repeated(Vec<String>),
 }
 
