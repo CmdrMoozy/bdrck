@@ -39,7 +39,7 @@ impl KeyStoreContents {
     /// Constrct a new KeyStoreContents from scratch, using the given master
     /// key.
     fn new(master_key: &Key) -> Result<KeyStoreContents> {
-        let (nonce, ciphertext) = master_key.encrypt(AUTH_TOKEN_CONTENTS.as_slice())?;
+        let (nonce, ciphertext) = master_key.encrypt(AUTH_TOKEN_CONTENTS.as_slice(), None)?;
         Ok(KeyStoreContents {
             token_nonce: nonce,
             token: ciphertext,
