@@ -172,12 +172,17 @@ pub trait AbstractKey {
     /// Return a digest/signature computed from this key.
     fn get_digest(&self) -> Digest;
 
-    /// Encrypt the given plaintext with this key. This returns a nonce if one
-    /// was used (in which case it must be passed into decrypt later), as well
-    /// as the ciphertext.
+    /// Encrypt the given plaintext with this key. This function optionally
+    /// takes a nonce as an argument. If this key's encryption algorithm
+    /// utilizes a nonce, the provided one will be used.
+    ///
+    /// This function returns the ciphertext, as well as a Nonce (if one was
+    /// used for encryption). If a Nonce was provided, that same Nonce is
+    /// returned.
     fn encrypt(
         &self,
         plaintext: &[u8],
+        nonce: Option<Nonce>,
     ) -> ::std::result::Result<(Option<Nonce>, Vec<u8>), Self::Err>;
 
     /// Decrypt the given ciphertext using this key and the nonce which was
@@ -223,8 +228,8 @@ impl AbstractKey for Key {
         Digest::from_bytes(self.key.0.as_ref())
     }
 
-    fn encrypt(&self, plaintext: &[u8]) -> Result<(Option<Nonce>, Vec<u8>)> {
-        let nonce = Nonce::default();
+    fn encrypt(&self, plaintext: &[u8], nonce: Option<Nonce>) -> Result<(Option<Nonce>, Vec<u8>)> {
+        let nonce = nonce.unwrap_or_else(|| Nonce::default());
         let ciphertext = secretbox::seal(plaintext, &nonce.nonce, &self.key);
         Ok((Some(nonce), ciphertext))
     }
@@ -340,7 +345,7 @@ impl Wrappable for WrappedKey {
 impl WrappedKey {
     fn wrap_payload<K: AbstractKey>(payload: WrappedPayload, key: &K) -> Result<Self> {
         let serialized = msgpack::to_vec(&payload)?;
-        let (nonce, ciphertext) = match key.encrypt(serialized.as_slice()) {
+        let (nonce, ciphertext) = match key.encrypt(serialized.as_slice(), None) {
             Err(e) => return Err(Error::Unknown(format_err!("Wrapping key failed: {}", e))),
             Ok(tuple) => tuple,
         };
