@@ -58,7 +58,7 @@ fn test_basic_key_digest_comparison() {
 fn test_encryption_roundtrip() {
     let key = Key::new_random().unwrap();
     let plaintext = randombytes(1024);
-    let (nonce, ciphertext) = key.encrypt(plaintext.as_slice()).unwrap();
+    let (nonce, ciphertext) = key.encrypt(plaintext.as_slice(), None).unwrap();
     assert_ne!(plaintext.as_slice(), ciphertext.as_slice());
     let decrypted = key.decrypt(nonce.as_ref(), ciphertext.as_slice()).unwrap();
     assert_eq!(plaintext, decrypted);
@@ -68,7 +68,7 @@ fn test_encryption_roundtrip() {
 fn test_decrypting_with_wrong_key_fails() {
     let key = Key::new_random().unwrap();
     let plaintext = randombytes(1024);
-    let (nonce, ciphertext) = key.encrypt(plaintext.as_slice()).unwrap();
+    let (nonce, ciphertext) = key.encrypt(plaintext.as_slice(), None).unwrap();
     assert_ne!(plaintext.as_slice(), ciphertext.as_slice());
 
     let wrong_key = Key::new_random().unwrap();
