@@ -70,12 +70,36 @@ impl Nonce {
         }
     }
 
+    /// Construct a new Nonce from raw bytes. The given byte slice must be
+    /// exactly NONCE_BYTES long.
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self> {
+        if bytes.len() != NONCE_BYTES {
+            return Err(Error::InvalidArgument(format_err!(
+                "Expected {} Nonce bytes, got {}",
+                NONCE_BYTES,
+                bytes.len()
+            )));
+        }
+
+        let mut nonce = secretbox::Nonce([0; NONCE_BYTES]);
+        for (dst, src) in nonce.0.iter_mut().zip(bytes.iter()) {
+            *dst = *src;
+        }
+
+        Ok(Nonce { nonce: nonce })
+    }
+
     /// Increment this nonce's bytes by 1. This is useful for counter-style
     /// nonces.
     pub fn increment(self) -> Self {
         let mut nonce = self.nonce;
         nonce.increment_le_inplace();
         Nonce { nonce: nonce }
+    }
+
+    /// Access the raw bytes which make up this Nonce.
+    pub fn as_bytes(&self) -> &[u8] {
+        &self.nonce.0
     }
 }
 
