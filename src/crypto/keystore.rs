@@ -27,87 +27,14 @@ lazy_static! {
     static ref AUTH_TOKEN_CONTENTS: Vec<u8> = "3c017f717b39247c351154a41d2850e4187284da4b928f13c723d54440ba2dfe".bytes().collect();
 }
 
-/// KeyStoreContents is an implementation detail of KeyStore, which encapsulates
-/// the portion of the KeyStore's data which is actually persisted.
-#[derive(Deserialize, Serialize)]
-struct KeyStoreContents {
-    token_nonce: Option<Nonce>,
-    token: Vec<u8>,
-    wrapped_keys: Vec<WrappedKey>,
-}
-
-impl KeyStoreContents {
-    /// Constrct a new KeyStoreContents from scratch, using the given master
-    /// key.
-    fn new(master_key: &Key) -> Result<Self> {
-        let (nonce, ciphertext) = master_key.encrypt(AUTH_TOKEN_CONTENTS.as_slice(), None)?;
-        Ok(KeyStoreContents {
-            token_nonce: nonce,
-            token: ciphertext,
-            wrapped_keys: Vec::new(),
-        })
-    }
-
-    /// Deserialize a KeyStoreContents from the given bytes.
-    fn from_slice(data: &[u8]) -> Result<Self> {
-        Ok(msgpack::from_slice(data)?)
-    }
-
-    /// Deserialize a KeyStoreContents from the given reader.
-    fn from_read<R: Read>(rd: R) -> Result<Self> {
-        Ok(msgpack::from_read(rd)?)
-    }
-
-    /// Serialize this KeyStoreContents to a byte vector, which can then be
-    /// persisted in e.g. a file or whatever.
-    fn to_vec(&self) -> Result<Vec<u8>> {
-        Ok(msgpack::to_vec(self)?)
-    }
-
-    /// Returns true if the given key is this structure's "master key" which was
-    /// used to encrypt the "token" upon construction.
-    fn is_master_key(&self, key: &Key) -> bool {
-        let decrypted = match key.decrypt(self.token_nonce.as_ref(), self.token.as_slice()) {
-            Err(_) => return false,
-            Ok(d) => d,
-        };
-        decrypted.as_slice() == AUTH_TOKEN_CONTENTS.as_slice()
-    }
-
-    /// Add the given wrapped key to this KeyStoreContents. No real validation
-    /// is performed on this wrapped key, other than to check if it already
-    /// exists in this structure (in which case false is returned).
-    fn add_key(&mut self, wrapped_key: WrappedKey) -> bool {
-        if self.wrapped_keys
-            .iter()
-            .filter(|k| k.get_wrapping_digest() == wrapped_key.get_wrapping_digest())
-            .count() > 0
-        {
-            return false;
-        }
-        self.wrapped_keys.push(wrapped_key);
-        true
-    }
-
-    /// Remove the wrapped key which was wrapped using the given wrapping key
-    /// from this KeyStoreContents. True/false is returned to indicate whether
-    /// a matching key was actually found. It is an error to remove the last
-    /// wrapped key from this structure.
-    fn remove_key<K: AbstractKey>(&mut self, wrapping_key: &K) -> Result<bool> {
-        let original_length = self.wrapped_keys.len();
-        let wrapped_keys: Vec<WrappedKey> = self.wrapped_keys
-            .iter()
-            .filter(|k| *k.get_wrapping_digest() != wrapping_key.get_digest())
-            .cloned()
-            .collect();
-        if wrapped_keys.is_empty() {
-            return Err(Error::Precondition(format_err!(
-                "Refusing to remove all valid keys from this KeyStore"
-            )));
-        }
-        self.wrapped_keys = wrapped_keys;
-        Ok(self.wrapped_keys.len() != original_length)
-    }
+/// Returns true if the given key is this structure's "master key" which was
+/// used to encrypt the `token` upon construction.
+fn is_master_key<K: AbstractKey>(key: &K, nonce: Option<&Nonce>, token: &[u8]) -> bool {
+    let decrypted = match key.decrypt(nonce, token) {
+        Err(_) => return false,
+        Ok(d) => d,
+    };
+    decrypted.as_slice() == AUTH_TOKEN_CONTENTS.as_slice()
 }
 
 /// A KeyStore is a structure which contains a single "master key", wrapped with
@@ -122,37 +49,61 @@ impl KeyStoreContents {
 ///
 /// A KeyStore essentially contains a set of one or more wrapped keys, which it
 /// automatically loads from / persists to disk.
+#[derive(Deserialize, Serialize)]
 pub struct KeyStore {
-    master_key: Key,
-    contents: KeyStoreContents,
+    /// The master key is never persisted or loaded from serialized bytes.
+    /// Instead, KeyStore constructors are in charge of retrieving the master
+    /// key from `wrapped_keys`, and populating this field.
+    ///
+    /// In other words, it is an invariant of KeyStore that after its
+    /// constructor has returned, this field will *never* be None.
+    #[serde(skip_serializing, skip_deserializing)]
+    master_key: Option<Key>,
+
+    token_nonce: Option<Nonce>,
+    token: Vec<u8>,
+    wrapped_keys: Vec<WrappedKey>,
 }
 
 impl KeyStore {
     /// Construct a new KeyStore. A new master key is generated from scratch,
-    /// and is wrapped with the given key (in other words, the given key is
-    /// added to the KeyStore).
+    /// and the given key is added to the KeyStore (wrapping the new master
+    /// key).
     pub fn new<K: AbstractKey>(key: &K) -> Result<Self> {
+        // Generate a new master key. We'll store this *wrapped with `key`*.
         let master_key = Key::new_random()?;
-        let contents = KeyStoreContents::new(&master_key)?;
+        // Encrypt the auth token with the master key. This is so we can decrypt
+        // it later, and verify we get the right result, to guarantee we have
+        // the right master key.
+        let (nonce, ciphertext) = master_key.encrypt(AUTH_TOKEN_CONTENTS.as_slice(), None)?;
 
         let mut store = KeyStore {
-            master_key: master_key,
-            contents: contents,
+            master_key: Some(master_key),
+            token_nonce: nonce,
+            token: ciphertext,
+            wrapped_keys: Vec::new(),
         };
 
+        // Add the initial key the caller gave us to the KeyStore. This is just
+        // a convenience.
         store.add_key(key)?;
+
         Ok(store)
     }
 
-    fn open<K: AbstractKey>(contents: KeyStoreContents, key: &K) -> Result<Self> {
+    fn open<K: AbstractKey>(mut store: KeyStore, key: &K) -> Result<Self> {
         let mut master_key: Option<Key> = None;
-        for wrapped_key in contents.wrapped_keys.iter() {
+        for wrapped_key in store.wrapped_keys.iter() {
             if let Ok(payload) = wrapped_key.clone().unwrap(key) {
                 let unwrapped_key = match payload {
                     WrappedPayload::Key(k) => k,
                     _ => continue,
                 };
-                if contents.is_master_key(&unwrapped_key) {
+                if is_master_key(
+                    &unwrapped_key,
+                    store.token_nonce.as_ref(),
+                    store.token.as_slice(),
+                ) {
                     master_key = Some(unwrapped_key);
                     break;
                 }
@@ -165,49 +116,73 @@ impl KeyStore {
             )));
         }
 
-        Ok(KeyStore {
-            master_key: master_key.unwrap(),
-            contents: contents,
-        })
+        store.master_key = master_key;
+        Ok(store)
     }
 
     /// Open the KeyStore (attempt to unwrap the master key) by deserializing
     /// the given KeyStore bytes.
     pub fn open_slice<K: AbstractKey>(data: &[u8], key: &K) -> Result<Self> {
-        Self::open(KeyStoreContents::from_slice(data)?, key)
+        Self::open(msgpack::from_slice(data)?, key)
     }
 
     /// Open the KeyStore (attempt to unwrap the master key) by deserializing
     /// the KeyStore bytes read from the given reader.
     pub fn open_read<R: Read, K: AbstractKey>(rd: R, key: &K) -> Result<Self> {
-        Self::open(KeyStoreContents::from_read(rd)?, key)
+        Self::open(msgpack::from_read(rd)?, key)
     }
 
     /// Serialize this KeyStore, so it can be persisted and then reloaded later.
     pub fn to_vec(&self) -> Result<Vec<u8>> {
-        self.contents.to_vec()
+        Ok(msgpack::to_vec(self)?)
     }
 
     /// Return the unwrapped master key from this KeyStore.
     pub fn get_master_key(&self) -> &Key {
-        &self.master_key
+        self.master_key.as_ref().unwrap()
     }
 
-    /// Add the given wrapping key to this KeyStore. On future
-    /// open_or_new calls, this new key can be used to open the KeStore. Return
-    /// whether the key was successfully added (true), or if it was already
-    /// present in the KeyStore (false).
+    /// Add the given wrapping key to this KeyStore. When the KeyStore is opened
+    /// in the future, this key can be used. Returns true if the key was
+    /// successfully added, or false if it was already present in the KeyStore.
     pub fn add_key<K: AbstractKey>(&mut self, key: &K) -> Result<bool> {
-        Ok(self.contents.add_key(self.master_key.clone().wrap(key)?))
+        let wrapped_key = self.master_key.clone().unwrap().wrap(key)?;
+
+        // If this key is already in the KeyStore, just return.
+        if self.wrapped_keys
+            .iter()
+            .filter(|k| k.get_wrapping_digest() == wrapped_key.get_wrapping_digest())
+            .next()
+            .is_some()
+        {
+            return Ok(false);
+        }
+
+        self.wrapped_keys.push(wrapped_key);
+        Ok(true)
     }
 
     /// Remove the given key from this KeyStore, so it can no longer be used to
-    /// unwrap / open the KeyStore. Returns true if the key was removed, or
-    /// false if the given key wasn't found in this KeyStore. It is an error to
-    /// remove the last wrapping key from a KeyStore (doing so would leave it
-    /// unopenable in the future).
+    /// open the KeyStore. Returns true if the key was removed, or false if the
+    /// given key wasn't found in this KeyStore. It is an error to remove the
+    /// last wrapping key from a KeyStore (doing so would leave it unopenable in
+    /// the future).
     pub fn remove_key<K: AbstractKey>(&mut self, key: &K) -> Result<bool> {
-        self.contents.remove_key(key)
+        if let Some(wrapped_key) = self.wrapped_keys.first() {
+            if *wrapped_key.get_wrapping_digest() == key.get_digest() {
+                return Err(Error::Precondition(format_err!(
+                    "Refusing to remove all valid keys from this KeyStore"
+                )));
+            }
+        }
+
+        let original_length = self.wrapped_keys.len();
+        let wrapped_keys = self.wrapped_keys
+            .drain(..)
+            .filter(|k| *k.get_wrapping_digest() != key.get_digest())
+            .collect();
+        self.wrapped_keys = wrapped_keys;
+        Ok(original_length != self.wrapped_keys.len())
     }
 }
 
