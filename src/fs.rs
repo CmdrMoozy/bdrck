@@ -17,6 +17,7 @@ use error::*;
 use libc;
 use std::ffi::{CString, OsString};
 use std::fs::{self, Permissions};
+use std::mem;
 use std::path::{Path, PathBuf};
 use std::ptr;
 
@@ -171,14 +172,10 @@ pub fn set_ownership<P: AsRef<Path>>(_: P, _: u32, _: u32, _: bool, _: bool) -> 
 /// Returns the UNIX uid for the user with the given name.
 #[cfg(not(target_os = "windows"))]
 fn lookup_uid(name: &str) -> Result<u32> {
-    let mut passwd = libc::passwd {
-        pw_name: ptr::null_mut(),
-        pw_passwd: ptr::null_mut(),
-        pw_uid: 0,
-        pw_gid: 0,
-        pw_gecos: ptr::null_mut(),
-        pw_dir: ptr::null_mut(),
-        pw_shell: ptr::null_mut(),
+    let mut passwd = unsafe {
+        mem::transmute::<[u8; mem::size_of::<libc::passwd>()], libc::passwd>(
+            [0_u8; mem::size_of::<libc::passwd>()],
+        )
     };
     let mut passwd_ptr: *mut libc::passwd = ptr::null_mut();
     let cname = CString::new(name)?;
