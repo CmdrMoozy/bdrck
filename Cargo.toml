@@ -1,6 +1,6 @@
 [package]
 name = "bdrck"
-version = "0.11.1"
+version = "0.11.22"
 authors = ["Axel Rasmussen <axel.rasmussen1@gmail.com>"]
 description = "Generic common foundational utilities."
 homepage = "https://github.com/CmdrMoozy/bdrck"
@@ -12,7 +12,7 @@ chrono = "0.4"
 data-encoding = "2.1"
 errno = "0.2"
 failure = "0.1"
-lazy_static = "1.0"
+lazy_static = "1.1"
 libc = "0.2"
 log = { version = "0.4", features = ["std"] }
 rand = "0.5"
