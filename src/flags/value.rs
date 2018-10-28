@@ -39,8 +39,7 @@ fn get_default_values<'a>(specs: &Specs) -> HashMap<String, Value> {
                 ),
                 _ => panic!("Default value lookup for {:?} not implemented", s.flag_type),
             }
-        })
-        .collect()
+        }).collect()
 }
 
 /// Return the boolean interpretation of a string, or an error if the string
@@ -222,8 +221,7 @@ impl<'a, 'b, I: Iterator<Item = &'b String>> ValueIterator<'a, 'b, I> {
                         name: s.get_name().to_owned(),
                         is_variadic: s.is_variadic(),
                     }),
-                })
-                .rev()
+                }).rev()
                 .collect(),
         }
     }

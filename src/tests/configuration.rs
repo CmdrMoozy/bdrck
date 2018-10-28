@@ -47,7 +47,7 @@ fn test_persistence() {
         default.clone(),
         Some(path.as_path()),
     ).ok()
-        .unwrap();
+    .unwrap();
     assert_eq!(default, configuration::get(&TEST_IDENTIFIER).ok().unwrap());
 
     // Test that when we update the configuration, the new version is persisted,
@@ -67,7 +67,7 @@ fn test_persistence() {
         default.clone(),
         Some(path.as_path()),
     ).ok()
-        .unwrap();
+    .unwrap();
     assert_eq!(updated, configuration::get(&TEST_IDENTIFIER).ok().unwrap());
 
     // Test that we can then reset back to defaults.

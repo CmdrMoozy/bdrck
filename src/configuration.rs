@@ -54,13 +54,15 @@ fn get_configuration_directory(application: &str) -> Result<PathBuf> {
 #[cfg(not(target_os = "windows"))]
 fn get_configuration_directory(application: &str) -> Result<PathBuf> {
     let mut path = PathBuf::new();
-    path.push(env::var("XDG_CONFIG_HOME")
-        .map(PathBuf::from)
-        .or(env::var("HOME").map(|home| {
-            let mut home = PathBuf::from(home);
-            home.push(".config");
-            home
-        }))?);
+    path.push(
+        env::var("XDG_CONFIG_HOME")
+            .map(PathBuf::from)
+            .or(env::var("HOME").map(|home| {
+                let mut home = PathBuf::from(home);
+                home.push(".config");
+                home
+            }))?,
+    );
     path.push(application);
 
     fs::create_dir_all(path.as_path())?;

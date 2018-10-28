@@ -271,7 +271,8 @@ impl OptionsBuilder {
         Ok(Options {
             filters: filters,
             max_level: max_level,
-            output_factory: self.output_factory
+            output_factory: self
+                .output_factory
                 .unwrap_or_else(|| Box::new(|| Box::new(::std::io::stderr()))),
             panic_on_output_failure: self.panic_on_output_failure.unwrap_or(false),
             always_flush: self.always_flush.unwrap_or(false),
@@ -325,10 +326,10 @@ impl Log for Logger {
     }
 
     fn log(&self, record: &Record) {
-        if record.level()
-            > self.options
-                .filters
-                .max_level_for(record.module_path().unwrap_or(""))
+        if record.level() > self
+            .options
+            .filters
+            .max_level_for(record.module_path().unwrap_or(""))
         {
             return;
         }
