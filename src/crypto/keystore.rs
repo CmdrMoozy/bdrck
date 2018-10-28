@@ -149,7 +149,8 @@ impl KeyStore {
         let wrapped_key = self.master_key.clone().unwrap().wrap(key)?;
 
         // If this key is already in the KeyStore, just return.
-        if self.wrapped_keys
+        if self
+            .wrapped_keys
             .iter()
             .filter(|k| k.get_wrapping_digest() == wrapped_key.get_wrapping_digest())
             .next()
@@ -177,7 +178,8 @@ impl KeyStore {
         }
 
         let original_length = self.wrapped_keys.len();
-        let wrapped_keys = self.wrapped_keys
+        let wrapped_keys = self
+            .wrapped_keys
             .drain(..)
             .filter(|k| *k.get_wrapping_digest() != key.get_digest())
             .collect();

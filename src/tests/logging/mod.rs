@@ -150,7 +150,8 @@ fn test_logging_output() {
             "[2018-01-01 12:34:56 UTC logging.rs:1234] ERROR - foo",
             "[2018-01-01 12:34:56 UTC logging.rs:1234] WARN - bar",
             "[2018-01-01 12:34:56 UTC logging.rs:1234] INFO - baz\n",
-        ].join("\n"),
+        ]
+            .join("\n"),
         log_output
     );
 }

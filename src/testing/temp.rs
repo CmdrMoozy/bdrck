@@ -50,7 +50,8 @@ impl Dir {
     fn new_in<P: AsRef<Path>>(temp_dir: P, prefix: &str) -> Result<Dir> {
         let mut rng = thread_rng();
         for _ in 0..TEMP_DIR_RAND_RETRIES {
-            let suffix: String = rng.sample_iter(&Alphanumeric)
+            let suffix: String = rng
+                .sample_iter(&Alphanumeric)
                 .take(TEMP_DIR_NAME_RAND_CHARS)
                 .collect();
             let name = if prefix.is_empty() {
