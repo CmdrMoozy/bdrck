@@ -24,6 +24,9 @@ pub enum Error {
     /// represents.
     #[fail(display = "{}", _0)]
     HexDecode(#[cause] ::data_encoding::DecodeError),
+    /// An error originating in HTTP client code.
+    #[fail(display = "{}", _0)]
+    Http(#[cause] ::reqwest::Error),
     /// An internal unrecoverable error, usually due to some underlying library.
     #[fail(display = "{}", _0)]
     Internal(::failure::Error),
@@ -35,6 +38,9 @@ pub enum Error {
     /// filesystem.
     #[fail(display = "{}", _0)]
     Io(#[cause] ::std::io::Error),
+    /// An error encountered while serializing or deserializing JSON.
+    #[fail(display = "{}", _0)]
+    Json(#[cause] ::serde_json::Error),
     /// An error encountered when decoding a serialized message.
     #[fail(display = "{}", _0)]
     MsgDecode(#[cause] ::msgpack::decode::Error),
@@ -79,9 +85,21 @@ impl From<::std::env::VarError> for Error {
     }
 }
 
+impl From<::reqwest::Error> for Error {
+    fn from(e: ::reqwest::Error) -> Self {
+        Error::Http(e)
+    }
+}
+
 impl From<::std::io::Error> for Error {
     fn from(e: ::std::io::Error) -> Self {
         Error::Io(e)
+    }
+}
+
+impl From<::serde_json::Error> for Error {
+    fn from(e: ::serde_json::Error) -> Self {
+        Error::Json(e)
     }
 }
 

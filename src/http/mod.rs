@@ -12,14 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-/// fn_instrumentation provides utilities for instrumenting function calls
-/// during unit tests.
-pub mod fn_instrumentation;
-/// http provides testing support for the http submodule.
+/// client provides a simple HTTP client trait and implementation, based upon
+/// reqwest.
+pub mod client;
+/// recording provides structures used to record HTTP sessions, so they can
+/// later be replayed and verified in unit tests.
 #[cfg(debug_assertions)]
-pub mod http;
-/// logging provides a Logger implementation which is suitable for unit tests.
-pub mod logging;
-/// temp provides utilities for creating temporary files or directories in unit
-/// tests.
-pub mod temp;
+pub mod recording;
+/// types defines custom types for modeling HTTP requests / responses.
+pub mod types;
