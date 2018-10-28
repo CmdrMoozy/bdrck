@@ -13,7 +13,11 @@
 // limitations under the License.
 
 #![deny(
-    anonymous_parameters, missing_docs, trivial_casts, trivial_numeric_casts, unused_extern_crates,
+    anonymous_parameters,
+    missing_docs,
+    trivial_casts,
+    trivial_numeric_casts,
+    unused_extern_crates,
     unused_import_braces
 )]
 #![warn(bare_trait_objects, unreachable_pub, unused_qualifications)]
@@ -34,10 +38,12 @@ extern crate libc;
 extern crate log;
 extern crate rand;
 extern crate regex;
+extern crate reqwest;
 extern crate rmp_serde as msgpack;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
+extern crate serde_json;
 extern crate sodiumoxide;
 
 /// The configuration module contains utilities for persisting application
@@ -53,6 +59,12 @@ pub mod error;
 pub mod flags;
 /// fs provides various utilities for interacting with the filesystem.
 pub mod fs;
+/// http provides a really thin HTTP client wrapper around reqwest. The main
+/// value-add is the addition of a mechanism for recording HTTP sessions, which
+/// can be used for generating data for unit tests and then replaying it during
+/// the test so we can verify the client's behavior given previously observed
+/// server behavior.
+pub mod http;
 /// logging provides Logger implementations suitable for either command-line
 /// applications or serving daemons.
 pub mod logging;
