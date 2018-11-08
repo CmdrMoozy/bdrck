@@ -128,3 +128,20 @@ fn test_remove_only_key() {
     // Test that removing the sole key is treated as an error.
     assert!(keystore.remove_key(&key).is_err());
 }
+
+#[test]
+fn test_remove_first_key() {
+    let file = temp::File::new_file().unwrap();
+    // Remove the file: an empty file isn't a valid serialized DiskKeyStore.
+    fs::remove_file(file.path()).unwrap();
+
+    let key_a = Key::new_random().unwrap();
+    let key_b = Key::new_random().unwrap();
+    // Create a keystore with one initial key.
+    let mut keystore = DiskKeyStore::open_or_new(file.path(), &key_a).unwrap();
+    // Add a second key.
+    assert!(keystore.add_key(&key_b).unwrap());
+    // Try removing the original key - this should succeed, since there is a
+    // second valid key.
+    assert!(keystore.remove_key(&key_a).unwrap());
+}

@@ -169,11 +169,13 @@ impl KeyStore {
     /// last wrapping key from a KeyStore (doing so would leave it unopenable in
     /// the future).
     pub fn remove_key<K: AbstractKey>(&mut self, key: &K) -> Result<bool> {
-        if let Some(wrapped_key) = self.wrapped_keys.first() {
-            if *wrapped_key.get_wrapping_digest() == key.get_digest() {
-                return Err(Error::Precondition(format_err!(
-                    "Refusing to remove all valid keys from this KeyStore"
-                )));
+        if self.wrapped_keys.len() == 1 {
+            if let Some(wrapped_key) = self.wrapped_keys.first() {
+                if *wrapped_key.get_wrapping_digest() == key.get_digest() {
+                    return Err(Error::Precondition(format_err!(
+                        "Refusing to remove all valid keys from this KeyStore"
+                    )));
+                }
             }
         }
 
