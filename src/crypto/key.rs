@@ -13,7 +13,6 @@
 // limitations under the License.
 
 use error::*;
-use failure::Fail;
 use msgpack;
 use serde::de::{SeqAccess, Visitor};
 use serde::ser::SerializeSeq;
@@ -188,11 +187,6 @@ impl Default for Salt {
 /// An AbstractKey is any cryptographic structure which supports encryption and
 /// decryption.
 pub trait AbstractKey {
-    /// The error type this AbstractKey implementation's functions return. This
-    /// is useful when implementing AbstractKey for types defined in other
-    /// libraries, which might have their own error types distinct from bdrck.
-    type Err: Fail;
-
     /// Return a digest/signature computed from this key.
     fn get_digest(&self) -> Digest;
 
@@ -207,7 +201,7 @@ pub trait AbstractKey {
         &self,
         plaintext: &[u8],
         nonce: Option<Nonce>,
-    ) -> ::std::result::Result<(Option<Nonce>, Vec<u8>), Self::Err>;
+    ) -> ::std::result::Result<(Option<Nonce>, Vec<u8>), ::failure::Error>;
 
     /// Decrypt the given ciphertext using this key and the nonce which was
     /// generated at encryption time (if any), returning the plaintext.
@@ -215,7 +209,7 @@ pub trait AbstractKey {
         &self,
         nonce: Option<&Nonce>,
         ciphertext: &[u8],
-    ) -> ::std::result::Result<Vec<u8>, Self::Err>;
+    ) -> ::std::result::Result<Vec<u8>, ::failure::Error>;
 }
 
 /// A WrappedPayload is the data which was wrapped by a key. Because keys can be
@@ -246,35 +240,41 @@ pub struct Key {
 }
 
 impl AbstractKey for Key {
-    type Err = Error;
-
     fn get_digest(&self) -> Digest {
         Digest::from_bytes(self.key.0.as_ref())
     }
 
-    fn encrypt(&self, plaintext: &[u8], nonce: Option<Nonce>) -> Result<(Option<Nonce>, Vec<u8>)> {
+    fn encrypt(
+        &self,
+        plaintext: &[u8],
+        nonce: Option<Nonce>,
+    ) -> ::std::result::Result<(Option<Nonce>, Vec<u8>), ::failure::Error> {
         let nonce = nonce.unwrap_or_else(|| Nonce::default());
         let ciphertext = secretbox::seal(plaintext, &nonce.nonce, &self.key);
         Ok((Some(nonce), ciphertext))
     }
 
-    fn decrypt(&self, nonce: Option<&Nonce>, ciphertext: &[u8]) -> Result<Vec<u8>> {
+    fn decrypt(
+        &self,
+        nonce: Option<&Nonce>,
+        ciphertext: &[u8],
+    ) -> ::std::result::Result<Vec<u8>, ::failure::Error> {
         let result = secretbox::open(
             ciphertext,
             match nonce {
                 None => {
                     return Err(Error::InvalidArgument(format_err!(
                         "Decrypting with a Key requires a nonce"
-                    )))
+                    )).into())
                 }
                 Some(nonce) => &nonce.nonce,
             },
             &self.key,
         );
         if result.is_err() {
-            return Err(Error::InvalidArgument(format_err!(
-                "Failed to decrypt with incorrect Key"
-            )));
+            return Err(
+                Error::InvalidArgument(format_err!("Failed to decrypt with incorrect Key")).into(),
+            );
         }
         Ok(result.ok().unwrap())
     }
