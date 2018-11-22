@@ -158,5 +158,14 @@ impl From<::log::SetLoggerError> for Error {
     }
 }
 
+// If we try! or ? a generic failure::Error, just return an unknown error.
+// Generally this happens when we want to use ? with an underlying library
+// which also uses failure.
+impl From<::failure::Error> for Error {
+    fn from(e: ::failure::Error) -> Self {
+        Error::Unknown(e)
+    }
+}
+
 /// A Result type which uses bdrck's internal Error type.
 pub type Result<T> = ::std::result::Result<T, Error>;
