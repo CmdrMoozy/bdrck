@@ -10,6 +10,7 @@ Bdrck is a crate containing generic common utilities. In particular, it has seve
 | crypto        | Tools built upon high-level crypto libraries. |
 | flags         | Command-line flag parsing.                    |
 | fs            | Filesystem utilities.                         |
+| http          | HTTP client utilities based on reqwest.       |
 | logging       | Log message formatting utilities.             |
 | net           | Networking utilities / types.                 |
 | testing       | Unit testing utilities.                       |
