@@ -22,9 +22,11 @@ pub enum Error {
     EnvVar(#[cause] ::std::env::VarError),
     /// An error encountered in trying to decode a hex string to the bytes it
     /// represents.
+    #[cfg(feature = "data-encoding")]
     #[fail(display = "{}", _0)]
     HexDecode(#[cause] ::data_encoding::DecodeError),
     /// An error originating in HTTP client code.
+    #[cfg(feature = "reqwest")]
     #[fail(display = "{}", _0)]
     Http(#[cause] ::reqwest::Error),
     /// An internal unrecoverable error, usually due to some underlying library.
@@ -39,12 +41,15 @@ pub enum Error {
     #[fail(display = "{}", _0)]
     Io(#[cause] ::std::io::Error),
     /// An error encountered while serializing or deserializing JSON.
+    #[cfg(feature = "serde_json")]
     #[fail(display = "{}", _0)]
     Json(#[cause] ::serde_json::Error),
     /// An error encountered when decoding a serialized message.
+    #[cfg(feature = "rmp-serde")]
     #[fail(display = "{}", _0)]
     MsgDecode(#[cause] ::msgpack::decode::Error),
     /// An error encountered when encoding a struct to a serialized message.
+    #[cfg(feature = "rmp-serde")]
     #[fail(display = "{}", _0)]
     MsgEncode(#[cause] ::msgpack::encode::Error),
     /// Errors akin to ENOENT - something like e.g. "file not found", although
@@ -66,10 +71,12 @@ pub enum Error {
     #[fail(display = "{}", _0)]
     Precondition(::failure::Error),
     /// An error encountered in either parsing or applying a regular expression.
+    #[cfg(feature = "regex")]
     #[fail(display = "{}", _0)]
     Regex(#[cause] ::regex::Error),
     /// An error encountered when attempting to set the global Logger
     /// implementation.
+    #[cfg(feature = "log")]
     #[fail(display = "{}", _0)]
     SetLogger(#[cause] ::log::SetLoggerError),
     /// An error of an unknown type occurred. Generally this comes from some
@@ -85,6 +92,7 @@ impl From<::std::env::VarError> for Error {
     }
 }
 
+#[cfg(feature = "reqwest")]
 impl From<::reqwest::Error> for Error {
     fn from(e: ::reqwest::Error) -> Self {
         Error::Http(e)
@@ -97,18 +105,21 @@ impl From<::std::io::Error> for Error {
     }
 }
 
+#[cfg(feature = "serde_json")]
 impl From<::serde_json::Error> for Error {
     fn from(e: ::serde_json::Error) -> Self {
         Error::Json(e)
     }
 }
 
+#[cfg(feature = "rmp-serde")]
 impl From<::msgpack::decode::Error> for Error {
     fn from(e: ::msgpack::decode::Error) -> Self {
         Error::MsgDecode(e)
     }
 }
 
+#[cfg(feature = "rmp-serde")]
 impl From<::msgpack::encode::Error> for Error {
     fn from(e: ::msgpack::encode::Error) -> Self {
         Error::MsgEncode(e)
@@ -133,12 +144,14 @@ impl From<::std::net::AddrParseError> for Error {
     }
 }
 
+#[cfg(feature = "regex")]
 impl From<::regex::Error> for Error {
     fn from(e: ::regex::Error) -> Self {
         Error::Regex(e)
     }
 }
 
+#[cfg(feature = "log")]
 impl From<::log::SetLoggerError> for Error {
     fn from(e: ::log::SetLoggerError) -> Self {
         Error::SetLogger(e)
