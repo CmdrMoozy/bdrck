@@ -212,6 +212,30 @@ pub trait AbstractKey {
     ) -> ::std::result::Result<Vec<u8>, ::failure::Error>;
 }
 
+// Implement AbstractKey for trait objects, so we can use any of the various
+// types of keys dynamically.
+impl AbstractKey for Box<dyn AbstractKey> {
+    fn get_digest(&self) -> Digest {
+        (**self).get_digest()
+    }
+
+    fn encrypt(
+        &self,
+        plaintext: &[u8],
+        nonce: Option<Nonce>,
+    ) -> ::std::result::Result<(Option<Nonce>, Vec<u8>), ::failure::Error> {
+        (**self).encrypt(plaintext, nonce)
+    }
+
+    fn decrypt(
+        &self,
+        nonce: Option<&Nonce>,
+        ciphertext: &[u8],
+    ) -> ::std::result::Result<Vec<u8>, ::failure::Error> {
+        (**self).decrypt(nonce, ciphertext)
+    }
+}
+
 /// A WrappedPayload is the data which was wrapped by a key. Because keys can be
 /// wrapped arbitrarily many times, the unwrapped payload may either be a real
 /// key, or it may be another wrapped key.
