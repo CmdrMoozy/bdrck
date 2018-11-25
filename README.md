@@ -6,6 +6,7 @@ Bdrck is a crate containing generic common utilities. In particular, it has seve
 
 | Module        | Description                                   |
 | ------------- | --------------------------------------------- |
+| cli           | Utilities for CLI-based applications.         |
 | configuration | Application configuration tooling.            |
 | crypto        | Tools built upon high-level crypto libraries. |
 | flags         | Command-line flag parsing.                    |

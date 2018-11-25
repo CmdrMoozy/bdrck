@@ -26,6 +26,8 @@
 // the intent is to provide the kind of utilties which might be found in std
 // some day, which are useful for most or all Rust programs.
 
+#[cfg(feature = "atty")]
+extern crate atty;
 #[cfg(feature = "chrono")]
 extern crate chrono;
 #[cfg(feature = "data-encoding")]
@@ -61,6 +63,9 @@ extern crate serde_json;
 #[cfg(feature = "sodiumoxide")]
 extern crate sodiumoxide;
 
+/// Utilities for command-line interfaces.
+#[cfg(feature = "cli")]
+pub mod cli;
 /// The configuration module contains utilities for persisting application
 /// configuration to disk.
 #[cfg(feature = "configuration")]
