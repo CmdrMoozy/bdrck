@@ -27,7 +27,7 @@ sodiumoxide = { version = "0.1", optional = true }
 
 [features]
 default = ["cli", "configuration", "crypto", "flags", "fs", "http", "logging", "net", "testing"]
-cli = ["atty"]
+cli = ["atty", "libc"]
 configuration = ["rmp-serde", "serde"]
 crypto = ["rmp-serde", "serde", "serde_derive", "sodiumoxide"]
 flags = []
