@@ -27,6 +27,20 @@ pub enum Stream {
     Stdin,
 }
 
+impl Stream {
+    fn to_writer(&self) -> Result<Box<dyn Write>> {
+        Ok(match *self {
+            Stream::Stdout => Box::new(io::stdout()),
+            Stream::Stderr => Box::new(io::stderr()),
+            Stream::Stdin => {
+                return Err(Error::InvalidArgument(format_err!(
+                    "Cannot output interactive prompts on Stdin"
+                )))
+            }
+        })
+    }
+}
+
 /// Return whether or not the given stream is a TTY (as opposed to, for example,
 /// a pipe).
 pub fn isatty(stream: Stream) -> bool {
@@ -115,15 +129,7 @@ pub fn prompt_for_string(
         )));
     }
 
-    let mut output_stream: Box<dyn Write> = match output_stream {
-        Stream::Stdout => Box::new(io::stdout()),
-        Stream::Stderr => Box::new(io::stderr()),
-        Stream::Stdin => {
-            return Err(Error::InvalidArgument(format_err!(
-                "Cannot output interactive prompts on Stdin"
-            )))
-        }
-    };
+    let mut output_stream = output_stream.to_writer()?;
     write!(output_stream, "{}", prompt)?;
     // We have to flush so the user sees the prompt immediately.
     output_stream.flush()?;
@@ -137,6 +143,25 @@ pub fn prompt_for_string(
         io::stdin().read_line(&mut ret)?;
         remove_newline(ret)?
     })
+}
+
+/// Display a "<description> Continue?" confirmation. Returns true if the user
+/// replies "yes" (or similar), or false otherwise.
+pub fn continue_confirmation(output_stream: Stream, description: &str) -> Result<bool> {
+    let prompt = format!("{}Continue? [Yes/No] ", description);
+    loop {
+        let original_response = prompt_for_string(output_stream, prompt.as_str(), false)?;
+        let response = original_response.trim().to_lowercase();
+        if response == "y" || response == "yes" {
+            return Ok(true);
+        } else if response == "n" || response == "no" {
+            return Ok(false);
+        } else {
+            let mut output_stream = output_stream.to_writer()?;
+            write!(output_stream, "Invalid response '{}'.\n", original_response)?;
+            output_stream.flush()?;
+        }
+    }
 }
 
 /// Prompt for a string as per `prompt_for_string`, but additionally have the
