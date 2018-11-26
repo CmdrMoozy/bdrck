@@ -138,3 +138,68 @@ pub fn prompt_for_string(
         remove_newline(ret)?
     })
 }
+
+/// Prompt for a string as per `prompt_for_string`, but additionally have the
+/// user enter the value again to confirm we get the same answer twice. This is
+/// useful for e.g. password entry.
+pub fn prompt_for_string_confirm(
+    output_stream: Stream,
+    prompt: &str,
+    is_sensitive: bool,
+) -> Result<String> {
+    loop {
+        let string = prompt_for_string(output_stream, prompt, is_sensitive)?;
+        if string == prompt_for_string(output_stream, "Confirm: ", is_sensitive)? {
+            return Ok(string);
+        }
+    }
+}
+
+/// MaybePromptedString is a wrapper for getting user input interactively, while
+/// also allowing the value to be specified at call time. This is useful e.g.
+/// when we want to prompt users interactively, but want to predefine the values
+/// in unit tests, or when users can specify a value either interactively or via
+/// flags.
+pub struct MaybePromptedString {
+    value: String,
+    was_provided: bool,
+}
+
+impl MaybePromptedString {
+    /// Construct a new MaybePromptedString, either using the given value or
+    /// prompting the user interactively with the given options.
+    pub fn new(
+        provided: Option<&str>,
+        output_stream: Stream,
+        prompt: &str,
+        is_sensitive: bool,
+        confirm: bool,
+    ) -> Result<Self> {
+        let prompted: Option<String> = match provided {
+            None => Some(match confirm {
+                false => prompt_for_string(output_stream, prompt, is_sensitive)?,
+                true => prompt_for_string_confirm(output_stream, prompt, is_sensitive)?,
+            }),
+            Some(_) => None,
+        };
+
+        let was_provided = provided.is_some();
+        let value = provided.map_or_else(|| prompted.unwrap(), |s| s.to_owned());
+
+        Ok(MaybePromptedString {
+            value: value,
+            was_provided: was_provided,
+        })
+    }
+
+    /// Returns true if this string was provided, or false if it is the result
+    /// of an interactive prompt.
+    pub fn was_provided(&self) -> bool {
+        self.was_provided
+    }
+
+    /// "Unwraps" this structure into its underlying string.
+    pub fn into_inner(self) -> String {
+        self.value
+    }
+}
