@@ -12,9 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use error::*;
-use http::types::ResponseMetadata;
+use crate::error::*;
+use crate::http::types::ResponseMetadata;
 use reqwest::Request;
+use serde_derive::{Deserialize, Serialize};
 use serde_json;
 use std::collections::{HashMap, VecDeque};
 use std::fs::File;

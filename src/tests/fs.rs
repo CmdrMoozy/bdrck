@@ -12,15 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use fs::*;
+use crate::fs::*;
+use crate::testing::temp;
 use std::fs::{self, File};
 use std::io::{Read, Write};
 use std::path::PathBuf;
-use testing::temp;
 
 #[test]
 fn test_path_bytes_round_trip() {
-    ::init().unwrap();
+    crate::init().unwrap();
 
     let expected_path = PathBuf::from("/tmp/test_path");
     let bytes = path_to_bytes(expected_path.as_path()).unwrap();
@@ -30,7 +30,7 @@ fn test_path_bytes_round_trip() {
 
 #[test]
 fn test_create_file() {
-    ::init().unwrap();
+    crate::init().unwrap();
 
     let dir = temp::Dir::new("bdrck").unwrap();
     let mut file_path = dir.path().to_path_buf();
@@ -44,7 +44,7 @@ fn test_create_file() {
 
 #[test]
 fn test_create_symlink() {
-    ::init().unwrap();
+    crate::init().unwrap();
 
     const TEST_CONTENTS: &'static str = "this is a test";
 
@@ -76,7 +76,7 @@ fn test_create_symlink() {
 fn test_set_permissions_mode() {
     use std::os::unix::fs::PermissionsExt;
 
-    ::init().unwrap();
+    crate::init().unwrap();
 
     let temp_file = temp::File::new_file().unwrap();
     set_permissions_mode(temp_file.path(), 0o444).unwrap();

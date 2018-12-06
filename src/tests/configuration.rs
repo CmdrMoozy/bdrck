@@ -12,10 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use configuration;
+use crate::configuration;
+use crate::testing::temp;
+use lazy_static::lazy_static;
+use serde_derive::{Deserialize, Serialize};
 use std::fs;
 use std::path;
-use testing::temp;
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 struct TestConfiguration {
@@ -31,7 +33,7 @@ lazy_static! {
 
 #[test]
 fn test_persistence() {
-    ::init().unwrap();
+    crate::init().unwrap();
 
     let file = temp::File::new_file().unwrap();
     let path: path::PathBuf = file.path().to_owned();

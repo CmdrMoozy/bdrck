@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use failure::Fail;
+
 /// Error is a structure which denotes all of the possible kinds of errors bdrck
 /// can produce, including errors from any of its underlying dependencies.
 #[derive(Fail, Debug)]
@@ -47,11 +49,11 @@ pub enum Error {
     /// An error encountered when decoding a serialized message.
     #[cfg(feature = "rmp-serde")]
     #[fail(display = "{}", _0)]
-    MsgDecode(#[cause] ::msgpack::decode::Error),
+    MsgDecode(#[cause] ::rmp_serde::decode::Error),
     /// An error encountered when encoding a struct to a serialized message.
     #[cfg(feature = "rmp-serde")]
     #[fail(display = "{}", _0)]
-    MsgEncode(#[cause] ::msgpack::encode::Error),
+    MsgEncode(#[cause] ::rmp_serde::encode::Error),
     /// Errors akin to ENOENT - something like e.g. "file not found", although
     /// this is not necessarily *always* about files.
     #[fail(display = "{}", _0)]
@@ -113,15 +115,15 @@ impl From<::serde_json::Error> for Error {
 }
 
 #[cfg(feature = "rmp-serde")]
-impl From<::msgpack::decode::Error> for Error {
-    fn from(e: ::msgpack::decode::Error) -> Self {
+impl From<::rmp_serde::decode::Error> for Error {
+    fn from(e: ::rmp_serde::decode::Error) -> Self {
         Error::MsgDecode(e)
     }
 }
 
 #[cfg(feature = "rmp-serde")]
-impl From<::msgpack::encode::Error> for Error {
-    fn from(e: ::msgpack::encode::Error) -> Self {
+impl From<::rmp_serde::encode::Error> for Error {
+    fn from(e: ::rmp_serde::encode::Error) -> Self {
         Error::MsgEncode(e)
     }
 }

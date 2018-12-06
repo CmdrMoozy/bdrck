@@ -26,43 +26,6 @@
 // the intent is to provide the kind of utilties which might be found in std
 // some day, which are useful for most or all Rust programs.
 
-#[cfg(feature = "atty")]
-extern crate atty;
-#[cfg(feature = "chrono")]
-extern crate chrono;
-#[cfg(feature = "data-encoding")]
-extern crate data_encoding;
-#[cfg(feature = "errno")]
-extern crate errno;
-#[macro_use]
-extern crate failure;
-#[macro_use]
-extern crate lazy_static;
-#[cfg(feature = "libc")]
-extern crate libc;
-#[cfg(feature = "log")]
-#[macro_use]
-extern crate log;
-#[cfg(feature = "rand")]
-extern crate rand;
-#[cfg(feature = "regex")]
-extern crate regex;
-#[cfg(feature = "reqwest")]
-extern crate reqwest;
-#[cfg(feature = "rmp-serde")]
-extern crate rmp_serde as msgpack;
-#[cfg(feature = "serde")]
-// Sometimes needed for serde_derive, but not used explicitly.
-#[allow(unused_extern_crates)]
-extern crate serde;
-#[cfg(feature = "serde_derive")]
-#[macro_use]
-extern crate serde_derive;
-#[cfg(feature = "serde_json")]
-extern crate serde_json;
-#[cfg(feature = "sodiumoxide")]
-extern crate sodiumoxide;
-
 /// Utilities for command-line interfaces.
 #[cfg(feature = "cli")]
 pub mod cli;
@@ -118,14 +81,17 @@ pub mod testing;
 #[cfg(test)]
 mod tests;
 
+use failure::format_err;
+use lazy_static::lazy_static;
+
 lazy_static! {
     static ref INIT_STATUS: ::std::sync::Mutex<bool> = ::std::sync::Mutex::new(false);
 }
 
 #[cfg(feature = "sodiumoxide")]
-fn init_sodiumoxide() -> ::error::Result<()> {
+fn init_sodiumoxide() -> self::error::Result<()> {
     if !::sodiumoxide::init().is_ok() {
-        return Err(::error::Error::Internal(format_err!(
+        return Err(self::error::Error::Internal(format_err!(
             "Initializing cryptographic dependencies failed"
         )));
     }
@@ -133,14 +99,14 @@ fn init_sodiumoxide() -> ::error::Result<()> {
 }
 
 #[cfg(not(feature = "sodiumoxide"))]
-fn init_sodiumoxide() -> ::error::Result<()> {
+fn init_sodiumoxide() -> self::error::Result<()> {
     Ok(())
 }
 
 /// This function must be called before calling any other library code, or else
 /// undefined behavior (thread safety problems in particular) may result. This
 /// is due to underlying C library dependencies.
-pub fn init() -> ::error::Result<()> {
+pub fn init() -> self::error::Result<()> {
     let mut lock = INIT_STATUS.lock().unwrap();
     if *lock {
         return Ok(());

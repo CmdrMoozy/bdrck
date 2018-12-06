@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use flags::spec::*;
+use crate::flags::spec::*;
 
 fn find_named_spec_works(specs: &Specs, query: &str, expected_name: &str) -> bool {
     specs
@@ -22,7 +22,7 @@ fn find_named_spec_works(specs: &Specs, query: &str, expected_name: &str) -> boo
 
 #[test]
 fn test_find_option() {
-    ::init().unwrap();
+    crate::init().unwrap();
 
     let specs = Specs::new(vec![
         Spec::required("foo", "", Some('o'), None),

@@ -12,8 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use error::*;
+use crate::error::*;
+use failure::format_err;
 use reqwest::{Response, StatusCode};
+use serde_derive::{Deserialize, Serialize};
 
 /// ResponseMetadata stores recorded metadata about an HTTP response.
 #[derive(Clone, Deserialize, Serialize)]

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use net::*;
+use crate::net::*;
 use std::net::IpAddr;
 
 macro_rules! ip {
@@ -35,7 +35,7 @@ macro_rules! net {
 
 #[test]
 fn test_increment_ip() {
-    ::init().unwrap();
+    crate::init().unwrap();
 
     assert_eq!(Some(ip!("10.0.0.1")), increment_ip(ip!("10.0.0.0")));
     assert_eq!(Some(ip!("10.10.10.11")), increment_ip(ip!("10.10.10.10")));
@@ -45,7 +45,7 @@ fn test_increment_ip() {
 
 #[test]
 fn test_min_max_ip() {
-    ::init().unwrap();
+    crate::init().unwrap();
 
     assert_eq!(
         Some(ip!("10.0.0.1")),
@@ -61,7 +61,7 @@ fn test_min_max_ip() {
 
 #[test]
 fn test_hardware_addr_string_round_trip() {
-    ::init().unwrap();
+    crate::init().unwrap();
 
     assert_eq!("0c:c4:7a:7f:b6:32", mac!("0c:c4:7a:7f:b6:32").to_string());
     assert_eq!("0c:c4:7a:7f:b6:32", mac!("0c-c4-7a-7f-b6-32").to_string());
@@ -70,7 +70,7 @@ fn test_hardware_addr_string_round_trip() {
 
 #[test]
 fn test_hardware_addr_parse_error() {
-    ::init().unwrap();
+    crate::init().unwrap();
 
     assert!("00:00:00:00:00:00:00".parse::<HardwareAddr>().is_err());
     assert!("00:00:00:00:00".parse::<HardwareAddr>().is_err());
@@ -80,7 +80,7 @@ fn test_hardware_addr_parse_error() {
 
 #[test]
 fn test_hardware_addr_string_bit_order() {
-    ::init().unwrap();
+    crate::init().unwrap();
 
     let parsed = mac!("12-34-56-78-9A-BC");
     assert_eq!(
@@ -92,7 +92,7 @@ fn test_hardware_addr_string_bit_order() {
 
 #[test]
 fn test_ip_net_string_round_trip() {
-    ::init().unwrap();
+    crate::init().unwrap();
 
     assert_eq!("10.0.0.0/24", net!("10.0.0.0/24").to_string());
     assert_eq!("10.0.0.0/14", net!("10.0.0.0/14").to_string());
@@ -101,7 +101,7 @@ fn test_ip_net_string_round_trip() {
 
 #[test]
 fn test_ip_net_bit_order() {
-    ::init().unwrap();
+    crate::init().unwrap();
 
     assert_eq!(
         [
@@ -135,7 +135,7 @@ fn test_ip_net_bit_order() {
 
 #[test]
 fn test_ip_net_netmask() {
-    ::init().unwrap();
+    crate::init().unwrap();
 
     assert_eq!(ip!("255.255.0.0"), net!("10.10.0.0/16").netmask());
     assert_eq!(ip!("255.255.255.0"), net!("10.10.0.0/24").netmask());
@@ -144,7 +144,7 @@ fn test_ip_net_netmask() {
 
 #[test]
 fn test_ip_net_broadcast() {
-    ::init().unwrap();
+    crate::init().unwrap();
 
     assert_eq!(ip!("10.10.255.255"), net!("10.10.0.0/16").broadcast());
     assert_eq!(ip!("10.10.10.255"), net!("10.10.10.0/24").broadcast());
@@ -153,7 +153,7 @@ fn test_ip_net_broadcast() {
 
 #[test]
 fn test_ip_net_contains() {
-    ::init().unwrap();
+    crate::init().unwrap();
 
     assert_eq!(
         true,
@@ -183,7 +183,7 @@ fn test_ip_net_contains() {
 
 #[test]
 fn test_ip_net_first_address() {
-    ::init().unwrap();
+    crate::init().unwrap();
 
     assert_eq!(Some(ip!("10.10.10.1")), net!("10.10.10.0/24").first());
     assert_eq!(Some(ip!("10.10.0.1")), net!("10.10.0.0/16").first());
@@ -191,7 +191,7 @@ fn test_ip_net_first_address() {
 
 #[test]
 fn test_ip_net_last_address() {
-    ::init().unwrap();
+    crate::init().unwrap();
 
     assert_eq!(ip!("10.10.10.254"), net!("10.10.10.0/24").last());
     assert_eq!(ip!("10.10.255.254"), net!("10.10.0.0/16").last());

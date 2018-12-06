@@ -12,12 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use error::*;
-use flags::main_impl::*;
+use crate::error::*;
+use crate::flags::main_impl::*;
+use failure::format_err;
 
 #[test]
 fn test_handle_result() {
-    ::init().unwrap();
+    crate::init().unwrap();
 
     assert_eq!(EXIT_SUCCESS, handle_result::<Error>(Ok(Ok(()))));
     assert_eq!(

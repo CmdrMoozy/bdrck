@@ -12,8 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use error::*;
-use flags::spec::{Spec, Specs, Type};
+use crate::error::*;
+use crate::flags::spec::{Spec, Specs, Type};
+use failure::format_err;
 use std::collections::HashMap;
 use std::iter::{FromIterator, Peekable};
 use std::str::FromStr;

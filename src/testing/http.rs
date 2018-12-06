@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use error::*;
-use http::client::AbstractClient;
-use http::recording::{RecordedBody, RecordedRequest, Recording, RecordingEntry};
-use http::types::ResponseMetadata;
+use crate::error::*;
+use crate::http::client::AbstractClient;
+use crate::http::recording::{RecordedBody, RecordedRequest, Recording, RecordingEntry};
+use crate::http::types::ResponseMetadata;
 use reqwest::Client as InnerClient;
 use reqwest::{Request, RequestBuilder, Url};
 use serde_json;

@@ -12,10 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use error::*;
-use flags::help;
-use flags::spec::Specs;
-use flags::value::Values;
+use crate::error::*;
+use crate::flags::help;
+use crate::flags::spec::Specs;
+use crate::flags::value::Values;
+use failure::format_err;
 use std::fmt;
 use std::io::Write;
 use std::iter::Peekable;

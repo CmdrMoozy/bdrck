@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crypto::key::*;
-use msgpack;
+use crate::crypto::key::*;
+use rmp_serde;
 use sodiumoxide::randombytes::randombytes;
 
 #[test]
@@ -28,8 +28,8 @@ fn test_nonce_increment() {
 fn test_digest_serde_round_trip() {
     let key = Key::new_random().unwrap();
     let digest = key.get_digest();
-    let serialized = msgpack::to_vec(&digest).unwrap();
-    let deserialized: Digest = msgpack::from_slice(serialized.as_slice()).unwrap();
+    let serialized = rmp_serde::to_vec(&digest).unwrap();
+    let deserialized: Digest = rmp_serde::from_slice(serialized.as_slice()).unwrap();
     assert_eq!(digest, deserialized);
 }
 

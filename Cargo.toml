@@ -1,11 +1,12 @@
 [package]
 name = "bdrck"
-version = "0.12.1"
+version = "0.12.2"
 authors = ["Axel Rasmussen <axel.rasmussen1@gmail.com>"]
 description = "Generic common foundational utilities."
 homepage = "https://github.com/CmdrMoozy/bdrck"
 repository = "https://github.com/CmdrMoozy/bdrck"
 license = "Apache-2.0"
+edition = "2018"
 
 [dependencies]
 atty = { version = "0.2", optional = true }
