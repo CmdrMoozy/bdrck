@@ -12,8 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use error::*;
-use fs::{create_file, create_symlink};
+use crate::error::*;
+use crate::fs::{create_file, create_symlink};
+use failure::format_err;
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
 use std::env;

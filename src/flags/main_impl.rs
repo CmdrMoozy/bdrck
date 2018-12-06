@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use error::*;
-use flags::command::{Command, CommandResult};
-use flags::parse_and_execute::parse_and_execute;
-use flags::parse_and_execute::parse_and_execute_command;
+use crate::error::*;
+use crate::flags::command::{Command, CommandResult};
+use crate::flags::parse_and_execute::parse_and_execute;
+use crate::flags::parse_and_execute::parse_and_execute_command;
 use std::env;
 use std::fmt::{Debug, Display};
 use std::process;

@@ -12,8 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use error::{Error, Result};
-use msgpack::{Deserializer, Serializer};
+use crate::error::{Error, Result};
+use failure::format_err;
+use lazy_static::lazy_static;
+use rmp_serde::{Deserializer, Serializer};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use std::any::Any;

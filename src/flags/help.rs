@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use error::*;
-use flags::command::Command;
+use crate::error::*;
+use crate::flags::command::Command;
 use std::io::Write;
 
 pub(crate) fn print_program_help<'cbl, W: Write, E>(

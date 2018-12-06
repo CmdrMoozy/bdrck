@@ -12,8 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::error::*;
 use data_encoding::HEXLOWER_PERMISSIVE;
-use error::*;
+use failure::format_err;
 use serde::de::{Deserialize, Deserializer, Unexpected, Visitor};
 use serde::ser::{Serialize, Serializer};
 use std::cmp::Ordering;

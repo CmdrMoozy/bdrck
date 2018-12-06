@@ -12,9 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::error::*;
 use errno;
-use error::*;
+use failure::format_err;
 use libc;
+use log::warn;
 use std::ffi::{CString, OsString};
 use std::fs::{self, Permissions};
 use std::mem;
@@ -133,7 +135,7 @@ pub fn set_ownership<P: AsRef<Path>>(
     use libc::{self, c_int};
     use std::ffi::CString;
 
-    let path_cstr = CString::new(::fs::path_to_bytes(path.as_ref())?)?;
+    let path_cstr = CString::new(path_to_bytes(path.as_ref())?)?;
     let ret: c_int = unsafe {
         match follow {
             false => libc::lchown(path_cstr.as_ptr(), uid, gid),

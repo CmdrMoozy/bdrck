@@ -12,13 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::testing::temp::*;
 use std::fs;
 use std::io::{Read, Write};
-use testing::temp::*;
 
 #[test]
 fn test_read_write_temp_file() {
-    ::init().unwrap();
+    crate::init().unwrap();
 
     let temp_file = File::new_file().unwrap();
     let test_contents: String = "this is some arbitrary test data".to_owned();
@@ -38,7 +38,7 @@ fn test_read_write_temp_file() {
 
 #[test]
 fn test_new_file_in_subdirectory() {
-    ::init().unwrap();
+    crate::init().unwrap();
 
     let dir = Dir::new("bdrck").unwrap();
     let file = File::new_file_at(dir.sub_path("foo/bar/file.txt").unwrap()).unwrap();
@@ -47,7 +47,7 @@ fn test_new_file_in_subdirectory() {
 
 #[test]
 fn test_new_symlink_in_subdirectory() {
-    ::init().unwrap();
+    crate::init().unwrap();
 
     let dir = Dir::new("bdrck").unwrap();
     let file = File::new_file_at(dir.sub_path("foo/bar/file.txt").unwrap()).unwrap();

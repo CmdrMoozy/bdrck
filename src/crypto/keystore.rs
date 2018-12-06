@@ -12,9 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crypto::key::{AbstractKey, Key, Nonce, Wrappable, WrappedKey, WrappedPayload};
-use error::*;
-use msgpack;
+use crate::crypto::key::{AbstractKey, Key, Nonce, Wrappable, WrappedKey, WrappedPayload};
+use crate::error::*;
+use failure::format_err;
+use lazy_static::lazy_static;
+use rmp_serde;
+use serde_derive::{Deserialize, Serialize};
 use std::fs::File;
 use std::io::{Read, Write};
 use std::ops::{Deref, DerefMut};
@@ -123,18 +126,18 @@ impl KeyStore {
     /// Open the KeyStore (attempt to unwrap the master key) by deserializing
     /// the given KeyStore bytes.
     pub fn open_slice<K: AbstractKey>(data: &[u8], key: &K) -> Result<Self> {
-        Self::open(msgpack::from_slice(data)?, key)
+        Self::open(rmp_serde::from_slice(data)?, key)
     }
 
     /// Open the KeyStore (attempt to unwrap the master key) by deserializing
     /// the KeyStore bytes read from the given reader.
     pub fn open_read<R: Read, K: AbstractKey>(rd: R, key: &K) -> Result<Self> {
-        Self::open(msgpack::from_read(rd)?, key)
+        Self::open(rmp_serde::from_read(rd)?, key)
     }
 
     /// Serialize this KeyStore, so it can be persisted and then reloaded later.
     pub fn to_vec(&self) -> Result<Vec<u8>> {
-        Ok(msgpack::to_vec(self)?)
+        Ok(rmp_serde::to_vec(self)?)
     }
 
     /// Return the unwrapped master key from this KeyStore.

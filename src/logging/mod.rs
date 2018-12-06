@@ -17,9 +17,11 @@
 pub mod write;
 
 use chrono;
-use error::*;
+use crate::error::*;
+use crate::logging::write::*;
+use failure::format_err;
+use lazy_static::lazy_static;
 use log::{self, LevelFilter, Log, Metadata, Record};
-use logging::write::*;
 use regex::Regex;
 use std::collections::HashMap;
 use std::io::Write;

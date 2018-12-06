@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use testing::fn_instrumentation::*;
+use crate::testing::fn_instrumentation::*;
 
 #[test]
 fn test_fn_mut_instrumentation() {
-    ::init().unwrap();
+    crate::init().unwrap();
 
     let instrumentation = FnInstrumentation::new();
     let mut function: Box<dyn FnMut()> = Box::new(|| {

@@ -12,7 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use error::*;
+use crate::error::*;
+use failure::format_err;
 
 /// Type denotes the particular type of flag a Spec structure describes. It
 /// also contains extra metadata about the flag, if applicable for that type.

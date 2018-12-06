@@ -12,11 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use error::*;
+use crate::error::*;
 // For recordings.
 #[cfg(debug_assertions)]
-use http::recording::{RecordedRequest, RecordedResponse, Recording, RecordingEntry};
-use http::types::ResponseMetadata;
+use crate::http::recording::{RecordedRequest, RecordedResponse, Recording, RecordingEntry};
+use crate::http::types::ResponseMetadata;
+use log::debug;
 use reqwest::Client as InnerClient;
 use reqwest::{Request, RequestBuilder, Url};
 use std::io::Read;

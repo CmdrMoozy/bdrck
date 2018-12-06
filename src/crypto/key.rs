@@ -12,11 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use error::*;
-use msgpack;
+use crate::error::*;
+use failure::format_err;
+use rmp_serde;
 use serde::de::{SeqAccess, Visitor};
 use serde::ser::SerializeSeq;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde_derive::{Deserialize, Serialize};
 use sodiumoxide::crypto::hash;
 use sodiumoxide::crypto::pwhash;
 use sodiumoxide::crypto::secretbox;
@@ -392,7 +394,7 @@ impl Wrappable for WrappedKey {
 
 impl WrappedKey {
     fn wrap_payload<K: AbstractKey>(payload: WrappedPayload, key: &K) -> Result<Self> {
-        let serialized = msgpack::to_vec(&payload)?;
+        let serialized = rmp_serde::to_vec(&payload)?;
         let (nonce, ciphertext) = match key.encrypt(serialized.as_slice(), None) {
             Err(e) => return Err(Error::Unknown(format_err!("Wrapping key failed: {}", e))),
             Ok(tuple) => tuple,
@@ -429,6 +431,6 @@ impl WrappedKey {
             Err(e) => return Err(Error::Unknown(format_err!("Unwrapping key failed: {}", e))),
             Ok(pt) => pt,
         };
-        Ok(msgpack::from_slice(plaintext.as_slice())?)
+        Ok(rmp_serde::from_slice(plaintext.as_slice())?)
     }
 }

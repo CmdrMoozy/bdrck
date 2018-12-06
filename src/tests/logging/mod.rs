@@ -12,15 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::logging::write::*;
+use crate::logging::*;
+use lazy_static::lazy_static;
 use log::{Level, LevelFilter, Log, Metadata, Record};
-use logging::write::*;
-use logging::*;
 use regex::Regex;
 use std::fmt::Arguments;
 
 #[test]
 fn test_parse_log_level_filter() {
-    ::init().unwrap();
+    crate::init().unwrap();
 
     assert_eq!(LevelFilter::Off, parse_log_level_filter(" OfF ").unwrap());
     assert_eq!(
@@ -50,7 +51,7 @@ fn assert_log_filters_level(filters: &str, module_path: &str, expected_level: Le
 
 #[test]
 fn test_log_filters() {
-    ::init().unwrap();
+    crate::init().unwrap();
 
     assert_log_filters_level("info", "main", LevelFilter::Info);
     assert_log_filters_level(
@@ -100,7 +101,7 @@ fn normalize_log_output(output: &str) -> String {
 
 #[test]
 fn test_logger_enabled() {
-    ::init().unwrap();
+    crate::init().unwrap();
 
     let logger = Logger::new(
         OptionsBuilder::new()
@@ -124,7 +125,7 @@ fn test_logger_enabled() {
 
 #[test]
 fn test_logging_output() {
-    ::init().unwrap();
+    crate::init().unwrap();
 
     let log_output_buffer: Vec<u8> = Vec::new();
     let adapter = SyncWriteAdapter::new(log_output_buffer);
