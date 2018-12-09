@@ -14,6 +14,7 @@
 
 use crate::error::*;
 use failure::format_err;
+use reqwest::header::HeaderValue;
 use reqwest::{Response, StatusCode};
 use serde_derive::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -25,12 +26,30 @@ use std::collections::HashMap;
 /// be limited to UTF-8 in practice (e.g. JSON). So, we want to represent the
 /// data as a String as often as possible, but we also need to be able to deal
 /// with the binary case.
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum HttpData {
     /// UTF-8 HTTP data.
     Text(String),
     /// Binary HTTP data (guaranteed not to be valid UTF-8).
     Binary(Vec<u8>),
+}
+
+impl From<&HeaderValue> for HttpData {
+    fn from(value: &HeaderValue) -> HttpData {
+        match value.to_str() {
+            Ok(s) => HttpData::Text(s.to_owned()),
+            Err(_) => HttpData::Binary(value.as_bytes().to_vec()),
+        }
+    }
+}
+
+impl From<&[u8]> for HttpData {
+    fn from(bytes: &[u8]) -> Self {
+        match std::str::from_utf8(bytes) {
+            Ok(text) => HttpData::Text(text.to_owned()),
+            Err(_) => HttpData::Binary(bytes.to_vec()),
+        }
+    }
 }
 
 /// ResponseMetadata stores recorded metadata about an HTTP response.
