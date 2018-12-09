@@ -16,11 +16,29 @@ use crate::error::*;
 use failure::format_err;
 use reqwest::{Response, StatusCode};
 use serde_derive::{Deserialize, Serialize};
+use std::collections::HashMap;
+
+/// HTTP data, which is either valid UTF-8 or is treated as binary.
+///
+/// The HTTP spec in many places allows arbitrary binary data (e.g. in header
+/// values, or the request / response body), but it is very common for these to
+/// be limited to UTF-8 in practice (e.g. JSON). So, we want to represent the
+/// data as a String as often as possible, but we also need to be able to deal
+/// with the binary case.
+#[derive(Clone, Deserialize, Serialize)]
+pub enum HttpData {
+    /// UTF-8 HTTP data.
+    Text(String),
+    /// Binary HTTP data (guaranteed not to be valid UTF-8).
+    Binary(Vec<u8>),
+}
 
 /// ResponseMetadata stores recorded metadata about an HTTP response.
 #[derive(Clone, Deserialize, Serialize)]
 pub struct ResponseMetadata {
+    // Stored as u16 to allow serialization.
     status: u16,
+    headers: HashMap<String, Vec<HttpData>>,
 }
 
 impl ResponseMetadata {
@@ -34,12 +52,30 @@ impl ResponseMetadata {
             Ok(status) => Ok(status),
         }
     }
+
+    /// Returns a reference to the full set of response headers.
+    pub fn get_headers(&self) -> &HashMap<String, Vec<HttpData>> {
+        &self.headers
+    }
 }
 
 impl<'a> From<&'a Response> for ResponseMetadata {
     fn from(res: &'a Response) -> Self {
+        let mut headers = HashMap::new();
+        for (name, value) in res.headers().iter() {
+            let value: HttpData = match value.to_str() {
+                Ok(s) => HttpData::Text(s.to_owned()),
+                Err(_) => HttpData::Binary(value.as_bytes().to_vec()),
+            };
+            let entry = headers
+                .entry(name.as_str().to_owned())
+                .or_insert_with(Vec::new);
+            (*entry).push(value);
+        }
+
         ResponseMetadata {
             status: res.status().as_u16(),
+            headers: headers,
         }
     }
 }
