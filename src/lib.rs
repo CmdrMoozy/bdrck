@@ -81,7 +81,6 @@ pub mod testing;
 #[cfg(test)]
 mod tests;
 
-use failure::format_err;
 use lazy_static::lazy_static;
 
 lazy_static! {
@@ -90,6 +89,7 @@ lazy_static! {
 
 #[cfg(feature = "sodiumoxide")]
 fn init_sodiumoxide() -> self::error::Result<()> {
+    use failure::format_err;
     if !::sodiumoxide::init().is_ok() {
         return Err(self::error::Error::Internal(format_err!(
             "Initializing cryptographic dependencies failed"
