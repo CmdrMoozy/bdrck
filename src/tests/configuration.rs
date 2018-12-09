@@ -48,7 +48,8 @@ fn test_persistence() {
         TEST_IDENTIFIER.clone(),
         default.clone(),
         Some(path.as_path()),
-    ).ok()
+    )
+    .ok()
     .unwrap();
     assert_eq!(default, configuration::get(&TEST_IDENTIFIER).ok().unwrap());
 
@@ -68,7 +69,8 @@ fn test_persistence() {
         TEST_IDENTIFIER.clone(),
         default.clone(),
         Some(path.as_path()),
-    ).ok()
+    )
+    .ok()
     .unwrap();
     assert_eq!(updated, configuration::get(&TEST_IDENTIFIER).ok().unwrap());
 

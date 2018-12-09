@@ -411,7 +411,8 @@ impl FromStr for IpNet {
                 match HEXLOWER_PERMISSIVE.decode(mask.as_bytes()) {
                     Ok(data) => data,
                     Err(e) => return Err(Error::HexDecode(e)),
-                }.into_iter(),
+                }
+                .into_iter(),
             );
         } else {
             let ones = u8::from_str_radix(mask, 10)?;

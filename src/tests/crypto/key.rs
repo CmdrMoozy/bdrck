@@ -41,7 +41,8 @@ fn test_password_key_derivation() {
         &salt,
         OPS_LIMIT_INTERACTIVE,
         MEM_LIMIT_INTERACTIVE,
-    ).unwrap();
+    )
+    .unwrap();
 }
 
 #[test]

@@ -291,7 +291,8 @@ impl AbstractKey for Key {
                 None => {
                     return Err(Error::InvalidArgument(format_err!(
                         "Decrypting with a Key requires a nonce"
-                    )).into())
+                    ))
+                    .into())
                 }
                 Some(nonce) => &nonce.nonce,
             },

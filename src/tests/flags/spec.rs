@@ -35,7 +35,8 @@ fn test_find_option() {
         Spec::boolean("barbaz", "", Some('b')),
         Spec::boolean("zabrab", "", Some('B')),
         Spec::optional("raboof", "", Some('F')),
-    ]).unwrap();
+    ])
+    .unwrap();
 
     assert!(find_named_spec_works(&specs, "foo", "foo"));
     assert!(find_named_spec_works(&specs, "o", "foo"));

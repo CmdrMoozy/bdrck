@@ -22,6 +22,7 @@ use std::fs::File;
 use std::io::Write;
 use std::path::Path;
 
+// TODO: Replace with http::types::HttpData.
 /// RecordedBody represents a recorded request or response body. It attempts to
 /// decode the body as UTF-8, but failing that represents it as raw bytes.
 #[derive(Deserialize, Serialize)]

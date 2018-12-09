@@ -98,7 +98,8 @@ fn remove_newline(mut s: String) -> Result<String> {
         return Err(::std::io::Error::new(
             ::std::io::ErrorKind::UnexpectedEof,
             "unexpected end of input",
-        ).into());
+        )
+        .into());
     }
     s.pop();
 

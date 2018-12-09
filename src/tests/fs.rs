@@ -57,12 +57,10 @@ fn test_create_symlink() {
 
     let symlink_path = dir.path().join("test_symlink");
     create_symlink(&file_path, &symlink_path).unwrap();
-    assert!(
-        fs::symlink_metadata(&symlink_path)
-            .unwrap()
-            .file_type()
-            .is_symlink()
-    );
+    assert!(fs::symlink_metadata(&symlink_path)
+        .unwrap()
+        .file_type()
+        .is_symlink());
     let mut contents = String::new();
     let mut f = File::open(&symlink_path).unwrap();
     assert_eq!(
