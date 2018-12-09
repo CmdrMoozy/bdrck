@@ -76,7 +76,8 @@ impl<'a, E> fmt::Debug for Command<'a, E> {
             format!(
                 "Command {{ {:#?}, {:#?}, {:#?} }}",
                 self.name, self.help, self.flags
-            ).as_str(),
+            )
+            .as_str(),
         )
     }
 }

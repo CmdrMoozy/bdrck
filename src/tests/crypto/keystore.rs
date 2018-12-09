@@ -52,13 +52,15 @@ fn test_keystore_open_with_added_key() {
         &salt,
         OPS_LIMIT_INTERACTIVE,
         MEM_LIMIT_INTERACTIVE,
-    ).unwrap();
+    )
+    .unwrap();
     let keyb = Key::new_password(
         "bar".as_bytes(),
         &salt,
         OPS_LIMIT_INTERACTIVE,
         MEM_LIMIT_INTERACTIVE,
-    ).unwrap();
+    )
+    .unwrap();
     assert_ne!(keya.get_digest(), keyb.get_digest());
     let master_key: Option<Key>;
 
@@ -102,13 +104,15 @@ fn test_remove_unused_key() {
         &salt,
         OPS_LIMIT_INTERACTIVE,
         MEM_LIMIT_INTERACTIVE,
-    ).unwrap();
+    )
+    .unwrap();
     let keyb = Key::new_password(
         "bar".as_bytes(),
         &salt,
         OPS_LIMIT_INTERACTIVE,
         MEM_LIMIT_INTERACTIVE,
-    ).unwrap();
+    )
+    .unwrap();
     assert_ne!(keya.get_digest(), keyb.get_digest());
 
     let mut keystore = DiskKeyStore::open_or_new(file.path(), &keya).unwrap();

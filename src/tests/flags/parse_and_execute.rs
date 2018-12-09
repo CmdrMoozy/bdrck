@@ -137,7 +137,8 @@ fn test_parse_and_execute() {
             Spec::boolean("boola", "boola", None),
             Spec::boolean("boolb", "boolb", None),
             Spec::positional("posa", "posa", None, false).unwrap(),
-        ]).unwrap(),
+        ])
+        .unwrap(),
         callback,
     );
 
@@ -216,7 +217,8 @@ fn test_default_values() {
                 Spec::optional("d", "d", Some('d')),
                 Spec::boolean("e", "e", None),
                 Spec::boolean("f", "f", Some('f')),
-            ]).unwrap(),
+            ])
+            .unwrap(),
             expected_vs,
         )],
         "foo",
@@ -239,7 +241,8 @@ fn test_missing_required_flag() {
                 Spec::optional("d", "d", Some('d')),
                 Spec::boolean("e", "e", None),
                 Spec::boolean("f", "f", Some('f')),
-            ]).unwrap(),
+            ])
+            .unwrap(),
             into_expected_values(vec![]),
         )],
         "foo",
@@ -274,7 +277,8 @@ fn test_parse_missing_flag_value() {
             Specs::new(vec![
                 Spec::required("foobar", "foobar", None, None),
                 Spec::required("barbaz", "barbaz", None, None),
-            ]).unwrap(),
+            ])
+            .unwrap(),
             into_expected_values(vec![]),
         )],
         "foo",
@@ -301,7 +305,8 @@ fn test_parse_flag_format_variations() {
                 Spec::required("flagb", "flagb", Some('b'), None),
                 Spec::required("flagc", "flagc", Some('c'), None),
                 Spec::required("flagd", "flagd", Some('d'), None),
-            ]).unwrap(),
+            ])
+            .unwrap(),
             expected_vs,
         )],
         "foo",
@@ -328,7 +333,8 @@ fn test_parse_boolean_flag_format_variations() {
                 Spec::boolean("boolb", "boolb", Some('b')),
                 Spec::boolean("boolc", "boolc", Some('c')),
                 Spec::boolean("boold", "boold", Some('d')),
-            ]).unwrap(),
+            ])
+            .unwrap(),
             expected_vs,
         )],
         "foo",
@@ -371,7 +377,8 @@ fn test_parse_named_flags() {
                 Spec::boolean("flagf", "flagf", Some('f')),
                 Spec::boolean("flagg", "flagg", Some('g')),
                 Spec::boolean("flagh", "flagh", Some('h')),
-            ]).unwrap(),
+            ])
+            .unwrap(),
             expected_vs,
         )],
         "foobar",
@@ -414,7 +421,8 @@ fn test_parse_positional_flags() {
                 Spec::positional("posa", "posa", None, false).unwrap(),
                 Spec::positional("posb", "posb", None, false).unwrap(),
                 Spec::positional("posc", "posc", None, false).unwrap(),
-            ]).unwrap(),
+            ])
+            .unwrap(),
             expected_vs,
         )],
         "foobar",
@@ -441,7 +449,8 @@ fn test_parse_variadic_flag_empty() {
                 Spec::positional("posa", "posa", None, false).unwrap(),
                 Spec::positional("posb", "posb", None, false).unwrap(),
                 Spec::positional("posc", "posc", None, true).unwrap(),
-            ]).unwrap(),
+            ])
+            .unwrap(),
             expected_vs,
         )],
         "foobar",
@@ -471,7 +480,8 @@ fn test_parse_variadic_flag_many() {
                 Spec::positional("posa", "posa", None, false).unwrap(),
                 Spec::positional("posb", "posb", None, false).unwrap(),
                 Spec::positional("posc", "posc", None, true).unwrap(),
-            ]).unwrap(),
+            ])
+            .unwrap(),
             expected_vs,
         )],
         "foobar",
@@ -498,7 +508,8 @@ fn test_parse_default_positional_values() {
                 Spec::positional("posa", "posa", Some(&["dva"]), false).unwrap(),
                 Spec::positional("posb", "posb", Some(&["dvb"]), false).unwrap(),
                 Spec::positional("posc", "posc", Some(&["dvc"]), false).unwrap(),
-            ]).unwrap(),
+            ])
+            .unwrap(),
             expected_vs,
         )],
         "foobar",
@@ -528,7 +539,8 @@ fn test_parse_default_variadic_values() {
                 Spec::positional("posa", "posa", Some(&["dva"]), false).unwrap(),
                 Spec::positional("posb", "posb", Some(&["dvb"]), false).unwrap(),
                 Spec::positional("posc", "posc", Some(&["dvc1", "dvc2"]), true).unwrap(),
-            ]).unwrap(),
+            ])
+            .unwrap(),
             expected_vs,
         )],
         "foobar",

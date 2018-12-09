@@ -40,7 +40,8 @@ fn get_default_values<'a>(specs: &Specs) -> HashMap<String, Value> {
                 ),
                 _ => panic!("Default value lookup for {:?} not implemented", s.flag_type),
             }
-        }).collect()
+        })
+        .collect()
 }
 
 /// Return the boolean interpretation of a string, or an error if the string
@@ -164,11 +165,13 @@ fn parse_next_named_flag<'a, 'b, I: Iterator<Item = &'b String>>(
     args: &mut Peekable<I>,
 ) -> Result<Option<ParsedNamedFlag>> {
     let flag: &'b String = match args.peek() {
-        Some(p) => if p.starts_with('-') {
-            p
-        } else {
-            return Ok(None);
-        },
+        Some(p) => {
+            if p.starts_with('-') {
+                p
+            } else {
+                return Ok(None);
+            }
+        }
         None => return Ok(None),
     };
     args.next();
@@ -222,7 +225,8 @@ impl<'a, 'b, I: Iterator<Item = &'b String>> ValueIterator<'a, 'b, I> {
                         name: s.get_name().to_owned(),
                         is_variadic: s.is_variadic(),
                     }),
-                }).rev()
+                })
+                .rev()
                 .collect(),
         }
     }

@@ -16,9 +16,9 @@
 /// destination.
 pub mod write;
 
-use chrono;
 use crate::error::*;
 use crate::logging::write::*;
+use chrono;
 use failure::format_err;
 use lazy_static::lazy_static;
 use log::{self, LevelFilter, Log, Metadata, Record};
@@ -328,10 +328,11 @@ impl Log for Logger {
     }
 
     fn log(&self, record: &Record) {
-        if record.level() > self
-            .options
-            .filters
-            .max_level_for(record.module_path().unwrap_or(""))
+        if record.level()
+            > self
+                .options
+                .filters
+                .max_level_for(record.module_path().unwrap_or(""))
         {
             return;
         }
