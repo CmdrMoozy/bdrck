@@ -13,7 +13,7 @@
 // limitations under the License.
 
 use crate::error::*;
-use crate::http::types::ResponseMetadata;
+use crate::http::types::{HttpData, ResponseMetadata};
 use reqwest::Request;
 use serde_derive::{Deserialize, Serialize};
 use serde_json;
@@ -21,26 +21,6 @@ use std::collections::{HashMap, VecDeque};
 use std::fs::File;
 use std::io::Write;
 use std::path::Path;
-
-// TODO: Replace with http::types::HttpData.
-/// RecordedBody represents a recorded request or response body. It attempts to
-/// decode the body as UTF-8, but failing that represents it as raw bytes.
-#[derive(Deserialize, Serialize)]
-pub enum RecordedBody {
-    /// A body which is valid UTF-8.
-    Text(String),
-    /// A body which is not UTF-8, and therefore represented as raw bytes.
-    Binary(Vec<u8>),
-}
-
-impl<'a> From<&'a [u8]> for RecordedBody {
-    fn from(bytes: &'a [u8]) -> Self {
-        match ::std::str::from_utf8(bytes) {
-            Err(_) => RecordedBody::Binary(bytes.to_vec()),
-            Ok(text) => RecordedBody::Text(text.to_owned()),
-        }
-    }
-}
 
 /// RecordedRequest represents a recorded HTTP request.
 #[derive(Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -50,21 +30,29 @@ pub struct RecordedRequest {
     /// The URL to which the request was sent.
     pub url: String,
     /// The headers sent along with the request (if any).
-    pub headers: HashMap<String, Vec<u8>>,
+    pub headers: HashMap<String, Vec<HttpData>>,
     /// The request body (if any).
     pub body: Option<String>,
 }
 
 impl<'a> From<&'a Request> for RecordedRequest {
     fn from(req: &'a Request) -> Self {
+        let mut headers = HashMap::new();
+        for (name, value) in req.headers().iter() {
+            let value: HttpData = match value.to_str() {
+                Ok(s) => HttpData::Text(s.to_owned()),
+                Err(_) => HttpData::Binary(value.as_bytes().to_vec()),
+            };
+            let entry = headers
+                .entry(name.as_str().to_owned())
+                .or_insert_with(Vec::new);
+            (*entry).push(value);
+        }
+
         RecordedRequest {
             method: req.method().to_string(),
             url: req.url().as_str().to_owned(),
-            headers: req
-                .headers()
-                .iter()
-                .map(|(n, v)| (n.as_str().to_owned(), v.as_bytes().to_vec()))
-                .collect(),
+            headers: headers,
             body: req.body().map(|b| format!("{:?}", b)),
         }
     }
@@ -76,14 +64,14 @@ pub struct RecordedResponse {
     /// The metadata about the response (e.g. status code, etc.).
     pub metadata: ResponseMetadata,
     /// The response body.
-    pub body: RecordedBody,
+    pub body: HttpData,
 }
 
 impl<'a> From<&'a (ResponseMetadata, Vec<u8>)> for RecordedResponse {
     fn from(res: &'a (ResponseMetadata, Vec<u8>)) -> Self {
         RecordedResponse {
             metadata: res.0.clone(),
-            body: RecordedBody::from(res.1.as_slice()),
+            body: HttpData::from(res.1.as_slice()),
         }
     }
 }

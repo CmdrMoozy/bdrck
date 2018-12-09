@@ -14,8 +14,8 @@
 
 use crate::error::*;
 use crate::http::client::AbstractClient;
-use crate::http::recording::{RecordedBody, RecordedRequest, Recording, RecordingEntry};
-use crate::http::types::ResponseMetadata;
+use crate::http::recording::{RecordedRequest, Recording, RecordingEntry};
+use crate::http::types::{HttpData, ResponseMetadata};
 use reqwest::Client as InnerClient;
 use reqwest::{Request, RequestBuilder, Url};
 use serde_json;
@@ -83,8 +83,8 @@ impl AbstractClient for TestStubClient {
         Ok((
             entry.res.metadata,
             match entry.res.body {
-                RecordedBody::Text(text) => text.into_bytes(),
-                RecordedBody::Binary(bytes) => bytes,
+                HttpData::Text(text) => text.into_bytes(),
+                HttpData::Binary(bytes) => bytes,
             },
         ))
     }
