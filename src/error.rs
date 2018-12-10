@@ -182,6 +182,7 @@ impl From<::failure::Error> for Error {
     }
 }
 
+#[cfg(feature = "reqwest")]
 impl From<::reqwest::UrlError> for Error {
     fn from(e: ::reqwest::UrlError) -> Self {
         Error::Url(e)
