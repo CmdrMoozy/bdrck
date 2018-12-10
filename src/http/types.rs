@@ -53,7 +53,7 @@ impl From<&[u8]> for HttpData {
 }
 
 /// ResponseMetadata stores recorded metadata about an HTTP response.
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ResponseMetadata {
     // Stored as u16 to allow serialization.
     status: u16,
