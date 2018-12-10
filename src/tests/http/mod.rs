@@ -13,18 +13,4 @@
 // limitations under the License.
 
 #[cfg(test)]
-mod configuration;
-#[cfg(test)]
-mod crypto;
-#[cfg(test)]
-mod flags;
-#[cfg(test)]
-mod fs;
-#[cfg(test)]
-mod http;
-#[cfg(test)]
-mod logging;
-#[cfg(test)]
-mod net;
-#[cfg(test)]
-mod testing;
+mod util;

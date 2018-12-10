@@ -22,6 +22,9 @@ pub enum Error {
     /// variables.
     #[fail(display = "{}", _0)]
     EnvVar(#[cause] ::std::env::VarError),
+    /// An error decoding bytes as UTF-8 text.
+    #[fail(display = "{}", _0)]
+    FromUtf8(#[cause] ::std::string::FromUtf8Error),
     /// An error encountered in trying to decode a hex string to the bytes it
     /// represents.
     #[cfg(feature = "data-encoding")]
@@ -86,11 +89,21 @@ pub enum Error {
     /// exactly what kind of problem occurred.
     #[fail(display = "{}", _0)]
     Unknown(::failure::Error),
+    /// An error in decoding a URL.
+    #[cfg(feature = "reqwest")]
+    #[fail(display = "{}", _0)]
+    Url(#[cause] ::reqwest::UrlError),
 }
 
 impl From<::std::env::VarError> for Error {
     fn from(e: ::std::env::VarError) -> Self {
         Error::EnvVar(e)
+    }
+}
+
+impl From<::std::string::FromUtf8Error> for Error {
+    fn from(e: ::std::string::FromUtf8Error) -> Self {
+        Error::FromUtf8(e)
     }
 }
 
@@ -166,6 +179,12 @@ impl From<::log::SetLoggerError> for Error {
 impl From<::failure::Error> for Error {
     fn from(e: ::failure::Error) -> Self {
         Error::Unknown(e)
+    }
+}
+
+impl From<::reqwest::UrlError> for Error {
+    fn from(e: ::reqwest::UrlError) -> Self {
+        Error::Url(e)
     }
 }
 

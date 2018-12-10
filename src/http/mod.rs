@@ -21,3 +21,5 @@ pub mod client;
 pub mod recording;
 /// types defines custom types for modeling HTTP requests / responses.
 pub mod types;
+/// util contains various HTTP-related utility functions.
+pub mod util;
