@@ -30,8 +30,19 @@ use std::collections::HashMap;
 pub enum HttpData {
     /// UTF-8 HTTP data.
     Text(String),
-    /// Binary HTTP data (guaranteed not to be valid UTF-8).
+    /// Binary HTTP data.
     Binary(Vec<u8>),
+}
+
+impl HttpData {
+    /// Attempt to convert this data to a raw String. It is an error if the data
+    /// is not valid UTF-8.
+    pub fn try_into_string(self) -> Result<String> {
+        Ok(match self {
+            HttpData::Text(s) => s,
+            HttpData::Binary(b) => String::from_utf8(b)?,
+        })
+    }
 }
 
 impl From<&HeaderValue> for HttpData {
@@ -52,12 +63,15 @@ impl From<&[u8]> for HttpData {
     }
 }
 
+/// A convenient typedef for the structure we store headers in.
+pub type HeaderMap = HashMap<String, Vec<HttpData>>;
+
 /// ResponseMetadata stores recorded metadata about an HTTP response.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ResponseMetadata {
     // Stored as u16 to allow serialization.
     status: u16,
-    headers: HashMap<String, Vec<HttpData>>,
+    headers: HeaderMap,
 }
 
 impl ResponseMetadata {
