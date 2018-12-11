@@ -26,7 +26,7 @@ use std::collections::HashMap;
 /// be limited to UTF-8 in practice (e.g. JSON). So, we want to represent the
 /// data as a String as often as possible, but we also need to be able to deal
 /// with the binary case.
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum HttpData {
     /// UTF-8 HTTP data.
     Text(String),
@@ -44,6 +44,23 @@ impl HttpData {
         })
     }
 }
+
+// We can't just derive PartialEq, because we want to treat structures which
+// contain the exact same bytes, albeit using two different representations
+// (String vs. byte Vec), as equivalent.
+impl PartialEq for HttpData {
+    fn eq(&self, other: &HttpData) -> bool {
+        (match self {
+            HttpData::Text(s) => s.as_bytes(),
+            HttpData::Binary(b) => b.as_slice(),
+        }) == (match other {
+            HttpData::Text(s) => s.as_bytes(),
+            HttpData::Binary(b) => b.as_slice(),
+        })
+    }
+}
+
+impl Eq for HttpData {}
 
 impl From<&HeaderValue> for HttpData {
     fn from(value: &HeaderValue) -> HttpData {
