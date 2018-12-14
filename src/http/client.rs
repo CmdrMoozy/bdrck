@@ -17,9 +17,12 @@ use crate::error::*;
 #[cfg(debug_assertions)]
 use crate::http::recording::{RecordedRequest, RecordedResponse, Recording, RecordingEntry};
 use crate::http::types::ResponseMetadata;
-use log::debug;
+use failure::format_err;
+use log::{debug, info};
+use rand::Rng;
+use reqwest::header::HeaderMap;
 use reqwest::Client as InnerClient;
-use reqwest::{Request, RequestBuilder, Url};
+use reqwest::{Method, Request, RequestBuilder, Url};
 use std::io::Read;
 // For recordings.
 #[cfg(debug_assertions)]
@@ -27,11 +30,96 @@ use std::path::{Path, PathBuf};
 // For recordings.
 #[cfg(debug_assertions)]
 use std::sync::Mutex;
+use std::time::Duration;
 
 /// AbstractClient defines the generic interface for an HTTP client.
 pub trait AbstractClient {
     /// Execute (send) a previously-constructed HTTP request.
     fn execute(&self, request: Request) -> Result<(ResponseMetadata, Vec<u8>)>;
+
+    /// Execute (send) a previously-constructed HTTP request. In the case of a
+    /// retryable failure (a 5xx error), we'll retry up to max_retries with
+    /// exponential backoff between each attempt.
+    ///
+    /// Unfortunately, to do this we need to be able to create copies of the
+    /// request, meaning in particular the Body needs to be copyable. So, this
+    /// function can only support Vec<u8>-based request Bodies.
+    fn execute_with_retries(
+        &self,
+        max_retries: u64,
+        add_jitter: bool,
+        method: Method,
+        url: Url,
+        headers: Option<&HeaderMap>,
+        body: Option<&[u8]>,
+    ) -> Result<(ResponseMetadata, Vec<u8>)> {
+        self.execute_with_retries_custom_sleep(
+            std::thread::sleep,
+            max_retries,
+            add_jitter,
+            method,
+            url,
+            headers,
+            body,
+        )
+    }
+
+    /// This is the same as execute_with_retries, but you can specify a custom
+    /// sleep function (as opposed to std::thread::sleep).
+    fn execute_with_retries_custom_sleep<S: FnMut(Duration)>(
+        &self,
+        mut sleep: S,
+        max_retries: u64,
+        add_jitter: bool,
+        method: Method,
+        url: Url,
+        headers: Option<&HeaderMap>,
+        body: Option<&[u8]>,
+    ) -> Result<(ResponseMetadata, Vec<u8>)> {
+        // Below we calculate 2^retry * 100 + 10 as a maximum, so the largest
+        // retry value we can store in a u64 is 57 (so max_retries must
+        // be <= 58, so retry will be in the range [0, 57)).
+        if max_retries > 58 {
+            return Err(Error::InvalidArgument(format_err!(
+                "max_retries must be <= 58"
+            )));
+        }
+
+        let mut rng = rand::thread_rng();
+        for retry in 0..max_retries + 1 {
+            let mut request = Request::new(method.clone(), url.clone());
+            if let Some(headers) = headers {
+                (*request.headers_mut()) = headers.clone();
+            }
+            if let Some(body) = body {
+                (*request.body_mut()) = Some(body.to_vec().into());
+            }
+
+            if retry > 0 {
+                let jitter: u64 = match add_jitter {
+                    false => 0,
+                    true => rng.gen_range(0, 10),
+                };
+                let wait: u64 = (1_u64 << retry - 1) * 100 + jitter;
+                info!("Sleep for {}ms before retrying {} {}", wait, method, url);
+                sleep(Duration::from_millis(wait));
+            }
+
+            let (res_metadata, res_body) = self.execute(request)?;
+            let status = res_metadata.get_status()?;
+
+            if status.is_server_error() {
+                info!("{} {} returned {}, retrying...", method, url, status);
+            } else {
+                return Ok((res_metadata, res_body));
+            }
+        }
+
+        Err(Error::Unknown(format_err!(
+            "Failed to get a success response after {} retries.",
+            max_retries
+        )))
+    }
 
     /// Returns a builder for an HTTP GET request.
     fn get(&self, url: Url) -> RequestBuilder;
