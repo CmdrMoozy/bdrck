@@ -14,8 +14,7 @@
 
 use crate::error::*;
 use crate::flags::command::{Command, CommandResult};
-use crate::flags::parse_and_execute::parse_and_execute;
-use crate::flags::parse_and_execute::parse_and_execute_command;
+use crate::flags::parse_and_execute::{parse_and_execute, parse_and_execute_single_command};
 use std::env;
 use std::fmt::{Debug, Display};
 use std::process;
@@ -44,28 +43,37 @@ pub fn get_program_parameters() -> Vec<String> {
 /// Overall, if an error is encountered, it is printed to standard output. In
 /// either case, the appropriate exit code (EXIT_SUCCESS or EXIT_FAILURE) is
 /// returned.
-pub fn handle_result<E: Display + Debug>(r: Result<CommandResult<E>>) -> i32 {
+pub fn handle_result<E: Display + Debug>(r: Result<Option<CommandResult<E>>>) -> i32 {
     match r {
-        Ok(command_result) => match command_result {
-            Ok(_) => EXIT_SUCCESS,
-            Err(e) => {
-                eprintln!(
-                    "{}",
-                    match cfg!(debug_assertions) {
-                        false => e.to_string(),
-                        true => format!("{:?}", e),
-                    }
-                );
-                EXIT_FAILURE
-            }
+        // No internal error.
+        Ok(r) => match r {
+            // The command was not executed, but the error was handled internally.
+            None => EXIT_FAILURE,
+            // The command was executed, and we got a result back from it.
+            Some(r) => match r {
+                // The command returned success.
+                Ok(_) => EXIT_SUCCESS,
+                // The command returned an error to us.
+                Err(e) => {
+                    eprintln!(
+                        "{}",
+                        match cfg!(debug_assertions) {
+                            false => e.to_string(),
+                            true => format!("{:?}", e),
+                        }
+                    );
+                    EXIT_FAILURE
+                }
+            },
         },
+        // An internal error which should be surfaced to the user.
         Err(e) => {
             eprintln!(
-                "Flag parsing error: {}",
+                "Error parsing command-line flags: {}",
                 match cfg!(debug_assertions) {
                     false => e.to_string(),
                     true => format!("{:?}", e),
-                }
+                },
             );
             EXIT_FAILURE
         }
@@ -80,8 +88,8 @@ pub fn handle_result<E: Display + Debug>(r: Result<CommandResult<E>>) -> i32 {
 /// stack will be run. The caller should ensure that this function is called
 /// from the only thread, and that any destructors which need to be run are in
 /// the stack of the command callback.
-pub fn main_impl_multiple_commands<E: Display + Debug>(commands: Vec<Command<E>>) -> ! {
-    process::exit(handle_result(parse_and_execute_command(
+pub fn main_impl<E: Display + Debug>(commands: Vec<Command<E>>) -> ! {
+    process::exit(handle_result(parse_and_execute(
         env::args().next().unwrap().as_ref(),
         &get_program_parameters(),
         commands,
@@ -98,7 +106,7 @@ pub fn main_impl_multiple_commands<E: Display + Debug>(commands: Vec<Command<E>>
 /// from the only thread, and that any destructors which need to be run are in
 /// the stack of the command callback.
 pub fn main_impl_single_command<E: Display + Debug>(command: Command<E>) -> ! {
-    process::exit(handle_result(parse_and_execute(
+    process::exit(handle_result(parse_and_execute_single_command(
         env::args().next().unwrap().as_ref(),
         &get_program_parameters(),
         command,

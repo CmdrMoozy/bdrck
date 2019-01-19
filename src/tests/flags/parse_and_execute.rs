@@ -12,8 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::flags::command::{Command, CommandCallback};
-use crate::flags::parse_and_execute::{parse_and_execute, parse_and_execute_command};
+use crate::error::*;
+use crate::flags::command::{Command, CommandCallback, CommandResult};
+use crate::flags::parse_and_execute::{parse_and_execute, parse_and_execute_single_command};
 use crate::flags::spec::{Spec, Specs};
 use crate::flags::value::{Value, Values};
 use crate::testing::fn_instrumentation::FnInstrumentation;
@@ -49,10 +50,36 @@ fn build_test_command(name: &str, specs: Specs, expected_vs: Values) -> Command<
     )
 }
 
-fn parse_and_execute_test_impl(
+fn assert_results_match(
+    expected: Result<Option<CommandResult<()>>>,
+    actual: Result<Option<CommandResult<()>>>,
+) {
+    fn stringify(r: &::std::result::Result<Option<CommandResult<()>>, String>) -> String {
+        match r {
+            Ok(r) => match r {
+                None => "internally-handled error".to_owned(),
+                Some(r) => format!("{:?} from command execution", r),
+            },
+            Err(e) => format!("internal error {}", e),
+        }
+    }
+
+    let expected = expected.map_err(|e| format!("{:?}", e));
+    let actual = actual.map_err(|e| format!("{:?}", e));
+
+    assert!(
+        expected == actual,
+        "Expected {}, got {}",
+        stringify(&expected),
+        stringify(&actual)
+    );
+}
+
+fn parse_and_execute_result_test_impl(
     args: Vec<&'static str>,
     mut commands: Vec<Command<()>>,
     expected_command_name: &'static str,
+    expected_result: Result<Option<CommandResult<()>>>,
 ) {
     // We need to take the command we expect to execute and modify its callback to
     // record that the function call happened. This has to be done in a certain
@@ -93,19 +120,29 @@ fn parse_and_execute_test_impl(
     // this worked as expected.
     assert!(instrumentation.get_call_count() == 0);
     let args: Vec<String> = args.into_iter().map(|arg| arg.to_owned()).collect();
-    let res = parse_and_execute_command::<(), ::std::io::Stderr>(
-        "program",
-        args.as_slice(),
-        commands,
-        None,
-    );
-    assert!(res.is_ok(), "{}", res.err().unwrap());
-    assert!(res.unwrap().is_ok());
-    assert!(instrumentation.get_call_count() == 1);
+    let res =
+        parse_and_execute::<(), ::std::io::Stderr>("program", args.as_slice(), commands, None);
+    let expected_call_count = match res {
+        Err(_) => 0,
+        Ok(r) => match r {
+            None => 0,
+            Some(_) => 1,
+        },
+    };
+    assert_results_match(expected_result, res);
+    assert_eq!(expected_call_count, instrumentation.get_call_count());
+}
+
+fn parse_and_execute_test_impl(
+    args: Vec<&'static str>,
+    commands: Vec<Command<()>>,
+    expected_command_name: &'static str,
+) {
+    parse_and_execute_result_test_impl(args, commands, expected_command_name, Ok(Some(Ok(()))));
 }
 
 #[test]
-fn test_parse_and_execute() {
+fn test_parse_and_execute_single_command() {
     crate::init().unwrap();
 
     let expected_vs = into_expected_values(vec![
@@ -143,18 +180,21 @@ fn test_parse_and_execute() {
     );
 
     assert!(instrumentation.get_call_count() == 0);
-    assert!(
-        parse_and_execute::<(), ::std::io::Stderr>(program.as_ref(), &args, command, None).is_ok()
-    );
+    assert!(parse_and_execute_single_command::<(), ::std::io::Stderr>(
+        program.as_ref(),
+        &args,
+        command,
+        None
+    )
+    .is_ok());
     assert!(instrumentation.get_call_count() == 1);
 }
 
 #[test]
-#[should_panic(expected = "Unrecognized command 'biff'")]
 fn test_parse_invalid_command() {
     crate::init().unwrap();
 
-    parse_and_execute_test_impl(
+    parse_and_execute_result_test_impl(
         vec!["biff", "foo", "bar", "baz"],
         vec![
             build_trivial_test_command("foo"),
@@ -162,6 +202,7 @@ fn test_parse_invalid_command() {
             build_trivial_test_command("baz"),
         ],
         "biff",
+        Ok(None),
     );
 }
 
@@ -226,11 +267,10 @@ fn test_default_values() {
 }
 
 #[test]
-#[should_panic(expected = "Unexpected missing value for flag 'a'")]
 fn test_missing_required_flag() {
     crate::init().unwrap();
 
-    parse_and_execute_test_impl(
+    parse_and_execute_result_test_impl(
         vec!["foo"],
         vec![build_test_command(
             "foo",
@@ -246,15 +286,15 @@ fn test_missing_required_flag() {
             into_expected_values(vec![]),
         )],
         "foo",
+        Ok(None),
     );
 }
 
 #[test]
-#[should_panic(expected = "Unrecognized flag 'foo'")]
 fn test_parse_invalid_flag() {
     crate::init().unwrap();
 
-    parse_and_execute_test_impl(
+    parse_and_execute_result_test_impl(
         vec!["foo", "--foo=bar"],
         vec![build_test_command(
             "foo",
@@ -262,15 +302,15 @@ fn test_parse_invalid_flag() {
             into_expected_values(vec![]),
         )],
         "foo",
+        Ok(None),
     );
 }
 
 #[test]
-#[should_panic(expected = "Missing value for flag 'foobar'")]
 fn test_parse_missing_flag_value() {
     crate::init().unwrap();
 
-    parse_and_execute_test_impl(
+    parse_and_execute_result_test_impl(
         vec!["foo", "--foobar", "--barbaz"],
         vec![build_test_command(
             "foo",
@@ -282,6 +322,7 @@ fn test_parse_missing_flag_value() {
             into_expected_values(vec![]),
         )],
         "foo",
+        Ok(None),
     );
 }
 

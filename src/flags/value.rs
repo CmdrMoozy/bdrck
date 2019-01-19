@@ -12,9 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::error::*;
+use crate::flags::error::{ValueError, ValueResult};
 use crate::flags::spec::{Spec, Specs, Type};
-use failure::format_err;
 use std::collections::HashMap;
 use std::iter::{FromIterator, Peekable};
 use std::str::FromStr;
@@ -46,16 +45,11 @@ fn get_default_values<'a>(specs: &Specs) -> HashMap<String, Value> {
 
 /// Return the boolean interpretation of a string, or an error if the string
 /// isn't recognized as a valid boolean value.
-fn parse_bool(value: &str) -> Result<bool> {
+fn parse_bool(value: &str) -> ValueResult<bool> {
     match value.trim().to_lowercase().as_ref() {
         "true" => Ok(true),
         "false" => Ok(false),
-        _ => {
-            return Err(Error::InvalidArgument(format_err!(
-                "Invalid boolean value '{}'",
-                value
-            )));
-        }
+        _ => return Err(ValueError::BadBoolean(value.to_owned())),
     }
 }
 
@@ -79,15 +73,10 @@ impl Value {
     /// Constructs a new Value for a named flag. Note that named flags can never
     /// have repeated values, so this function only handles the Single and
     /// Boolean cases.
-    pub fn new_named_flag_value(spec: &Spec, value: Option<String>) -> Result<Value> {
+    pub(crate) fn new_named_flag_value(spec: &Spec, value: Option<String>) -> ValueResult<Value> {
         Ok(match spec.is_boolean() {
             false => Value::Single(match value {
-                None => {
-                    return Err(Error::InvalidArgument(format_err!(
-                        "Missing value for flag '{}'",
-                        spec.get_name()
-                    )));
-                }
+                None => return Err(ValueError::MissingValue(spec.get_name().to_owned())),
                 Some(value) => value,
             }),
             true => Value::Boolean(match value {
@@ -122,7 +111,7 @@ impl<'a> NamedFlagSpec<'a> {
     /// after the hyphens but before the "=" is considered to be the flag name,
     /// and is used to look up the associated Spec. This name may be either the
     /// short or long name for the flag.
-    fn new<'b>(specs: &'a Specs, flag: &'b str) -> Result<NamedFlagSpec<'a>> {
+    fn new<'b>(specs: &'a Specs, flag: &'b str) -> ValueResult<NamedFlagSpec<'a>> {
         let trimmed = if flag.starts_with("--") {
             &flag[2..]
         } else {
@@ -134,12 +123,7 @@ impl<'a> NamedFlagSpec<'a> {
 
         let spec: &'a Spec = match specs.find_named_spec(name) {
             Some(s) => s,
-            None => {
-                return Err(Error::InvalidArgument(format_err!(
-                    "Unrecognized flag '{}'",
-                    name
-                )));
-            }
+            None => return Err(ValueError::UnknownFlag(name.to_owned())),
         };
 
         Ok(NamedFlagSpec {
@@ -163,7 +147,7 @@ struct PositionalFlagSpec {
 fn parse_next_named_flag<'a, 'b, I: Iterator<Item = &'b String>>(
     specs: &'a Specs,
     args: &mut Peekable<I>,
-) -> Result<Option<ParsedNamedFlag>> {
+) -> ValueResult<Option<ParsedNamedFlag>> {
     let flag: &'b String = match args.peek() {
         Some(p) => {
             if p.starts_with('-') {
@@ -233,7 +217,7 @@ impl<'a, 'b, I: Iterator<Item = &'b String>> ValueIterator<'a, 'b, I> {
 }
 
 impl<'a, 'b, I: Iterator<Item = &'b String>> Iterator for ValueIterator<'a, 'b, I> {
-    type Item = Result<(String, Value)>;
+    type Item = ValueResult<(String, Value)>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if !self.finished_named_flags {
@@ -284,12 +268,12 @@ pub struct Values {
 impl Values {
     /// Constructs a new Values by parsing the flag values out of the given
     /// Iterator over command-line arguments, and using the given flag Specs.
-    pub fn new<'a, 'b, I: Iterator<Item = &'b String>>(
+    pub(crate) fn new<'a, 'b, I: Iterator<Item = &'b String>>(
         specs: &'a Specs,
         args: Peekable<I>,
-    ) -> Result<Values> {
+    ) -> ValueResult<Values> {
         let default_values = get_default_values(specs);
-        let values: Result<HashMap<String, Value>> = ValueIterator::new(specs, args).collect();
+        let values: ValueResult<HashMap<String, Value>> = ValueIterator::new(specs, args).collect();
         let mut values: HashMap<String, Value> = values?;
         for (name, value) in default_values.into_iter() {
             values.entry(name).or_insert(value);
@@ -297,10 +281,7 @@ impl Values {
 
         for s in specs.iter() {
             if s.is_required() && !values.contains_key(&s.name) {
-                return Err(Error::InvalidArgument(format_err!(
-                    "Unexpected missing value for flag '{}'",
-                    s.name
-                )));
+                return Err(ValueError::MissingFlag(s.name.clone()));
             }
         }
 
