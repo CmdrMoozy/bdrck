@@ -29,12 +29,13 @@ pub mod spec;
 /// command-line flags, and utilities for accessing them in a type-safe way.
 pub mod value;
 
+mod error;
 mod help;
 
 // Re-export the most commonly used symbols, so most users of this module can
 // just do "use bdrck::flags::*;" and get the right thing.
 
 pub use self::command::{Command, CommandCallback, CommandResult};
-pub use self::main_impl::{main_impl_multiple_commands, main_impl_single_command};
+pub use self::main_impl::{main_impl, main_impl_single_command};
 pub use self::spec::{Spec, Specs};
 pub use self::value::Values;

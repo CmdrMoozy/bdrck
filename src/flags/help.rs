@@ -14,17 +14,21 @@
 
 use crate::error::*;
 use crate::flags::command::Command;
+use crate::flags::error::ValueError;
 use std::io::Write;
 
 pub(crate) fn print_program_help<'cbl, W: Write, E>(
     f: Option<&mut W>,
     program: &str,
     commands: &[Command<'cbl, E>],
+    err: ValueError,
 ) -> Result<()> {
     if f.is_none() {
         return Ok(());
     }
     let f = f.unwrap();
+
+    f.write_fmt(format_args!("{}\n\n", err))?;
 
     f.write_fmt(format_args!("Usage: {} command [flags ...]\n", program))?;
     f.write_fmt(format_args!("Available commands:\n"))?;
@@ -40,11 +44,14 @@ pub(crate) fn print_command_help<W: Write, E>(
     program: &str,
     command: &Command<E>,
     print_command_name: bool,
+    err: ValueError,
 ) -> Result<()> {
     if f.is_none() {
         return Ok(());
     }
     let f = f.unwrap();
+
+    f.write_fmt(format_args!("{}\n\n", err))?;
 
     f.write_fmt(format_args!("Usage: {}", program))?;
     if print_command_name {

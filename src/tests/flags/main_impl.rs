@@ -20,17 +20,18 @@ use failure::format_err;
 fn test_handle_result() {
     crate::init().unwrap();
 
-    assert_eq!(EXIT_SUCCESS, handle_result::<Error>(Ok(Ok(()))));
+    assert_eq!(EXIT_SUCCESS, handle_result::<Error>(Ok(Some(Ok(())))));
     assert_eq!(
         EXIT_FAILURE,
         handle_result::<Error>(Err(Error::Internal(format_err!(
             "arbitrary internal error"
         ))))
     );
+    assert_eq!(EXIT_FAILURE, handle_result::<String>(Ok(None)));
     assert_eq!(
         EXIT_FAILURE,
-        handle_result(Ok(Err(Error::Unknown(format_err!(
+        handle_result(Ok(Some(Err(Error::Unknown(format_err!(
             "arbitrary command error"
-        )))))
+        ))))))
     );
 }

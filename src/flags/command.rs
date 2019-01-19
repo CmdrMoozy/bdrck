@@ -12,13 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::error::*;
-use crate::flags::help;
+use crate::flags::error::{ValueError, ValueResult};
 use crate::flags::spec::Specs;
 use crate::flags::value::Values;
-use failure::format_err;
 use std::fmt;
-use std::io::Write;
 use std::iter::Peekable;
 
 /// An alias for Result, which has an arbitrary Error type. This is used to
@@ -89,35 +86,22 @@ impl<'a, E> PartialEq for Command<'a, E> {
 }
 
 /// Look up by name the command indicated by the first element of the given
-/// range of program parameters. If a matching command could not be found,
-/// return None instead.
-pub fn parse_command<'a, 'b, I: Iterator<Item = &'a String>, E, W: Write>(
-    program: &str,
+/// range of program parameters. If locating a matching command fails, an error
+/// will be returned instead. Otherwise, the index of the command in the given
+/// list of commands is returned.
+pub(crate) fn parse_command<'a, 'b, I: Iterator<Item = &'a String>, E>(
     args: &mut Peekable<I>,
-    mut commands: Vec<Command<'b, E>>,
-    output_writer: Option<&mut W>,
-    print_program_help: bool,
-) -> Result<Command<'b, E>> {
-    let idx: Result<usize> = match args.next() {
+    commands: &Vec<Command<'b, E>>,
+) -> ValueResult<usize> {
+    let idx = match args.next() {
+        None => return Err(ValueError::MissingCommand),
         Some(command_arg) => match commands
             .iter()
             .position(|command| command.name == *command_arg)
         {
-            Some(command) => Ok(command),
-            None => Err(Error::InvalidArgument(format_err!(
-                "Unrecognized command '{}'",
-                command_arg
-            ))),
+            None => return Err(ValueError::UnknownCommand(command_arg.to_owned())),
+            Some(idx) => idx,
         },
-        None => Err(Error::InvalidArgument(format_err!("No command specified"))),
     };
-
-    if let Err(e) = idx {
-        if print_program_help {
-            help::print_program_help(output_writer, program, &commands)?;
-        }
-        return Err(e);
-    }
-
-    Ok(commands.remove(idx.unwrap()))
+    Ok(idx)
 }

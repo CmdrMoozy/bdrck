@@ -21,20 +21,23 @@ use std::io::Write;
 fn parse_and_execute_impl<E, W: Write>(
     program: &str,
     args: &[String],
-    commands: Vec<Command<E>>,
+    mut commands: Vec<Command<E>>,
     mut output_writer: Option<W>,
     print_program_help: bool,
     print_command_name: bool,
-) -> Result<CommandResult<E>> {
+) -> Result<Option<CommandResult<E>>> {
     let mut args_iterator = args.iter().peekable();
 
-    let mut command = parse_command(
-        program,
-        &mut args_iterator,
-        commands,
-        output_writer.as_mut(),
-        print_program_help,
-    )?;
+    let command_idx = match parse_command(&mut args_iterator, &commands) {
+        Ok(c) => c,
+        Err(e) => {
+            if print_program_help {
+                help::print_program_help(output_writer.as_mut(), program, &commands, e)?;
+            }
+            return Ok(None);
+        }
+    };
+    let mut command = commands.remove(command_idx);
 
     let values = match Values::new(&command.flags, args_iterator) {
         Ok(vs) => vs,
@@ -44,26 +47,35 @@ fn parse_and_execute_impl<E, W: Write>(
                 program,
                 &command,
                 print_command_name,
+                e,
             )?;
-            return Err(e);
+            return Ok(None);
         }
     };
 
-    Ok(command.execute(values))
+    Ok(Some(command.execute(values)))
 }
 
 /// This function parses the given program parameters, and calls the appropriate
-/// command callback. It prints out usage information if the parameters are
-/// invalid, and returns a reasonable exit code for the process.
+/// command callback. There are essentially three return values:
+///
+/// - An error, if the process of trying to execute the command resulted in an
+///   unexpected error.
+///
+/// - Ok(None), if the command was not executed, but no error should be surfaced
+///   to the caller (e.g., if the process' input flags were invalid in some way,
+///   but the error was handled internally by printing program help).
+///
+/// - The result returned by the actual command, which was executed.
 ///
 /// This is the function which should be used for typical multi-command
 /// programs.
-pub fn parse_and_execute_command<E, W: Write>(
+pub fn parse_and_execute<E, W: Write>(
     program: &str,
     args: &[String],
     commands: Vec<Command<E>>,
     output_writer: Option<W>,
-) -> Result<CommandResult<E>> {
+) -> Result<Option<CommandResult<E>>> {
     parse_and_execute_impl(program, args, commands, output_writer, true, true)
 }
 
@@ -73,12 +85,12 @@ pub fn parse_and_execute_command<E, W: Write>(
 ///
 /// This is the function which should be used for typical single-command
 /// programs.
-pub fn parse_and_execute<E, W: Write>(
+pub fn parse_and_execute_single_command<E, W: Write>(
     program: &str,
     args: &[String],
     command: Command<E>,
     output_writer: Option<W>,
-) -> Result<CommandResult<E>> {
+) -> Result<Option<CommandResult<E>>> {
     let args: Vec<String> = Some(command.name.clone())
         .into_iter()
         .chain(args.iter().cloned())
