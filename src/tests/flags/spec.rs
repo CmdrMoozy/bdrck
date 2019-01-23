@@ -17,7 +17,7 @@ use crate::flags::spec::*;
 fn find_named_spec_works(specs: &Specs, query: &str, expected_name: &str) -> bool {
     specs
         .find_named_spec(query)
-        .map_or(false, |s| s.name == expected_name)
+        .map_or(false, |s| s.get_name() == expected_name)
 }
 
 #[test]

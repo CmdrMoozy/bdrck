@@ -21,7 +21,7 @@ pub mod command;
 pub mod main_impl;
 /// parse_and_execute provides functions to parse command-line arguments, and
 /// execute the relevant command based upon those arguments.
-pub mod parse_and_execute;
+pub(crate) mod parse_and_execute;
 /// spec defines the structures which are used to describe a single command-line
 /// flag (Spec) or a set of flags as they relate to a command (Specs).
 pub mod spec;
