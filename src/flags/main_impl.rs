@@ -20,15 +20,15 @@ use std::fmt::{Debug, Display};
 use std::process;
 
 /// The integer which is returned from main() if the program exits successfully.
-pub const EXIT_SUCCESS: i32 = 0;
+pub(crate) const EXIT_SUCCESS: i32 = 0;
 /// The integer which is returned from main() if the program exits with any
 /// error.
-pub const EXIT_FAILURE: i32 = 1;
+pub(crate) const EXIT_FAILURE: i32 = 1;
 
 /// Returns the current program's parameters (accessed essentialy via
 /// `std::env::args`) collected into a Vec. The 0'th parameter (the executable)
 /// is omitted.
-pub fn get_program_parameters() -> Vec<String> {
+pub(crate) fn get_program_parameters() -> Vec<String> {
     env::args()
         .skip(1) // Skip the first argument, which is our executable.
         .collect()
@@ -43,7 +43,7 @@ pub fn get_program_parameters() -> Vec<String> {
 /// Overall, if an error is encountered, it is printed to standard output. In
 /// either case, the appropriate exit code (EXIT_SUCCESS or EXIT_FAILURE) is
 /// returned.
-pub fn handle_result<E: Display + Debug>(r: Result<Option<CommandResult<E>>>) -> i32 {
+pub(crate) fn handle_result<E: Display + Debug>(r: Result<Option<CommandResult<E>>>) -> i32 {
     match r {
         // No internal error.
         Ok(r) => match r {

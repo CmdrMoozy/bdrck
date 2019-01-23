@@ -25,19 +25,22 @@ fn get_default_values<'a>(specs: &Specs) -> HashMap<String, Value> {
         .iter()
         .filter(|s| s.has_default_value())
         .map(|s| -> (String, Value) {
-            match s.flag_type {
+            match s.get_flag_type() {
                 Type::Required { ref default_value } => (
-                    s.name.clone(),
+                    s.get_name().to_owned(),
                     Value::Single(default_value.as_ref().unwrap().clone()),
                 ),
-                Type::Boolean => (s.name.clone(), Value::Boolean(false)),
+                Type::Boolean => (s.get_name().to_owned(), Value::Boolean(false)),
                 Type::Positional {
                     ref default_value, ..
                 } => (
-                    s.name.clone(),
+                    s.get_name().to_owned(),
                     Value::Repeated(default_value.as_ref().unwrap().clone()),
                 ),
-                _ => panic!("Default value lookup for {:?} not implemented", s.flag_type),
+                _ => panic!(
+                    "Default value lookup for {:?} not implemented",
+                    s.get_flag_type()
+                ),
             }
         })
         .collect()
@@ -280,8 +283,8 @@ impl Values {
         }
 
         for s in specs.iter() {
-            if s.is_required() && !values.contains_key(&s.name) {
-                return Err(ValueError::MissingFlag(s.name.clone()));
+            if s.is_required() && !values.contains_key(s.get_name()) {
+                return Err(ValueError::MissingFlag(s.get_name().to_owned()));
             }
         }
 

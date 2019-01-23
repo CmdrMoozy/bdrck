@@ -70,7 +70,7 @@ fn parse_and_execute_impl<E, W: Write>(
 ///
 /// This is the function which should be used for typical multi-command
 /// programs.
-pub fn parse_and_execute<E, W: Write>(
+pub(crate) fn parse_and_execute<E, W: Write>(
     program: &str,
     args: &[String],
     commands: Vec<Command<E>>,
@@ -85,7 +85,7 @@ pub fn parse_and_execute<E, W: Write>(
 ///
 /// This is the function which should be used for typical single-command
 /// programs.
-pub fn parse_and_execute_single_command<E, W: Write>(
+pub(crate) fn parse_and_execute_single_command<E, W: Write>(
     program: &str,
     args: &[String],
     command: Command<E>,

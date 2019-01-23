@@ -62,7 +62,7 @@ impl<'a, E> Command<'a, E> {
 
     /// A convenience function to call into this Command's implementation with
     /// the given set of parsed command-line flag values.
-    pub fn execute(&mut self, values: Values) -> CommandResult<E> {
+    pub(crate) fn execute(&mut self, values: Values) -> CommandResult<E> {
         self.callback.as_mut()(values)
     }
 }

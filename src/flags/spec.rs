@@ -18,7 +18,7 @@ use failure::format_err;
 /// Type denotes the particular type of flag a Spec structure describes. It
 /// also contains extra metadata about the flag, if applicable for that type.
 #[derive(Clone, Debug)]
-pub enum Type {
+pub(crate) enum Type {
     /// A required flag, meaning it must have some string value (possibly its
     /// default value) after command-line flags have been parsed, or an error
     /// has occurred.
@@ -56,15 +56,15 @@ pub enum Type {
 pub struct Spec {
     /// The name of this flag. For non-positional flags, this must be used to
     /// identify its value, e.g. like "--flag=value".
-    pub name: String,
+    name: String,
     /// The help string to print out for this flag when applicable.
-    pub help: String,
+    help: String,
     /// The optional short name for this flag - e.g., for a flag named "flag",
     /// it may be convenient to let users alternatively identify it by "--f".
-    pub short_name: Option<char>,
+    short_name: Option<char>,
     /// The Type of flag, which identifies how its value should be identified,
     /// how it should be parsed, etc.
-    pub flag_type: Type,
+    flag_type: Type,
 }
 
 impl Spec {
@@ -156,7 +156,7 @@ impl Spec {
     /// Returns true if this Spec describes a boolean flag. This function is
     /// needed because boolean flags are treated differently in some ways
     /// during parsing.
-    pub fn is_boolean(&self) -> bool {
+    pub(crate) fn is_boolean(&self) -> bool {
         match self.flag_type {
             Type::Boolean => true,
             _ => false,
@@ -166,7 +166,7 @@ impl Spec {
     /// Returns true if this Spec describes a positional flag (that is, a flag
     /// which is interpreted by its position in the command-line arguments, not
     /// by the name it is given in the command-line arguments.
-    pub fn is_positional(&self) -> bool {
+    pub(crate) fn is_positional(&self) -> bool {
         match self.flag_type {
             Type::Positional { .. } => true,
             _ => false,
@@ -175,14 +175,14 @@ impl Spec {
 
     /// Returns true if this Spec describes a named flag. This is equivalent to
     /// !is_positional().
-    pub fn is_named(&self) -> bool {
+    pub(crate) fn is_named(&self) -> bool {
         !self.is_positional()
     }
 
     /// Returns true if this Spec describes a flag which has a default value
     /// (that is, one which we will still store a value for even if it does not
     /// appear in the command-line arguments).
-    pub fn has_default_value(&self) -> bool {
+    pub(crate) fn has_default_value(&self) -> bool {
         match self.flag_type {
             Type::Required { ref default_value } => default_value.is_some(),
             Type::Boolean => true,
@@ -212,7 +212,7 @@ impl Spec {
     }
 
     /// A flag is variadic if it can collect more than one value during parsing.
-    pub fn is_variadic(&self) -> bool {
+    pub(crate) fn is_variadic(&self) -> bool {
         match self.flag_type {
             Type::Positional { is_variadic, .. } => is_variadic,
             _ => false,
@@ -221,7 +221,7 @@ impl Spec {
 
     /// Returns true if this Spec must have an associated value (either one
     /// specified or a default) after parsing command line arguments.
-    pub fn is_required(&self) -> bool {
+    pub(crate) fn is_required(&self) -> bool {
         if self.has_default_value() {
             return true;
         }
@@ -236,19 +236,24 @@ impl Spec {
         self.name.as_str()
     }
 
-    /// Returns this flag's short name, if it has one.
-    pub fn get_short_name(&self) -> Option<char> {
-        self.short_name.clone()
-    }
-
     /// Returns the human-readable help text for this flag.
     pub fn get_help(&self) -> &str {
         self.help.as_str()
     }
 
+    /// Returns this flag's short name, if it has one.
+    pub fn get_short_name(&self) -> Option<char> {
+        self.short_name.clone()
+    }
+
+    /// Returns this flag's type.
+    pub(crate) fn get_flag_type(&self) -> &Type {
+        &self.flag_type
+    }
+
     /// Returns the default value for this Type::Required Spec, or None if it
     /// either is some other type of Spec or does not have a default value.
-    pub fn get_required_default_value(&self) -> Option<&str> {
+    pub(crate) fn get_required_default_value(&self) -> Option<&str> {
         match self.flag_type {
             Type::Required { ref default_value } => default_value.as_ref().map(|dv| dv.as_str()),
             _ => None,
@@ -298,7 +303,7 @@ impl Specs {
     }
 
     /// Returns an Iterator over the Spec structures this Specs contains.
-    pub fn iter(&self) -> ::std::slice::Iter<Spec> {
+    pub fn iter(&self) -> impl DoubleEndedIterator<Item = &Spec> {
         self.specs.iter()
     }
 
@@ -306,7 +311,7 @@ impl Specs {
     /// which matches the given name. The given name might either be a short
     /// name or a long name, depending on how it was specified on the command
     /// line.
-    pub fn find_named_spec(&self, name: &str) -> Option<&Spec> {
+    pub(crate) fn find_named_spec(&self, name: &str) -> Option<&Spec> {
         let mut result: Option<&Spec> = None;
         for s in &self.specs {
             if s.is_named() {
