@@ -15,7 +15,7 @@
 use crate::error::*;
 use crate::flags::command::{parse_command, Command, CommandResult};
 use crate::flags::help;
-use crate::flags::value::Values;
+use crate::flags::value::build_values;
 use std::io::Write;
 
 fn parse_and_execute_impl<E, W: Write>(
@@ -39,7 +39,7 @@ fn parse_and_execute_impl<E, W: Write>(
     };
     let mut command = commands.remove(command_idx);
 
-    let values = match Values::new(&command.flags, args_iterator) {
+    let values = match build_values(&command.flags, args_iterator) {
         Ok(vs) => vs,
         Err(e) => {
             help::print_command_help(

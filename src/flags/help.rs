@@ -14,7 +14,7 @@
 
 use crate::error::*;
 use crate::flags::command::Command;
-use crate::flags::error::ValueError;
+use flags_values::error::ValueError;
 use std::io::Write;
 
 pub(crate) fn print_program_help<'cbl, W: Write, E>(
