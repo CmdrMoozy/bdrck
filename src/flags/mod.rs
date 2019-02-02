@@ -29,7 +29,6 @@ pub mod spec;
 /// command-line flags, and utilities for accessing them in a type-safe way.
 pub mod value;
 
-mod error;
 mod help;
 
 // Re-export the most commonly used symbols, so most users of this module can
@@ -38,4 +37,4 @@ mod help;
 pub use self::command::{Command, CommandCallback, CommandResult};
 pub use self::main_impl::{main_impl, main_impl_single_command};
 pub use self::spec::{Spec, Specs};
-pub use self::value::Values;
+pub use flags_values::value::Values;

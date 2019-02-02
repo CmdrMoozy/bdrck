@@ -14,7 +14,7 @@
 
 use std::fmt;
 
-pub(crate) enum ValueError {
+pub enum ValueError {
     /// A malformed boolean value was found.
     BadBoolean(String),
     /// No command was specified.
@@ -42,4 +42,4 @@ impl fmt::Display for ValueError {
     }
 }
 
-pub(crate) type ValueResult<T> = ::std::result::Result<T, ValueError>;
+pub type ValueResult<T> = Result<T, ValueError>;

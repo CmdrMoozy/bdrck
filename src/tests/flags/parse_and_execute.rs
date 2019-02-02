@@ -16,8 +16,8 @@ use crate::error::*;
 use crate::flags::command::{Command, CommandCallback, CommandResult};
 use crate::flags::parse_and_execute::{parse_and_execute, parse_and_execute_single_command};
 use crate::flags::spec::{Spec, Specs};
-use crate::flags::value::{Value, Values};
 use crate::testing::fn_instrumentation::FnInstrumentation;
+use flags_values::value::{Value, Values};
 
 fn into_expected_values(values: Vec<(&'static str, Value)>) -> Values {
     values
