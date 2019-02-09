@@ -37,6 +37,13 @@ pub trait AbstractClient {
     /// Execute (send) a previously-constructed HTTP request.
     fn execute(&self, request: Request) -> Result<(ResponseMetadata, Vec<u8>)>;
 
+    /// This function calls the given custom sleep function with the given
+    /// Duration. This can be overridden by a trait implementor to add extra
+    /// logic, if needed.
+    fn sleep(&self, sleep: fn(Duration), duration: Duration) {
+        sleep(duration)
+    }
+
     /// Execute (send) a previously-constructed HTTP request. In the case of a
     /// retryable failure (a 5xx error), we'll retry up to max_retries with
     /// exponential backoff between each attempt.
@@ -44,9 +51,13 @@ pub trait AbstractClient {
     /// Unfortunately, to do this we need to be able to create copies of the
     /// request, meaning in particular the Body needs to be copyable. So, this
     /// function can only support Vec<u8>-based request Bodies.
+    ///
+    /// This function returns the response metadata (e.g. response code) and
+    /// body, as well as the number of retries required (i.e., retries + 1
+    /// HTTP requests were sent by this function).
     fn execute_with_retries(
         &self,
-        max_retries: u64,
+        max_retries: usize,
         add_jitter: bool,
         method: Method,
         url: Url,
@@ -66,10 +77,10 @@ pub trait AbstractClient {
 
     /// This is the same as execute_with_retries, but you can specify a custom
     /// sleep function (as opposed to std::thread::sleep).
-    fn execute_with_retries_custom_sleep<S: FnMut(Duration)>(
+    fn execute_with_retries_custom_sleep(
         &self,
-        mut sleep: S,
-        max_retries: u64,
+        sleep: fn(Duration),
+        max_retries: usize,
         add_jitter: bool,
         method: Method,
         url: Url,
@@ -102,7 +113,7 @@ pub trait AbstractClient {
                 };
                 let wait: u64 = (1_u64 << retry - 1) * 100 + jitter;
                 info!("Sleep for {}ms before retrying {} {}", wait, method, url);
-                sleep(Duration::from_millis(wait));
+                self.sleep(sleep, Duration::from_millis(wait));
             }
 
             let (res_metadata, res_body) = self.execute(request)?;

@@ -24,6 +24,7 @@ use std::time::Duration;
 struct RetriesTestClient {
     inner: InnerClient,
     requests: RefCell<VecDeque<Request>>,
+    sleeps: RefCell<Vec<Duration>>,
 }
 
 impl RetriesTestClient {
@@ -31,6 +32,7 @@ impl RetriesTestClient {
         RetriesTestClient {
             inner: InnerClient::new(),
             requests: RefCell::new(VecDeque::new()),
+            sleeps: RefCell::new(Vec::new()),
         }
     }
 }
@@ -45,6 +47,10 @@ impl AbstractClient for RetriesTestClient {
             },
             Vec::new(),
         ))
+    }
+
+    fn sleep(&self, _: fn(Duration), duration: Duration) {
+        self.sleeps.borrow_mut().push(duration);
     }
 
     fn get(&self, url: Url) -> RequestBuilder {
@@ -69,11 +75,9 @@ impl AbstractClient for RetriesTestClient {
 
 #[test]
 fn test_execute_with_retries_too_many() {
-    let mut sleeps: VecDeque<Duration> = VecDeque::new();
     let client = RetriesTestClient::new();
     assert!(client
-        .execute_with_retries_custom_sleep(
-            |d| sleeps.push_back(d),
+        .execute_with_retries(
             59,
             false,
             Method::GET,
@@ -83,16 +87,14 @@ fn test_execute_with_retries_too_many() {
         )
         .is_err());
     assert!(client.requests.borrow().is_empty());
-    assert!(sleeps.is_empty());
+    assert!(client.sleeps.borrow().is_empty());
 }
 
 #[test]
 fn test_execute_with_retries_single() {
-    let mut sleeps: VecDeque<Duration> = VecDeque::new();
     let client = RetriesTestClient::new();
     assert!(client
-        .execute_with_retries_custom_sleep(
-            |d| sleeps.push_back(d),
+        .execute_with_retries(
             0,
             false,
             Method::GET,
@@ -102,16 +104,14 @@ fn test_execute_with_retries_single() {
         )
         .is_err());
     assert_eq!(1, client.requests.borrow().len());
-    assert!(sleeps.is_empty());
+    assert!(client.sleeps.borrow().is_empty());
 }
 
 #[test]
 fn test_execute_with_retries_many() {
-    let mut sleeps: VecDeque<Duration> = VecDeque::new();
     let client = RetriesTestClient::new();
     assert!(client
-        .execute_with_retries_custom_sleep(
-            |d| sleeps.push_back(d),
+        .execute_with_retries(
             5,
             false,
             Method::GET,
@@ -123,14 +123,28 @@ fn test_execute_with_retries_many() {
     // We should have sent the request once, plus 5 retries.
     assert_eq!(6, client.requests.borrow().len());
     // This means we should have slept 5 times, once before each retry.
-    assert_eq!(
-        vec![
-            Duration::from_millis(100),
-            Duration::from_millis(200),
-            Duration::from_millis(400),
-            Duration::from_millis(800),
-            Duration::from_millis(1600),
-        ],
-        sleeps.into_iter().collect::<Vec<Duration>>()
-    );
+    assert!(vec![
+        Duration::from_millis(100),
+        Duration::from_millis(200),
+        Duration::from_millis(400),
+        Duration::from_millis(800),
+        Duration::from_millis(1600),
+    ]
+    .iter()
+    .eq(client.sleeps.borrow().iter()),);
+}
+
+#[test]
+fn test_trait_object_works() {
+    let client: Box<dyn AbstractClient> = Box::new(RetriesTestClient::new());
+    assert!(client
+        .execute_with_retries(
+            0,
+            false,
+            Method::GET,
+            "http://www.google.com/".parse().unwrap(),
+            None,
+            None
+        )
+        .is_err());
 }
