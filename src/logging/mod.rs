@@ -70,7 +70,7 @@ pub fn parse_log_level_filter(s: &str) -> Result<LevelFilter> {
             return Err(Error::InvalidArgument(format_err!(
                 "Invalid LevelFilter '{}'",
                 s
-            )))
+            )));
         }
         Some(f) => Ok(*f),
     }

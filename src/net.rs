@@ -390,7 +390,7 @@ impl FromStr for IpNet {
                 return Err(Error::InvalidArgument(format_err!(
                     "Invalid IP network specifier '{}'",
                     s
-                )))
+                )));
             }
             Some(idx) => idx,
         });
