@@ -54,7 +54,7 @@ fn parse_bool(value: &str) -> Result<bool> {
             return Err(Error::InvalidArgument(format_err!(
                 "Invalid boolean value '{}'",
                 value
-            )))
+            )));
         }
     }
 }
@@ -86,7 +86,7 @@ impl Value {
                     return Err(Error::InvalidArgument(format_err!(
                         "Missing value for flag '{}'",
                         spec.get_name()
-                    )))
+                    )));
                 }
                 Some(value) => value,
             }),
@@ -138,7 +138,7 @@ impl<'a> NamedFlagSpec<'a> {
                 return Err(Error::InvalidArgument(format_err!(
                     "Unrecognized flag '{}'",
                     name
-                )))
+                )));
             }
         };
 

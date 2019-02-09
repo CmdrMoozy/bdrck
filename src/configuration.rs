@@ -225,7 +225,7 @@ pub fn remove<T: Clone + Serialize + DeserializeOwned + 'static>(id: &Identifier
             return Err(Error::InvalidArgument(format_err!(
                 "Unrecognized configuration identifier: {:?}",
                 id
-            )))
+            )));
         }
     }
 }
@@ -245,14 +245,14 @@ pub fn instance_apply<T: 'static, R, F: FnOnce(&Configuration<T>) -> R>(
                 return Err(Error::InvalidArgument(format_err!(
                     "Wrong type specified for configuration {:?}",
                     id
-                )))
+                )));
             }
         },
         None => {
             return Err(Error::InvalidArgument(format_err!(
                 "Unrecognized configuration identifier: {:?}",
                 id
-            )))
+            )));
         }
     }
 }
@@ -272,14 +272,14 @@ pub fn instance_apply_mut<T: 'static, R, F: FnOnce(&mut Configuration<T>) -> R>(
                 return Err(Error::InvalidArgument(format_err!(
                     "Wrong type specified for configuration {:?}",
                     id
-                )))
+                )));
             }
         },
         None => {
             return Err(Error::InvalidArgument(format_err!(
                 "Unrecognized configuration identifier: {:?}",
                 id
-            )))
+            )));
         }
     }
 }

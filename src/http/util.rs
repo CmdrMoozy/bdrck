@@ -40,7 +40,7 @@ pub fn get_links(headers: &HeaderMap) -> Result<HashMap<String, Vec<Url>>> {
                         return Err(Error::InvalidArgument(format_err!(
                             "Invalid link header value format: '{}'",
                             value
-                        )))
+                        )));
                     }
                     Some(idx) => idx,
                 };
@@ -60,7 +60,7 @@ pub fn get_links(headers: &HeaderMap) -> Result<HashMap<String, Vec<Url>>> {
                         return Err(Error::InvalidArgument(format_err!(
                             "Invalid link header value format: '{}'",
                             value
-                        )))
+                        )));
                     }
                     Some(idx) => idx,
                 };

@@ -36,7 +36,7 @@ impl Stream {
             Stream::Stdin => {
                 return Err(Error::InvalidArgument(format_err!(
                     "Cannot output interactive prompts on Stdin"
-                )))
+                )));
             }
         })
     }
