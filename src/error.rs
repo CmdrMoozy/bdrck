@@ -84,6 +84,10 @@ pub enum Error {
     #[cfg(feature = "log")]
     #[fail(display = "{}", _0)]
     SetLogger(#[cause] ::log::SetLoggerError),
+    /// An awkward hack; this error exists to use String's FromStr impl, but
+    /// this operation won't actually ever fail.
+    #[fail(display = "{}", _0)]
+    StringParse(#[cause] ::std::string::ParseError),
     /// An error of an unknown type occurred. Generally this comes from some
     /// dependency or underlying library, in a case where it's difficult to tell
     /// exactly what kind of problem occurred.
@@ -170,6 +174,12 @@ impl From<::regex::Error> for Error {
 impl From<::log::SetLoggerError> for Error {
     fn from(e: ::log::SetLoggerError) -> Self {
         Error::SetLogger(e)
+    }
+}
+
+impl From<::std::string::ParseError> for Error {
+    fn from(e: ::std::string::ParseError) -> Self {
+        Error::StringParse(e)
     }
 }
 

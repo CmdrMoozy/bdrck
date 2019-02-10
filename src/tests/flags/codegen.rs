@@ -12,11 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#[cfg(test)]
-mod codegen;
-#[cfg(test)]
-mod main_impl;
-#[cfg(test)]
-mod parse_and_execute;
-#[cfg(test)]
-mod spec;
+use crate::error::*;
+use crate::flags::*;
+use std::net::IpAddr;
+use std::path::PathBuf;
+
+#[test]
+fn test_command_callback() {
+    #[command_callback]
+    fn test_callback(a: PathBuf, b: String, c: &[IpAddr]) -> Result<()> {
+        println!("{:?}", a);
+        println!("{:?}", b);
+        println!("{:?}", c);
+        Ok(())
+    }
+}
