@@ -239,7 +239,7 @@ pub(crate) fn build_values<'a, 'b, I: Iterator<Item = &'b String>>(
     let values = Values::new(default_values, values?);
 
     for s in specs.iter() {
-        if s.is_required() && values.get(s.get_name()).is_none() {
+        if s.is_required() && !values.contains_key(s.get_name()) {
             return Err(ValueError::MissingFlag(s.get_name().to_owned()));
         }
     }

@@ -59,11 +59,9 @@ impl Values {
         Values { values: values }
     }
 
-    /// Looks up a generic flag value, which may or may not be present. This
-    /// function is guaranteed not to panic, but error handling and type
-    /// matching is left up to the caller do deal with at runtime.
-    pub fn get(&self, name: &str) -> Option<&Value> {
-        self.values.get(name)
+    /// Returns whether or not there exists a `Value` for the given flag.
+    pub fn contains_key(&self, name: &str) -> bool {
+        self.values.contains_key(name)
     }
 
     /// Lookup a single optional named flag value. This function panics if the
@@ -91,13 +89,6 @@ impl Values {
         }
     }
 
-    /// Lookup a required named flag value, moving the value into a new
-    /// structure of the given type. A convenience wrapper around
-    /// get_required.
-    pub fn get_required_as<T: From<String>>(&self, name: &str) -> T {
-        T::from(self.get_required(name).to_owned())
-    }
-
     /// Lookup a required named flag value, parsing the string into the given
     /// type. A convenience wrapper around get_required.
     pub fn get_required_parsed<E, T: FromStr<Err = E>>(
@@ -105,14 +96,6 @@ impl Values {
         name: &str,
     ) -> ::std::result::Result<T, E> {
         self.get_required(name).parse()
-    }
-
-    /// Lookup a boolean flag value. Boolean flags always have a value, since
-    /// they have an implicit default value of false. This function panics if
-    /// the value is not found, or if the flag with the given name is of the
-    /// wrong type.
-    pub fn get_boolean(&self, name: &str) -> bool {
-        self.get_required_parsed(name).unwrap()
     }
 
     /// This function looks up a positional flag's values, returning the full
