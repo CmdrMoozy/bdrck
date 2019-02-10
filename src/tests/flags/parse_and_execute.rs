@@ -148,8 +148,8 @@ fn test_parse_and_execute_single_command() {
     let expected_vs = into_expected_values(vec![
         ("flaga", Value::Single("quuz".to_owned())),
         ("flagb", Value::Single("baz".to_owned())),
-        ("boola", Value::Boolean(false)),
-        ("boolb", Value::Boolean(false)),
+        ("boola", Value::Boolean(false.to_string())),
+        ("boolb", Value::Boolean(false.to_string())),
     ]);
 
     let instrumentation = FnInstrumentation::new();
@@ -243,8 +243,8 @@ fn test_default_values() {
     let expected_vs = into_expected_values(vec![
         ("a", Value::Single("a".to_owned())),
         ("b", Value::Single("b".to_owned())),
-        ("e", Value::Boolean(false)),
-        ("f", Value::Boolean(false)),
+        ("e", Value::Boolean(false.to_string())),
+        ("f", Value::Boolean(false.to_string())),
     ]);
 
     parse_and_execute_test_impl(
@@ -359,10 +359,10 @@ fn test_parse_boolean_flag_format_variations() {
     crate::init().unwrap();
 
     let expected_vs = into_expected_values(vec![
-        ("boola", Value::Boolean(true)),
-        ("boolb", Value::Boolean(true)),
-        ("boolc", Value::Boolean(true)),
-        ("boold", Value::Boolean(false)),
+        ("boola", Value::Boolean(true.to_string())),
+        ("boolb", Value::Boolean(true.to_string())),
+        ("boolc", Value::Boolean(true.to_string())),
+        ("boold", Value::Boolean(false.to_string())),
     ]);
 
     parse_and_execute_test_impl(
@@ -391,9 +391,9 @@ fn test_parse_named_flags() {
         ("flagb", Value::Single("defaultb".to_owned())),
         ("flagc", Value::Single("bar".to_owned())),
         ("flagd", Value::Single("baz".to_owned())),
-        ("flagf", Value::Boolean(false)),
-        ("flagg", Value::Boolean(true)),
-        ("flagh", Value::Boolean(false)),
+        ("flagf", Value::Boolean(false.to_string())),
+        ("flagg", Value::Boolean(true.to_string())),
+        ("flagh", Value::Boolean(false.to_string())),
     ]);
 
     parse_and_execute_test_impl(
@@ -433,8 +433,8 @@ fn test_parse_positional_flags() {
     let expected_vs = into_expected_values(vec![
         ("flaga", Value::Single("oof".to_owned())),
         ("flagb", Value::Single("rab".to_owned())),
-        ("flagc", Value::Boolean(true)),
-        ("flagd", Value::Boolean(false)),
+        ("flagc", Value::Boolean(true.to_string())),
+        ("flagd", Value::Boolean(false.to_string())),
         ("posa", Value::Repeated(vec!["foo".to_owned()])),
         ("posb", Value::Repeated(vec!["bar".to_owned()])),
         ("posc", Value::Repeated(vec!["baz".to_owned()])),

@@ -24,8 +24,9 @@ pub enum Value {
     /// can then further interpret / parse as some other type).
     Single(String),
     /// A boolean value, from a flag defined as a boolean in its associated
-    /// pec.
-    Boolean(bool),
+    /// spec. It is represented here as a string, *but* Values internally
+    /// enforces that all boolean strings must be successfully parseable.
+    Boolean(String),
     /// A flag with repeated values. These should be treated the same as one
     /// would a Single string value, except there are potentially zero or more
     /// of them.
@@ -84,6 +85,7 @@ impl Values {
             None => panic!("Missing required flag value for '{}'", name),
             Some(v) => match v {
                 &Value::Single(ref s) => s.as_str(),
+                &Value::Boolean(ref s) => s.as_str(),
                 _ => panic!("Flag '{}' is not a named non-boolean flag", name),
             },
         }
@@ -110,13 +112,7 @@ impl Values {
     /// the value is not found, or if the flag with the given name is of the
     /// wrong type.
     pub fn get_boolean(&self, name: &str) -> bool {
-        match self.values.get(name) {
-            None => panic!("Missing boolean flag value for '{}'", name),
-            Some(v) => match v {
-                &Value::Boolean(b) => b,
-                _ => panic!("Flag '{}' is not a named boolean flag", name),
-            },
-        }
+        self.get_required_parsed(name).unwrap()
     }
 
     /// This function looks up a positional flag's values, returning the full

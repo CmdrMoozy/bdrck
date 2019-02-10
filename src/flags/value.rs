@@ -30,7 +30,7 @@ fn get_default_values<'a>(specs: &Specs) -> HashMap<String, Value> {
                     s.get_name().to_owned(),
                     Value::Single(default_value.as_ref().unwrap().clone()),
                 ),
-                Type::Boolean => (s.get_name().to_owned(), Value::Boolean(false)),
+                Type::Boolean => (s.get_name().to_owned(), Value::Boolean(false.to_string())),
                 Type::Positional {
                     ref default_value, ..
                 } => (
@@ -46,16 +46,6 @@ fn get_default_values<'a>(specs: &Specs) -> HashMap<String, Value> {
         .collect()
 }
 
-/// Return the boolean interpretation of a string, or an error if the string
-/// isn't recognized as a valid boolean value.
-fn parse_bool(value: &str) -> ValueResult<bool> {
-    match value.trim().to_lowercase().as_ref() {
-        "true" => Ok(true),
-        "false" => Ok(false),
-        _ => return Err(ValueError::BadBoolean(value.to_owned())),
-    }
-}
-
 /// Constructs a new Value for a named flag. Note that named flags can never
 /// have repeated values, so this function only handles the Single and
 /// Boolean cases.
@@ -66,8 +56,14 @@ fn new_named_flag_value(spec: &Spec, value: Option<String>) -> ValueResult<Value
             Some(value) => value,
         }),
         true => Value::Boolean(match value {
-            None => true,
-            Some(value) => parse_bool(value.as_str())?,
+            None => true.to_string(),
+            Some(value) => {
+                if value.parse::<bool>().is_err() {
+                    return Err(ValueError::BadBoolean(value.clone()));
+                }
+
+                value
+            }
         }),
     })
 }
