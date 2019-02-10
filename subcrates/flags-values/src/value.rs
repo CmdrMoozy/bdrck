@@ -64,72 +64,25 @@ impl Values {
         self.values.contains_key(name)
     }
 
-    /// Lookup a single optional named flag value. This function panics if the
-    /// flag has a value, but it is of the wrong type.
-    pub fn get_single(&self, name: &str) -> Option<&str> {
+    /// Return the Value(s) of a single flag, as strings. The returned vector
+    /// might be empty (if there is no Value associated with the flag), or it
+    /// might contain exactly one entry (in the case of named or boolean flags),
+    /// or it might contain many entries (in the case of positional flags).
+    pub fn get(&self, name: &str) -> Vec<&str> {
         match self.values.get(name) {
-            None => None,
+            None => Vec::new(),
             Some(v) => match v {
-                &Value::Single(ref s) => Some(s.as_str()),
-                _ => panic!("Flag '{}' is not a named non-boolean flag", name),
+                Value::Single(v) => vec![v.as_str()],
+                Value::Boolean(v) => vec![v.as_str()],
+                Value::Repeated(vs) => vs.iter().map(|v| v.as_str()).collect(),
             },
         }
     }
 
-    /// Lookup a required named flag value. This function panics if the value is
-    /// not found, or if the flag with the given name is of the wrong type.
-    pub fn get_required(&self, name: &str) -> &str {
-        match self.values.get(name) {
-            None => panic!("Missing required flag value for '{}'", name),
-            Some(v) => match v {
-                &Value::Single(ref s) => s.as_str(),
-                &Value::Boolean(ref s) => s.as_str(),
-                _ => panic!("Flag '{}' is not a named non-boolean flag", name),
-            },
-        }
-    }
-
-    /// Lookup a required named flag value, parsing the string into the given
-    /// type. A convenience wrapper around get_required.
-    pub fn get_required_parsed<E, T: FromStr<Err = E>>(
-        &self,
-        name: &str,
-    ) -> ::std::result::Result<T, E> {
-        self.get_required(name).parse()
-    }
-
-    /// This function looks up a positional flag's values, returning the full
-    /// (possibly empty) list of values. This function panics if no associated
-    /// value list was found, or if the flag with the given name is of the wrong
-    /// type.
-    pub fn get_positional(&self, name: &str) -> &[String] {
-        match self.values.get(name) {
-            None => panic!("Missing positional flag value for '{}'", name),
-            Some(v) => match v {
-                &Value::Repeated(ref vs) => vs.as_slice(),
-                _ => panic!("Flag '{}' is not a positional flag", name),
-            },
-        }
-    }
-
-    /// This function looks up a positional flag's values, returning the only
-    /// value in the list. This is most useful for non-variadic positional
-    /// flags, which are always guaranteed to have exactly one value. This
-    /// function panics if 0 or more than 1 value was found, or if the flag with
-    /// the given name is of the wrong type.
-    pub fn get_positional_single(&self, name: &str) -> &str {
-        let vs = self.get_positional(name);
-        if vs.len() > 1 {
-            panic!(
-                "Positional flag '{}' has more than one associated value",
-                name
-            );
-        }
-
-        match vs.first() {
-            None => panic!("Positional flag '{}' has an empty list of values", name),
-            Some(v) => v.as_str(),
-        }
+    /// Return the Value(s) of a single flag, parsed into the given type. This
+    /// is a convenience wrapper around `get`.
+    pub fn get_as<E, T: FromStr<Err = E>>(&self, name: &str) -> ::std::result::Result<Vec<T>, E> {
+        self.get(name).iter().map(|v| v.parse::<T>()).collect()
     }
 }
 
