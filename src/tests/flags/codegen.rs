@@ -20,10 +20,11 @@ use std::path::PathBuf;
 #[test]
 fn test_command_callback() {
     #[command_callback]
-    fn test_callback(a: PathBuf, b: String, c: &[IpAddr]) -> Result<()> {
+    fn test_callback(a: PathBuf, b: String, c: Option<String>, d: &[IpAddr]) -> Result<()> {
         println!("{:?}", a);
         println!("{:?}", b);
         println!("{:?}", c);
+        println!("{:?}", d);
         Ok(())
     }
 }

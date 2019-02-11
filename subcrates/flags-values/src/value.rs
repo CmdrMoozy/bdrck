@@ -115,3 +115,16 @@ pub fn take_required<T>(mut vs: Vec<T>) -> ValueResult<T> {
         ))),
     }
 }
+
+/// Take a single optional flag value from a list of values. Generally this
+/// should not be called directly, instead being used via #[command_callback].
+pub fn take_optional<T>(mut vs: Vec<T>) -> ValueResult<Option<T>> {
+    match vs.len() {
+        0 => Ok(None),
+        1 => Ok(Some(vs.remove(0))),
+        _ => Err(ValueError::CallbackParameter(format!(
+            "expected optional value, found {} values",
+            vs.len()
+        ))),
+    }
+}
