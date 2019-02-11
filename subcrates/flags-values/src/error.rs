@@ -17,6 +17,9 @@ use std::fmt;
 pub enum ValueError {
     /// A malformed boolean value was found.
     BadBoolean(String),
+    /// A `Command` callback parameter was of the wrong type, so flag value
+    /// passing failed.
+    CallbackParameter(String),
     /// No command was specified.
     MissingCommand,
     /// A required flag was not provided.
@@ -33,6 +36,9 @@ impl fmt::Display for ValueError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             ValueError::BadBoolean(v) => write!(f, "Invalid boolean value '{}'", v),
+            ValueError::CallbackParameter(msg) => {
+                write!(f, "Incorrect Command callback parameter: {}", msg)
+            }
             ValueError::MissingCommand => write!(f, "No command specified"),
             ValueError::MissingFlag(n) => write!(f, "No value provided for required flag '{}'", n),
             ValueError::MissingValue(n) => write!(f, "Flag '{}' provided without any value", n),

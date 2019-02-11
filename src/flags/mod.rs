@@ -38,4 +38,5 @@ pub use self::command::{Command, CommandCallback, CommandResult};
 pub use self::main_impl::{main_impl, main_impl_single_command};
 pub use self::spec::{Spec, Specs};
 pub use flags_codegen::command_callback;
-pub use flags_values::value::{Value, Values};
+pub use flags_values::error::ValueError;
+pub use flags_values::value::{take_required, Value, Values};

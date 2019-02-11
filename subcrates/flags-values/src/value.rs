@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::error::*;
 use std::collections::HashMap;
 use std::iter::FromIterator;
 use std::str::FromStr;
@@ -96,5 +97,21 @@ impl FromIterator<(String, Value)> for Values {
     fn from_iter<T: IntoIterator<Item = (String, Value)>>(iter: T) -> Self {
         let values: HashMap<String, Value> = iter.into_iter().collect();
         values.into()
+    }
+}
+
+/// Take a single required flag value from a list of values. Generally this
+/// should not be called directly, instead being used via #[command_callback].
+pub fn take_required<T>(mut vs: Vec<T>) -> ValueResult<T> {
+    match vs.len() {
+        0 => Err(ValueError::CallbackParameter(format!(
+            "expected one required value, found {}",
+            vs.len()
+        ))),
+        1 => Ok(vs.remove(0)),
+        _ => Err(ValueError::CallbackParameter(format!(
+            "expected one required value, found {}",
+            vs.len()
+        ))),
     }
 }
