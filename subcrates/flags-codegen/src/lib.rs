@@ -66,7 +66,7 @@ pub fn command_callback(
                         },
                         _ => {
                             arg_parsing.extend(TokenStream::from(quote! {
-                                let #name: #ty = values.get_as(stringify!(#name))?.remove(0);
+                                let #name: #ty = take_required(values.get_as(stringify!(#name))?)?;
                             }));
                             real_args.push(Expr::Verbatim(ExprVerbatim {
                                 tts: TokenStream::from(quote! { #name }),
