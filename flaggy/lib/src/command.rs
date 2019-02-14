@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::flags::spec::Specs;
-use flags_values::error::{ValueError, ValueResult};
-use flags_values::value::Values;
+use crate::spec::Specs;
+use flaggy_values::error::{ValueError, ValueResult};
+use flaggy_values::value::Values;
 use std::fmt;
 use std::iter::Peekable;
 

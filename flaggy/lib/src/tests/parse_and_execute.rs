@@ -12,12 +12,33 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::command::{Command, CommandCallback, CommandResult};
 use crate::error::*;
-use crate::flags::command::{Command, CommandCallback, CommandResult};
-use crate::flags::parse_and_execute::{parse_and_execute, parse_and_execute_single_command};
-use crate::flags::spec::{Spec, Specs};
-use crate::testing::fn_instrumentation::FnInstrumentation;
-use flags_values::value::{Value, Values};
+use crate::parse_and_execute::{parse_and_execute, parse_and_execute_single_command};
+use crate::spec::{Spec, Specs};
+use flaggy_values::value::{Value, Values};
+use std::sync::Mutex;
+
+struct FnInstrumentation {
+    call_count: Mutex<u64>,
+}
+
+impl FnInstrumentation {
+    fn new() -> FnInstrumentation {
+        FnInstrumentation {
+            call_count: Mutex::new(0),
+        }
+    }
+
+    fn record_call(&self) {
+        let mut data = self.call_count.lock().unwrap();
+        *data += 1;
+    }
+
+    fn get_call_count(&self) -> u64 {
+        *self.call_count.lock().unwrap()
+    }
+}
 
 fn into_expected_values(values: Vec<(&'static str, Value)>) -> Values {
     values
@@ -143,8 +164,6 @@ fn parse_and_execute_test_impl(
 
 #[test]
 fn test_parse_and_execute_single_command() {
-    crate::init().unwrap();
-
     let expected_vs = into_expected_values(vec![
         ("flaga", Value::Single("quuz".to_owned())),
         ("flagb", Value::Single("baz".to_owned())),
@@ -192,8 +211,6 @@ fn test_parse_and_execute_single_command() {
 
 #[test]
 fn test_parse_invalid_command() {
-    crate::init().unwrap();
-
     parse_and_execute_result_test_impl(
         vec!["biff", "foo", "bar", "baz"],
         vec![
@@ -208,8 +225,6 @@ fn test_parse_invalid_command() {
 
 #[test]
 fn test_parse_command_no_arguments() {
-    crate::init().unwrap();
-
     parse_and_execute_test_impl(
         vec!["bar"],
         vec![
@@ -223,8 +238,6 @@ fn test_parse_command_no_arguments() {
 
 #[test]
 fn test_parse_command_with_unused_arguments() {
-    crate::init().unwrap();
-
     parse_and_execute_test_impl(
         vec!["baz", "foo", "bar", "baz"],
         vec![
@@ -238,8 +251,6 @@ fn test_parse_command_with_unused_arguments() {
 
 #[test]
 fn test_default_values() {
-    crate::init().unwrap();
-
     let expected_vs = into_expected_values(vec![
         ("a", Value::Single("a".to_owned())),
         ("b", Value::Single("b".to_owned())),
@@ -268,8 +279,6 @@ fn test_default_values() {
 
 #[test]
 fn test_missing_required_flag() {
-    crate::init().unwrap();
-
     parse_and_execute_result_test_impl(
         vec!["foo"],
         vec![build_test_command(
@@ -292,8 +301,6 @@ fn test_missing_required_flag() {
 
 #[test]
 fn test_parse_invalid_flag() {
-    crate::init().unwrap();
-
     parse_and_execute_result_test_impl(
         vec!["foo", "--foo=bar"],
         vec![build_test_command(
@@ -308,8 +315,6 @@ fn test_parse_invalid_flag() {
 
 #[test]
 fn test_parse_missing_flag_value() {
-    crate::init().unwrap();
-
     parse_and_execute_result_test_impl(
         vec!["foo", "--foobar", "--barbaz"],
         vec![build_test_command(
@@ -328,8 +333,6 @@ fn test_parse_missing_flag_value() {
 
 #[test]
 fn test_parse_flag_format_variations() {
-    crate::init().unwrap();
-
     let expected_vs = into_expected_values(vec![
         ("flaga", Value::Single("a".to_owned())),
         ("flagb", Value::Single("b".to_owned())),
@@ -356,8 +359,6 @@ fn test_parse_flag_format_variations() {
 
 #[test]
 fn test_parse_boolean_flag_format_variations() {
-    crate::init().unwrap();
-
     let expected_vs = into_expected_values(vec![
         ("boola", Value::Boolean(true.to_string())),
         ("boolb", Value::Boolean(true.to_string())),
@@ -384,8 +385,6 @@ fn test_parse_boolean_flag_format_variations() {
 
 #[test]
 fn test_parse_named_flags() {
-    crate::init().unwrap();
-
     let expected_vs = into_expected_values(vec![
         ("flaga", Value::Single("foo".to_owned())),
         ("flagb", Value::Single("defaultb".to_owned())),
@@ -428,8 +427,6 @@ fn test_parse_named_flags() {
 
 #[test]
 fn test_parse_positional_flags() {
-    crate::init().unwrap();
-
     let expected_vs = into_expected_values(vec![
         ("flaga", Value::Single("oof".to_owned())),
         ("flagb", Value::Single("rab".to_owned())),
@@ -472,8 +469,6 @@ fn test_parse_positional_flags() {
 
 #[test]
 fn test_parse_variadic_flag_empty() {
-    crate::init().unwrap();
-
     let expected_vs = into_expected_values(vec![
         ("flaga", Value::Single("oof".to_owned())),
         ("posa", Value::Repeated(vec!["foo".to_owned()])),
@@ -500,8 +495,6 @@ fn test_parse_variadic_flag_empty() {
 
 #[test]
 fn test_parse_variadic_flag_many() {
-    crate::init().unwrap();
-
     let expected_vs = into_expected_values(vec![
         ("flaga", Value::Single("oof".to_owned())),
         ("posa", Value::Repeated(vec!["foo".to_owned()])),
@@ -531,8 +524,6 @@ fn test_parse_variadic_flag_many() {
 
 #[test]
 fn test_parse_default_positional_values() {
-    crate::init().unwrap();
-
     let expected_vs = into_expected_values(vec![
         ("flaga", Value::Single("oof".to_owned())),
         ("posa", Value::Repeated(vec!["foo".to_owned()])),
@@ -559,8 +550,6 @@ fn test_parse_default_positional_values() {
 
 #[test]
 fn test_parse_default_variadic_values() {
-    crate::init().unwrap();
-
     let expected_vs = into_expected_values(vec![
         ("flaga", Value::Single("oof".to_owned())),
         ("posa", Value::Repeated(vec!["foo".to_owned()])),

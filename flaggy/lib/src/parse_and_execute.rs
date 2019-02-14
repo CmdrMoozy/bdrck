@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::command::{parse_command, Command, CommandResult};
 use crate::error::*;
-use crate::flags::command::{parse_command, Command, CommandResult};
-use crate::flags::help;
-use crate::flags::value::build_values;
+use crate::help;
+use crate::value::build_values;
 use std::io::Write;
 
 fn parse_and_execute_impl<E, W: Write>(

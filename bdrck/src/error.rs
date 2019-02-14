@@ -22,10 +22,6 @@ pub enum Error {
     /// variables.
     #[fail(display = "{}", _0)]
     EnvVar(#[cause] ::std::env::VarError),
-    /// An error occurred when parsing command-line flag values.
-    #[cfg(feature = "flags")]
-    #[fail(display = "{}", _0)]
-    FlagValue(::failure::Error),
     /// An error decoding bytes as UTF-8 text.
     #[fail(display = "{}", _0)]
     FromUtf8(#[cause] ::std::string::FromUtf8Error),
@@ -106,13 +102,6 @@ pub enum Error {
 impl From<::std::env::VarError> for Error {
     fn from(e: ::std::env::VarError) -> Self {
         Error::EnvVar(e)
-    }
-}
-
-#[cfg(feature = "flags")]
-impl From<crate::flags::ValueError> for Error {
-    fn from(e: crate::flags::ValueError) -> Self {
-        Error::FlagValue(::failure::format_err!("{}", e.to_string()))
     }
 }
 

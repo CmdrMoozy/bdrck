@@ -107,7 +107,7 @@ fn handle_argument(arg: &FnArg) -> (TokenStream, Expr) {
 
                             handle_required_argument(name, ty)
                         }
-                        _ => panic!("Command callbacks cannot accept '{:?}'", ty),
+                        _ => panic!("Invalid command callback parameter type"),
                     }
                 }
                 _ => panic!("Command callback function takes an unhandled argument type."),

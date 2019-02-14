@@ -40,9 +40,6 @@ pub mod crypto;
 /// error defines error types specific to bdrck, which properly aggregates
 /// errors from all of bdrck's dependencies.
 pub mod error;
-/// flags defines a library for command-line argument parsing.
-#[cfg(feature = "flags")]
-pub mod flags;
 /// fs provides various utilities for interacting with the filesystem.
 #[cfg(feature = "fs")]
 pub mod fs;
@@ -69,9 +66,9 @@ pub mod testing;
 // Tests have significantly more dependencies than the code being tested. Don't
 // bother running tests unless all features are enabled.
 #[cfg(all(
+    feature = "cli",
     feature = "configuration",
     feature = "crypto",
-    feature = "flags",
     feature = "fs",
     feature = "http",
     feature = "logging",

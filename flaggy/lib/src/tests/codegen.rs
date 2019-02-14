@@ -13,25 +13,17 @@
 // limitations under the License.
 
 use crate::error::*;
-use crate::flags::main_impl::*;
-use failure::format_err;
+use crate::*;
+use std::path::PathBuf;
 
 #[test]
-fn test_handle_result() {
-    crate::init().unwrap();
-
-    assert_eq!(EXIT_SUCCESS, handle_result::<Error>(Ok(Some(Ok(())))));
-    assert_eq!(
-        EXIT_FAILURE,
-        handle_result::<Error>(Err(Error::Internal(format_err!(
-            "arbitrary internal error"
-        ))))
-    );
-    assert_eq!(EXIT_FAILURE, handle_result::<String>(Ok(None)));
-    assert_eq!(
-        EXIT_FAILURE,
-        handle_result(Ok(Some(Err(Error::Unknown(format_err!(
-            "arbitrary command error"
-        ))))))
-    );
+fn test_command_callback() {
+    #[command_callback]
+    fn test_callback(a: PathBuf, b: String, c: Option<String>, d: &[PathBuf]) -> Result<()> {
+        println!("{:?}", a);
+        println!("{:?}", b);
+        println!("{:?}", c);
+        println!("{:?}", d);
+        Ok(())
+    }
 }

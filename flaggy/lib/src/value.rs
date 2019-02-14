@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::flags::spec::{Spec, Specs, Type};
-use flags_values::error::{ValueError, ValueResult};
-use flags_values::value::{Value, Values};
+use crate::spec::{Spec, Specs, Type};
+use flaggy_values::error::{ValueError, ValueResult};
+use flaggy_values::value::{Value, Values};
 use std::collections::HashMap;
 use std::iter::Peekable;
 

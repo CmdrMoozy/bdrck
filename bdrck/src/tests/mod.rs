@@ -17,8 +17,6 @@ mod configuration;
 #[cfg(test)]
 mod crypto;
 #[cfg(test)]
-mod flags;
-#[cfg(test)]
 mod fs;
 #[cfg(test)]
 mod http;

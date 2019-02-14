@@ -1,6 +1,6 @@
 # Bdrck
 
-[![Build Status](https://travis-ci.org/CmdrMoozy/pwm.svg?branch=master)](https://travis-ci.org/CmdrMoozy/pwm)
+[![Build Status](https://travis-ci.org/CmdrMoozy/bdrck.svg?branch=master)](https://travis-ci.org/CmdrMoozy/bdrck)
 
 Bdrck is a crate containing generic common utilities. In particular, it has several top-level modules which provide various functionality:
 
@@ -9,12 +9,15 @@ Bdrck is a crate containing generic common utilities. In particular, it has seve
 | cli           | Utilities for CLI-based applications.         |
 | configuration | Application configuration tooling.            |
 | crypto        | Tools built upon high-level crypto libraries. |
-| flags         | Command-line flag parsing.                    |
 | fs            | Filesystem utilities.                         |
 | http          | HTTP client utilities based on reqwest.       |
 | logging       | Log message formatting utilities.             |
 | net           | Networking utilities / types.                 |
 | testing       | Unit testing utilities.                       |
+
+# Flaggy
+
+Flaggy is a separate but related crate which provides command-line flag parsing.
 
 ## Versioning
 
