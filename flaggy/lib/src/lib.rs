@@ -17,6 +17,8 @@
 /// commit, log, etc. are all commands), or it might just have a single Command
 /// if it's entirely a single-use binary.
 pub mod command;
+/// Error handling for flaggy.
+pub mod error;
 /// main_impl provides command-line-application-specific main() implementations.
 pub mod main_impl;
 /// parse_and_execute provides functions to parse command-line arguments, and
@@ -31,12 +33,15 @@ pub mod value;
 
 mod help;
 
+#[cfg(test)]
+mod tests;
+
 // Re-export the most commonly used symbols, so most users of this module can
-// just do "use bdrck::flags::*;" and get the right thing.
+// just do "use flaggy::*;" and get the right thing.
 
 pub use self::command::{Command, CommandCallback, CommandResult};
 pub use self::main_impl::{main_impl, main_impl_single_command};
 pub use self::spec::{Spec, Specs};
-pub use flags_codegen::command_callback;
-pub use flags_values::error::ValueError;
-pub use flags_values::value::{take_optional, take_required, Value, Values};
+pub use flaggy_codegen::command_callback;
+pub use flaggy_values::error::ValueError;
+pub use flaggy_values::value::{take_optional, take_required, Value, Values};

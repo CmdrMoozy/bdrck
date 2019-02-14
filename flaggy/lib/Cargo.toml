@@ -1,9 +1,14 @@
 [package]
-name = "flags-values"
+name = "flaggy"
 version = "0.1.0"
 authors = ["Axel Rasmussen <axel.rasmussen1@gmail.com>"]
-description = "Types for representing parsed flag values."
+description = "A library for parsing command-line flags."
 homepage = "https://github.com/CmdrMoozy/bdrck"
 repository = "https://github.com/CmdrMoozy/bdrck"
 license = "Apache-2.0"
 edition = "2018"
+
+[dependencies]
+failure = "0.1"
+flaggy-codegen = { version = "0.1", path = "../codegen" }
+flaggy-values = { version = "0.1", path = "../values" }

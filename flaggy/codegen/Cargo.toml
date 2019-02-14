@@ -1,0 +1,17 @@
+[package]
+name = "flaggy-codegen"
+version = "0.1.0"
+authors = ["Axel Rasmussen <axel.rasmussen1@gmail.com>"]
+description = "proc-macro code generation for flaggy."
+homepage = "https://github.com/CmdrMoozy/bdrck"
+repository = "https://github.com/CmdrMoozy/bdrck"
+license = "Apache-2.0"
+edition = "2018"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+proc-macro2 = "0.4"
+quote = "0.6"
+syn = { version = "0.15", features = ["full"] }
