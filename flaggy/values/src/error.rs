@@ -14,6 +14,7 @@
 
 use std::fmt;
 
+#[derive(Debug)]
 pub enum ValueError {
     /// A malformed boolean value was found.
     BadBoolean(String),
@@ -47,5 +48,7 @@ impl fmt::Display for ValueError {
         }
     }
 }
+
+impl ::std::error::Error for ValueError {}
 
 pub type ValueResult<T> = Result<T, ValueError>;
