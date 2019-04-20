@@ -18,6 +18,9 @@ use failure::Fail;
 /// command-line flags.
 #[derive(Fail, Debug)]
 pub enum Error {
+    /// An error parsing an IP address.
+    #[fail(display = "{}", _0)]
+    AddrParse(#[cause] ::std::net::AddrParseError),
     /// An internal unrecoverable error, usually due to some underlying library.
     #[fail(display = "{}", _0)]
     Internal(::failure::Error),
@@ -41,6 +44,12 @@ pub enum Error {
     /// A flaggy_values error.
     #[fail(display = "{}", _0)]
     Values(::failure::Error),
+}
+
+impl From<::std::net::AddrParseError> for Error {
+    fn from(e: ::std::net::AddrParseError) -> Self {
+        Error::AddrParse(e)
+    }
 }
 
 impl From<::std::io::Error> for Error {
