@@ -299,9 +299,10 @@ impl AbstractKey for Key {
             &self.key,
         );
         if result.is_err() {
-            return Err(
-                Error::InvalidArgument(format_err!("Failed to decrypt with incorrect Key")).into(),
-            );
+            return Err(Error::InvalidArgument(format_err!(
+                "Failed to decrypt with incorrect Key"
+            ))
+            .into());
         }
         Ok(result.ok().unwrap())
     }
