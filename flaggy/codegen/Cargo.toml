@@ -1,6 +1,6 @@
 [package]
 name = "flaggy-codegen"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Axel Rasmussen <axel.rasmussen1@gmail.com>"]
 description = "proc-macro code generation for flaggy."
 homepage = "https://github.com/CmdrMoozy/bdrck"
@@ -12,6 +12,6 @@ edition = "2018"
 proc-macro = true
 
 [dependencies]
-proc-macro2 = "0.4"
-quote = "0.6"
-syn = { version = "0.15", features = ["full"] }
+proc-macro2 = "1.0"
+quote = "1.0"
+syn = { version = "1.0", features = ["full"] }

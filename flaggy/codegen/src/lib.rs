@@ -19,8 +19,8 @@ use quote::quote;
 use syn::punctuated::Punctuated;
 use syn::token::Comma;
 use syn::{
-    parse_macro_input, Expr, ExprVerbatim, FnArg, GenericArgument, Ident, ItemFn, Pat,
-    PathArguments, Type, TypeSlice,
+    parse_macro_input, Expr, FnArg, GenericArgument, Ident, ItemFn, Pat, PathArguments, Type,
+    TypeSlice,
 };
 
 // A special case of `handle_argument`, for command callback arguments which are
@@ -31,9 +31,7 @@ fn handle_required_argument(name: &Ident, ty: &Type) -> (TokenStream, Expr) {
         TokenStream::from(quote! {
             let #name: #ty = take_required(values.get_as(stringify!(#name))?)?;
         }),
-        Expr::Verbatim(ExprVerbatim {
-            tts: TokenStream::from(quote! { #name }),
-        }),
+        Expr::Verbatim(TokenStream::from(quote! { #name })),
     )
 }
 
@@ -45,9 +43,7 @@ fn handle_optional_argument(name: &Ident, inner_ty: &Type) -> (TokenStream, Expr
         TokenStream::from(quote! {
             let #name: Option<#inner_ty> = take_optional(values.get_as(stringify!(#name))?)?;
         }),
-        Expr::Verbatim(ExprVerbatim {
-            tts: TokenStream::from(quote! { #name }),
-        }),
+        Expr::Verbatim(TokenStream::from(quote! { #name })),
     )
 }
 
@@ -60,9 +56,7 @@ fn handle_slice_argument(name: &Ident, slice: &TypeSlice) -> (TokenStream, Expr)
         TokenStream::from(quote! {
             let #name: Vec<#elem> = values.get_as(stringify!(#name))?;
         }),
-        Expr::Verbatim(ExprVerbatim {
-            tts: TokenStream::from(quote! { #name.as_slice() }),
-        }),
+        Expr::Verbatim(TokenStream::from(quote! { #name.as_slice() })),
     )
 }
 
@@ -73,13 +67,14 @@ fn handle_slice_argument(name: &Ident, slice: &TypeSlice) -> (TokenStream, Expr)
 // - The `Expr` which we'll pass in to the real command callback with the value.
 fn handle_argument(arg: &FnArg) -> (TokenStream, Expr) {
     match arg {
-        FnArg::Captured(captured) => {
-            match &captured.pat {
+        FnArg::Receiver(_) => panic!("Command callbacks cannot be member functions."),
+        FnArg::Typed(pattern_type) => {
+            match &*pattern_type.pat {
                 Pat::Ident(ident) => {
-                    let ty = &captured.ty;
+                    let ty = &pattern_type.ty;
                     let name = &ident.ident;
 
-                    match ty {
+                    match &**ty {
                         Type::Reference(r) => match r.elem.as_ref() {
                             Type::Slice(s) => handle_slice_argument(name, s),
                             _ => panic!("Command callbacks only accept references of slices."),
@@ -89,14 +84,14 @@ fn handle_argument(arg: &FnArg) -> (TokenStream, Expr) {
                                 // This is gross, but since we're dealing with an
                                 // AST there isn't another way to differentiate
                                 // between Option and other types...
-                                if last.value().ident.to_string() == "Option" {
-                                    match &last.value().arguments {
+                                if last.ident.to_string() == "Option" {
+                                    match &last.arguments {
                                         PathArguments::AngleBracketed(inner_ty) => {
                                             if inner_ty.args.len() != 1 {
                                                 panic!("Found unrecognized Option type with multiple generic type arguments");
                                             }
-                                            match inner_ty.args.last().unwrap().value() {
-                                            GenericArgument::Type(inner_ty) => return handle_optional_argument(name, inner_ty),
+                                            match inner_ty.args.last().unwrap() {
+                                            GenericArgument::Type(inner_ty) => return handle_optional_argument(name, &inner_ty),
                                             _ => panic!("Found unrecognized Option generic type parameter"),
                                         }
                                         }
@@ -105,7 +100,7 @@ fn handle_argument(arg: &FnArg) -> (TokenStream, Expr) {
                                 }
                             }
 
-                            handle_required_argument(name, ty)
+                            handle_required_argument(name, &ty)
                         }
                         _ => panic!("Invalid command callback parameter type"),
                     }
@@ -113,10 +108,6 @@ fn handle_argument(arg: &FnArg) -> (TokenStream, Expr) {
                 _ => panic!("Command callback function takes an unhandled argument type."),
             }
         }
-        FnArg::SelfRef(_) => panic!("Command callbacks cannot be member functions."),
-        FnArg::SelfValue(_) => panic!("Command callbacks cannot be member functions."),
-        FnArg::Inferred(_) => panic!("Command callbacks cannot be lambdas with inferred captures."),
-        FnArg::Ignored(_) => panic!("Command callbacks cannot have ignored arguments."),
     }
 }
 
@@ -130,14 +121,14 @@ pub fn command_callback(
 
     let input = parse_macro_input!(input as ItemFn);
     let visibility = input.vis;
-    let constness = input.constness;
-    let unsafety = input.unsafety;
-    let asyncness = input.asyncness;
-    let abi = input.abi;
-    let name = input.ident;
+    let constness = input.sig.constness;
+    let unsafety = input.sig.unsafety;
+    let asyncness = input.sig.asyncness;
+    let abi = input.sig.abi;
+    let name = input.sig.ident;
 
-    let args = input.decl.inputs;
-    let output = input.decl.output;
+    let args = input.sig.inputs;
+    let output = input.sig.output;
 
     let block = input.block;
 
