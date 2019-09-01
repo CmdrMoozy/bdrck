@@ -132,8 +132,7 @@ pub fn set_ownership<P: AsRef<Path>>(
     follow: bool,
 ) -> Result<()> {
     use errno::errno;
-    use libc::{self, c_int};
-    use std::ffi::CString;
+    use libc::c_int;
 
     let path_cstr = CString::new(path_to_bytes(path.as_ref())?)?;
     let ret: c_int = unsafe {

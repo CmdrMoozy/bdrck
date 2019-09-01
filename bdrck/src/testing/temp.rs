@@ -49,7 +49,7 @@ impl Dir {
     /// should generally be something application-specific, so if the temporary
     /// directory is somehow left over its origin can be identified.
     fn new_in<P: AsRef<Path>>(temp_dir: P, prefix: &str) -> Result<Dir> {
-        let mut rng = thread_rng();
+        let rng = thread_rng();
         for _ in 0..TEMP_DIR_RAND_RETRIES {
             let suffix: String = rng
                 .sample_iter(&Alphanumeric)
