@@ -53,43 +53,6 @@ namespace bdrck
 {
 namespace fs
 {
-FilesystemTime lastWriteTime(std::string const &p)
-{
-#ifdef _WIN32
-	HANDLE file =
-	        CreateFile(p.c_str(), GENERIC_READ, FILE_SHARE_WRITE, nullptr,
-	                   OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
-	if(file == INVALID_HANDLE_VALUE)
-		throw std::runtime_error("Opening file handle failed.");
-	bdrck::util::ScopeExit cleanup([&file]() { CloseHandle(file); });
-
-	FILETIME writeTime;
-	BOOL ret = GetFileTime(file, nullptr, nullptr, &writeTime);
-	if(!ret)
-		throw std::runtime_error("Getting file write time failed.");
-
-	uint64_t timestamp =
-	        (static_cast<uint64_t>(writeTime.dwHighDateTime) << 32) |
-	        static_cast<uint64_t>(writeTime.dwLowDateTime);
-	auto nanoseconds = std::chrono::duration_cast<std::chrono::nanoseconds>(
-	        WindowsFiletimeDuration(timestamp));
-	nanoseconds -= std::chrono::seconds(WINDOWS_EPOCH_OFFSET_SEC);
-
-	return FilesystemTime(nanoseconds);
-#else
-	struct stat stats;
-	int ret = stat(p.c_str(), &stats);
-	if(ret != 0)
-		bdrck::util::error::throwErrnoError();
-
-	auto nanoseconds = std::chrono::duration_cast<std::chrono::nanoseconds>(
-	        std::chrono::seconds(stats.st_mtim.tv_sec));
-	nanoseconds += std::chrono::nanoseconds(stats.st_mtim.tv_nsec);
-
-	return FilesystemTime(nanoseconds);
-#endif
-}
-
 void lastWriteTime(std::string const &p, FilesystemTime const &t)
 {
 #ifdef _WIN32

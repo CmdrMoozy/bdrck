@@ -15,7 +15,6 @@ namespace fs
 typedef std::chrono::time_point<std::chrono::high_resolution_clock>
         FilesystemTime;
 
-FilesystemTime lastWriteTime(std::string const &p);
 void lastWriteTime(std::string const &p, FilesystemTime const &t);
 }
 }
