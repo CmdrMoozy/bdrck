@@ -72,16 +72,6 @@ std::string normalizePath(const std::string &p)
 	return ret;
 }
 
-std::string resolvePath(std::string const &p)
-{
-	boost::system::error_code ec;
-	boost::filesystem::path resolved = boost::filesystem::canonical(p, ec);
-	if(ec)
-		throw std::runtime_error(ec.message());
-
-	return normalizePath(resolved.string());
-}
-
 std::string commonParentPath(std::vector<std::string> const &paths)
 {
 	if(paths.empty())
@@ -117,17 +107,6 @@ std::string commonParentPath(std::vector<std::string> const &paths)
 	if(refStart == refEnd)
 		return std::string();
 	return std::string(refStart, refEnd);
-}
-
-bool isExecutable(std::string const &p)
-{
-#ifdef _WIN32
-	(void)p;
-	return true;
-#else
-	int ret = access(p.c_str(), X_OK);
-	return ret == 0;
-#endif
 }
 
 FilesystemTime lastWriteTime(std::string const &p)
@@ -215,26 +194,6 @@ void lastWriteTime(std::string const &p, FilesystemTime const &t)
 	if(ret != 0)
 		bdrck::util::error::throwErrnoError();
 #endif
-}
-
-std::string getCurrentExecutable()
-{
-#ifdef _WIN32
-	CHAR path[MAX_PATH + 1];
-	GetModuleFileName(nullptr, path, MAX_PATH + 1);
-	return std::string(path);
-#else
-	char buffer[PATH_MAX];
-	ssize_t length = ::readlink("/proc/self/exe", buffer, PATH_MAX);
-	if(length == -1)
-		bdrck::util::error::throwErrnoError();
-	return std::string(&buffer[0], static_cast<std::size_t>(length));
-#endif
-}
-
-std::string getCurrentDirectory()
-{
-	return dirname(getCurrentExecutable());
 }
 
 std::string

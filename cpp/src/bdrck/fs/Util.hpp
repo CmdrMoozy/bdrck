@@ -25,12 +25,6 @@ typedef std::chrono::time_point<std::chrono::high_resolution_clock>
 std::string normalizePath(const std::string &p);
 
 /*!
- * \param p A relative path to resolve.
- * \return A resolved absolute path that has been normalized.
- */
-std::string resolvePath(std::string const &p);
-
-/*!
  * This function returns the path to the deepest directory which contains all
  * of the files or directories in the given list of paths. If no such path
  * exists (either because the list is empty, or because their paths have
@@ -41,13 +35,8 @@ std::string resolvePath(std::string const &p);
  */
 std::string commonParentPath(std::vector<std::string> const &paths);
 
-bool isExecutable(std::string const &p);
-
 FilesystemTime lastWriteTime(std::string const &p);
 void lastWriteTime(std::string const &p, FilesystemTime const &t);
-
-std::string getCurrentExecutable();
-std::string getCurrentDirectory();
 
 /*!
  * Returns the system's default configuration path (optionally an
