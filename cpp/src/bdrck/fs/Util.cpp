@@ -47,127 +47,6 @@ constexpr uint64_t WINDOWS_TICKS_PER_SECOND = 10000000ULL;
 typedef std::chrono::duration<int64_t, std::ratio<1, WINDOWS_TICKS_PER_SECOND>>
         WindowsFiletimeDuration;
 #endif
-
-#ifdef _WIN32
-class GlobState
-{
-public:
-	GlobState(std::string const &p)
-	        : pattern(p),
-	          data(),
-	          findHandle(INVALID_HANDLE_VALUE),
-	          empty(false)
-	{
-		init();
-	}
-
-	~GlobState()
-	{
-		clear();
-	}
-
-	void forEachPath(std::function<void(std::string const &)> callback)
-	{
-		if(empty)
-			return;
-
-		BOOL foundNext = 0;
-		do
-		{
-			callback(std::string(data.cFileName));
-			foundNext = FindNextFile(findHandle, &data);
-			if(!foundNext)
-			{
-				DWORD error = GetLastError();
-				if(error == ERROR_NO_MORE_FILES)
-				{
-					init();
-					return;
-				}
-				else
-				{
-					throw std::runtime_error(
-					        "Iterating over globbed files "
-					        "failed.");
-				}
-			}
-		} while(foundNext);
-	}
-
-private:
-	std::string pattern;
-	WIN32_FIND_DATA data;
-	HANDLE findHandle;
-	bool empty;
-
-	void clear()
-	{
-		if(findHandle != INVALID_HANDLE_VALUE)
-			FindClose(findHandle);
-	}
-
-	void init()
-	{
-		if(empty)
-			return;
-
-		clear();
-		findHandle = FindFirstFile(pattern.c_str(), &data);
-
-		if(findHandle == INVALID_HANDLE_VALUE)
-		{
-			DWORD error = GetLastError();
-			if(error == ERROR_FILE_NOT_FOUND)
-			{
-				empty = true;
-			}
-			else
-			{
-				throw std::runtime_error(
-				        "Evaluating glob pattern failed.");
-			}
-		}
-	}
-};
-#else
-class GlobState
-{
-public:
-	GlobState(std::string const &pattern) : buffer()
-	{
-		switch(glob(pattern.c_str(), GLOB_ERR | GLOB_NOSORT, nullptr,
-		            &buffer))
-		{
-		case 0:
-		case GLOB_NOMATCH: // No matches isn't really an error.
-			break;
-
-		case GLOB_NOSPACE:
-			bdrck::util::error::throwErrnoError(ENOMEM);
-
-		case GLOB_ABORTED:
-			bdrck::util::error::throwErrnoError(EIO);
-
-		default:
-			throw std::runtime_error("Unknown error.");
-		}
-	}
-
-	~GlobState()
-	{
-		globfree(&buffer);
-	}
-
-	void forEachPath(std::function<void(std::string const &)> callback)
-	{
-		for(std::size_t i = 0; i < buffer.gl_pathc; ++i)
-			callback(buffer.gl_pathv[i]);
-	}
-
-private:
-	glob_t buffer;
-};
-#endif
 }
 
 namespace bdrck
@@ -238,16 +117,6 @@ std::string commonParentPath(std::vector<std::string> const &paths)
 	if(refStart == refEnd)
 		return std::string();
 	return std::string(refStart, refEnd);
-}
-
-std::vector<std::string> glob(std::string const &pattern)
-{
-	GlobState state(pattern);
-	std::vector<std::string> paths;
-	state.forEachPath([&paths](std::string const &path) {
-		paths.emplace_back(path);
-	});
-	return paths;
 }
 
 bool isExecutable(std::string const &p)
@@ -428,38 +297,5 @@ getConfigurationDirectoryPath(boost::optional<std::string> const &application)
 #endif
 }
 
-boost::optional<std::string> which(std::string const &command,
-                                   boost::optional<std::string> const &hint)
-{
-	char const *p = std::getenv("PATH");
-	std::string path;
-	if(p != nullptr)
-		path.assign(p);
-
-#ifdef _WIN32
-	constexpr char PATH_DELIMITER = ';';
-#else
-	constexpr char PATH_DELIMITER = ':';
-#endif
-	std::vector<std::string> pathComponents =
-	        bdrck::algorithm::string::split(path, PATH_DELIMITER);
-	if(!!hint)
-		pathComponents.insert(pathComponents.begin(), *hint);
-
-	for(auto const &directory : pathComponents)
-	{
-		std::string commandPath = combinePaths(directory, command);
-
-#ifdef _WIN32
-		if(isExecutable(commandPath + ".exe"))
-			return commandPath + ".exe";
-#endif
-
-		if(isExecutable(commandPath))
-			return commandPath;
-	}
-
-	return boost::none;
-}
 }
 }

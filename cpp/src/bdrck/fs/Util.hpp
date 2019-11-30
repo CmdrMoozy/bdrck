@@ -41,8 +41,6 @@ std::string resolvePath(std::string const &p);
  */
 std::string commonParentPath(std::vector<std::string> const &paths);
 
-std::vector<std::string> glob(std::string const &pattern);
-
 bool isExecutable(std::string const &p);
 
 FilesystemTime lastWriteTime(std::string const &p);
@@ -60,10 +58,6 @@ std::string getCurrentDirectory();
  */
 std::string getConfigurationDirectoryPath(
         boost::optional<std::string> const &application = boost::none);
-
-boost::optional<std::string>
-which(std::string const &command,
-      boost::optional<std::string> const &hint = boost::none);
 }
 }
 
