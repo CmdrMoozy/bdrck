@@ -24,17 +24,6 @@ typedef std::chrono::time_point<std::chrono::high_resolution_clock>
  */
 std::string normalizePath(const std::string &p);
 
-/*!
- * This function returns the path to the deepest directory which contains all
- * of the files or directories in the given list of paths. If no such path
- * exists (either because the list is empty, or because their paths have
- * nothing in common), then an empty string is returned instead.
- *
- * \param paths The list of paths to examine.
- * \return The path containing all the given paths.
- */
-std::string commonParentPath(std::vector<std::string> const &paths);
-
 FilesystemTime lastWriteTime(std::string const &p);
 void lastWriteTime(std::string const &p, FilesystemTime const &t);
 

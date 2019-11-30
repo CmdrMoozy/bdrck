@@ -72,43 +72,6 @@ std::string normalizePath(const std::string &p)
 	return ret;
 }
 
-std::string commonParentPath(std::vector<std::string> const &paths)
-{
-	if(paths.empty())
-		return std::string();
-
-	std::size_t minimumSize = std::numeric_limits<std::size_t>::max();
-	std::accumulate(paths.begin(), paths.end(), minimumSize,
-	                [](std::size_t minimum, std::string const &str) {
-		                return std::min(minimum, str.length());
-		        });
-
-	char const *refStart = paths.back().c_str();
-	char const *refEnd = refStart + minimumSize;
-
-	while(refStart != refEnd)
-	{
-		bool same = true;
-		for(auto it = paths.cbegin(); it != paths.cend() - 1; ++it)
-		{
-			if(!std::equal(refStart, refEnd, it->data()))
-			{
-				same = false;
-				break;
-			}
-		}
-
-		if(same)
-			break;
-
-		--refEnd;
-	}
-
-	if(refStart == refEnd)
-		return std::string();
-	return std::string(refStart, refEnd);
-}
-
 FilesystemTime lastWriteTime(std::string const &p)
 {
 #ifdef _WIN32
