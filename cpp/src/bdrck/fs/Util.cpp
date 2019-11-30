@@ -53,25 +53,6 @@ namespace bdrck
 {
 namespace fs
 {
-std::string normalizePath(const std::string &p)
-{
-	std::string ret = p;
-
-	// Convert Windows-style separators to POSIX separators.
-	std::transform(ret.begin(), ret.end(), ret.begin(),
-	               [](const char &c) -> char {
-		               if(c == '\\')
-			               return '/';
-		               return c;
-		       });
-
-	// Remove any trailing separators.
-	while(!ret.empty() && (*ret.rbegin() == '/'))
-		ret.erase(ret.length() - 1);
-
-	return ret;
-}
-
 FilesystemTime lastWriteTime(std::string const &p)
 {
 #ifdef _WIN32
@@ -158,66 +139,5 @@ void lastWriteTime(std::string const &p, FilesystemTime const &t)
 		bdrck::util::error::throwErrnoError();
 #endif
 }
-
-std::string
-getConfigurationDirectoryPath(boost::optional<std::string> const &application)
-{
-#ifdef _WIN32
-	PWSTR directory = nullptr;
-	HRESULT ret = SHGetKnownFolderPath(FOLDERID_LocalAppData,
-	                                   KF_FLAG_CREATE, nullptr, &directory);
-	if(ret != S_OK)
-	{
-		throw std::runtime_error(
-		        "Looking up application data directory failed.");
-	}
-	bdrck::util::ScopeExit cleanup(
-	        [&directory]() { CoTaskMemFree(directory); });
-
-	std::string path = bdrck::util::wstrToStdString(directory);
-	if(!isDirectory(path))
-	{
-		throw std::runtime_error(
-		        "Configuration directory is not a directory.");
-	}
-
-	if(!!application)
-		path = combinePaths(path, *application);
-
-	return normalizePath(path);
-#else
-	std::string path;
-	std::string suffix;
-
-	char *home = std::getenv("XDG_CONFIG_HOME");
-	if(home == nullptr)
-	{
-		home = std::getenv("HOME");
-		if(home == nullptr)
-		{
-			throw std::runtime_error(
-			        "Couldn't find home directory.");
-		}
-		suffix.assign(".config");
-	}
-	path.assign(home);
-	path = combinePaths(path, suffix);
-
-	if(!exists(path))
-		createDirectory(path);
-
-	if(!isDirectory(path))
-	{
-		throw std::runtime_error(
-		        "Configuration directory is not a directory.");
-	}
-
-	if(!!application)
-		path = combinePaths(path, *application);
-
-	return normalizePath(path);
-#endif
-}
-
 }
 }
