@@ -16,6 +16,7 @@ use crate::error::*;
 use failure::format_err;
 use libc::{self, c_int};
 use std::io::{self, Write};
+use std::mem::MaybeUninit;
 
 /// Standard input / output streams.
 #[derive(Clone, Copy, Debug)]
@@ -62,21 +63,25 @@ fn to_io_result(ret: c_int) -> ::std::io::Result<()> {
 // This struct handles a) disabling the echoing of characters typed to stdin,
 // and b) remembering to reset the terminal attributes afterwards (via Drop).
 struct DisableEcho {
-    initial_attributes: libc::termios,
+    initial_attributes: MaybeUninit<libc::termios>,
 }
 
 impl DisableEcho {
     fn new() -> Result<Self> {
-        let mut initial_attributes = unsafe { ::std::mem::uninitialized() };
-        let mut attributes = unsafe { ::std::mem::uninitialized() };
-        to_io_result(unsafe { libc::tcgetattr(libc::STDIN_FILENO, &mut initial_attributes) })?;
-        to_io_result(unsafe { libc::tcgetattr(libc::STDIN_FILENO, &mut attributes) })?;
+        let mut initial_attributes = MaybeUninit::uninit();
+        let mut attributes = MaybeUninit::uninit();
+        to_io_result(unsafe {
+            libc::tcgetattr(libc::STDIN_FILENO, initial_attributes.as_mut_ptr())
+        })?;
+        to_io_result(unsafe { libc::tcgetattr(libc::STDIN_FILENO, attributes.as_mut_ptr()) })?;
 
         // Don't echo characters typed to stdin.
-        attributes.c_lflag &= !libc::ECHO;
+        unsafe { *attributes.as_mut_ptr() }.c_lflag &= !libc::ECHO;
         // But, *do* echo the newline when the user hits ENTER.
-        attributes.c_lflag |= libc::ECHONL;
-        to_io_result(unsafe { libc::tcsetattr(libc::STDIN_FILENO, libc::TCSANOW, &attributes) })?;
+        unsafe { *attributes.as_mut_ptr() }.c_lflag |= libc::ECHONL;
+        to_io_result(unsafe {
+            libc::tcsetattr(libc::STDIN_FILENO, libc::TCSANOW, attributes.as_ptr())
+        })?;
 
         Ok(DisableEcho {
             initial_attributes: initial_attributes,
@@ -87,7 +92,11 @@ impl DisableEcho {
 impl Drop for DisableEcho {
     fn drop(&mut self) {
         unsafe {
-            libc::tcsetattr(libc::STDIN_FILENO, libc::TCSANOW, &self.initial_attributes);
+            libc::tcsetattr(
+                libc::STDIN_FILENO,
+                libc::TCSANOW,
+                self.initial_attributes.as_ptr(),
+            );
         }
     }
 }

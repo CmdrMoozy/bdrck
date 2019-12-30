@@ -94,9 +94,9 @@ pub enum Error {
     #[fail(display = "{}", _0)]
     Unknown(::failure::Error),
     /// An error in decoding a URL.
-    #[cfg(feature = "reqwest")]
+    #[cfg(feature = "url")]
     #[fail(display = "{}", _0)]
-    Url(#[cause] ::reqwest::UrlError),
+    Url(#[cause] ::url::ParseError),
 }
 
 impl From<::std::env::VarError> for Error {
@@ -192,9 +192,9 @@ impl From<::failure::Error> for Error {
     }
 }
 
-#[cfg(feature = "reqwest")]
-impl From<::reqwest::UrlError> for Error {
-    fn from(e: ::reqwest::UrlError) -> Self {
+#[cfg(feature = "url")]
+impl From<::url::ParseError> for Error {
+    fn from(e: ::url::ParseError) -> Self {
         Error::Url(e)
     }
 }

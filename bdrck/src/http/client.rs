@@ -18,12 +18,12 @@ use crate::error::*;
 use crate::http::recording::{RecordedRequest, RecordedResponse, Recording, RecordingEntry};
 use crate::http::types::ResponseMetadata;
 use failure::format_err;
+use futures::executor::block_on;
 use log::{debug, info};
 use rand::Rng;
 use reqwest::header::HeaderMap;
 use reqwest::Client as InnerClient;
 use reqwest::{Method, Request, RequestBuilder, Url};
-use std::io::Read;
 // For recordings.
 #[cfg(debug_assertions)]
 use std::path::{Path, PathBuf};
@@ -186,10 +186,9 @@ impl Client {
         #[cfg(debug_assertions)]
         let url = request.url().clone();
 
-        let mut res = self.inner.execute(request)?;
+        let res = block_on(self.inner.execute(request))?;
         let metadata = ResponseMetadata::from(&res);
-        let mut body: Vec<u8> = Vec::new();
-        res.read_to_end(&mut body)?;
+        let body: Vec<u8> = block_on(res.bytes())?.into_iter().collect();
 
         #[cfg(debug_assertions)]
         debug!("{} {} => {}", method, url, metadata.get_status().unwrap());
