@@ -16,7 +16,7 @@ use crate::error::*;
 use failure::format_err;
 use reqwest::header::HeaderValue;
 use reqwest::{Response, StatusCode};
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// HTTP data, which is either valid UTF-8 or is treated as binary.

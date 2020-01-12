@@ -18,7 +18,6 @@ use rmp_serde;
 use serde::de::{SeqAccess, Visitor};
 use serde::ser::SerializeSeq;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use serde_derive::{Deserialize, Serialize};
 use sodiumoxide::crypto::hash;
 use sodiumoxide::crypto::pwhash;
 use sodiumoxide::crypto::secretbox;

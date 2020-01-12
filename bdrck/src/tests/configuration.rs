@@ -15,7 +15,7 @@
 use crate::configuration;
 use crate::testing::temp;
 use lazy_static::lazy_static;
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path;
 

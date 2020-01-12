@@ -17,7 +17,7 @@ use crate::error::*;
 use failure::format_err;
 use lazy_static::lazy_static;
 use rmp_serde;
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 use std::fs::File;
 use std::io::{Read, Write};
 use std::ops::{Deref, DerefMut};

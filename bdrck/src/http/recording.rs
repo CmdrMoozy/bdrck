@@ -15,7 +15,7 @@
 use crate::error::*;
 use crate::http::types::{HttpData, ResponseMetadata};
 use reqwest::Request;
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 use serde_json;
 use std::collections::{HashMap, VecDeque};
 use std::fs::File;
