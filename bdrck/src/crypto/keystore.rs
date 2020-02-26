@@ -191,6 +191,13 @@ impl KeyStore {
         self.wrapped_keys = wrapped_keys;
         Ok(original_length != self.wrapped_keys.len())
     }
+
+    /// Return an immutable iterator over this KeyStore's wrapped keys. This
+    /// may be useful to figure out which key to try to open with, for example,
+    /// by checking the keys' signatures.
+    pub fn iter_wrapped_keys(&self) -> impl Iterator<Item = &WrappedKey> {
+        self.wrapped_keys.iter()
+    }
 }
 
 /// DiskKeyStore is a very simple wrapper around KeyStore, which deals with
