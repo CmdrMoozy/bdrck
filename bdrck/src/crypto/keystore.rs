@@ -94,9 +94,27 @@ impl KeyStore {
         Ok(store)
     }
 
-    fn open<K: AbstractKey>(mut store: KeyStore, key: &K) -> Result<Self> {
+    /// Load a previously-serialized (with `to_vec`) KeyStore from a byte slice.
+    pub fn load_slice(data: &[u8]) -> Result<Self> {
+        Ok(rmp_serde::from_slice(data)?)
+    }
+
+    /// Load a previously-serialized (with `to_vec`) KeyStore from a reader.
+    pub fn load_read<R: Read>(rd: R) -> Result<Self> {
+        Ok(rmp_serde::from_read(rd)?)
+    }
+
+    /// Open this KeyStore (attempt to unwrap the master key) using the given
+    /// wrapping key. If this fails, the structure will still be in a valid
+    /// state, so you could e.g. try again with a different wrapping key.
+    pub fn open<K: AbstractKey>(&mut self, key: &K) -> Result<()> {
+        if self.master_key.is_some() {
+            // We're already opened, this will be a no-op.
+            return Ok(());
+        }
+
         let mut master_key: Option<Key> = None;
-        for wrapped_key in store.wrapped_keys.iter() {
+        for wrapped_key in self.wrapped_keys.iter() {
             if let Ok(payload) = wrapped_key.clone().unwrap(key) {
                 let unwrapped_key = match payload {
                     WrappedPayload::Key(k) => k,
@@ -104,8 +122,8 @@ impl KeyStore {
                 };
                 if is_master_key(
                     &unwrapped_key,
-                    store.token_nonce.as_ref(),
-                    store.token.as_slice(),
+                    self.token_nonce.as_ref(),
+                    self.token.as_slice(),
                 ) {
                     master_key = Some(unwrapped_key);
                     break;
@@ -119,20 +137,8 @@ impl KeyStore {
             )));
         }
 
-        store.master_key = master_key;
-        Ok(store)
-    }
-
-    /// Open the KeyStore (attempt to unwrap the master key) by deserializing
-    /// the given KeyStore bytes.
-    pub fn open_slice<K: AbstractKey>(data: &[u8], key: &K) -> Result<Self> {
-        Self::open(rmp_serde::from_slice(data)?, key)
-    }
-
-    /// Open the KeyStore (attempt to unwrap the master key) by deserializing
-    /// the KeyStore bytes read from the given reader.
-    pub fn open_read<R: Read, K: AbstractKey>(rd: R, key: &K) -> Result<Self> {
-        Self::open(rmp_serde::from_read(rd)?, key)
+        self.master_key = master_key;
+        Ok(())
     }
 
     /// Serialize this KeyStore, so it can be persisted and then reloaded later.
@@ -140,16 +146,34 @@ impl KeyStore {
         Ok(rmp_serde::to_vec(self)?)
     }
 
-    /// Return the unwrapped master key from this KeyStore.
-    pub fn get_master_key(&self) -> &Key {
-        self.master_key.as_ref().unwrap()
+    /// Return the unwrapped master key from this KeyStore. If this KeyStore
+    /// has no master key (it was neither newly generated nor unwrapped), this
+    /// will return an error instead.
+    pub fn get_master_key(&self) -> Result<&Key> {
+        if let Some(k) = self.master_key.as_ref() {
+            return Ok(k);
+        }
+        Err(Error::Precondition(format_err!(
+            "KeyStore must be opened before you can access the master key"
+        )))
     }
 
     /// Add the given wrapping key to this KeyStore. When the KeyStore is opened
     /// in the future, this key can be used. Returns true if the key was
     /// successfully added, or false if it was already present in the KeyStore.
+    ///
+    /// If this KeyStore has no master key (it was neither newly generated nor
+    /// unwrapped), this will return an error instead.
     pub fn add_key<K: AbstractKey>(&mut self, key: &K) -> Result<bool> {
-        let wrapped_key = self.master_key.clone().unwrap().wrap(key)?;
+        let wrapped_key = match self.master_key.clone() {
+            None => {
+                return Err(Error::Precondition(format_err!(
+                    "KeyStore must be `new` or opened to add keys"
+                )))
+            }
+            Some(k) => k,
+        }
+        .wrap(key)?;
 
         // If this key is already in the KeyStore, just return.
         if self
@@ -171,6 +195,9 @@ impl KeyStore {
     /// given key wasn't found in this KeyStore. It is an error to remove the
     /// last wrapping key from a KeyStore (doing so would leave it unopenable in
     /// the future).
+    ///
+    /// Note that it is possible to do this even if the KeyStore has no
+    /// unwrapped master key (e.g., even if it has not been opened).
     pub fn remove_key<K: AbstractKey>(&mut self, key: &K) -> Result<bool> {
         if self.wrapped_keys.len() == 1 {
             if let Some(wrapped_key) = self.wrapped_keys.first() {
@@ -195,6 +222,9 @@ impl KeyStore {
     /// Return an immutable iterator over this KeyStore's wrapped keys. This
     /// may be useful to figure out which key to try to open with, for example,
     /// by checking the keys' signatures.
+    ///
+    /// This works even if the KeyStore has no unwrapped master key (e.g., even
+    /// if it has not been opened).
     pub fn iter_wrapped_keys(&self) -> impl Iterator<Item = &WrappedKey> {
         self.wrapped_keys.iter()
     }
@@ -219,23 +249,20 @@ impl DiskKeyStore {
         })
     }
 
-    /// Open an existing DiskKeyStore which was previously persisted to the
-    /// given path. If the given path does not contain a valid DiskKeyStore, or
-    /// if the DiskKeyStore at the given path can't be "unwrapped" with the
-    /// given key, an error is returned instead.
-    pub fn open<P: AsRef<Path>, K: AbstractKey>(path: P, key: &K) -> Result<Self> {
+    /// Load a DiskKeyStore which was previously serialized to disk.
+    pub fn load<P: AsRef<Path>>(path: P) -> Result<Self> {
         let mut f = File::open(path.as_ref())?;
         Ok(DiskKeyStore {
             path: path.as_ref().to_path_buf(),
-            inner: KeyStore::open_read(&mut f, key)?,
+            inner: KeyStore::load_read(&mut f)?,
         })
     }
 
-    /// Open an existing KeyStore if the given path exists, or create a brand
-    /// new KeyStore otherwise and add the given key to it.
-    pub fn open_or_new<P: AsRef<Path>, K: AbstractKey>(path: P, key: &K) -> Result<Self> {
+    /// Load a DiskKeyStore which was previously serialized to disk (if the
+    /// given path exists), or initialize a new one otherwise.
+    pub fn load_or_new<P: AsRef<Path>, K: AbstractKey>(path: P, key: &K) -> Result<Self> {
         if path.as_ref().exists() {
-            Self::open(path, key)
+            Self::load(path)
         } else {
             Self::new(path, key)
         }
