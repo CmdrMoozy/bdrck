@@ -14,11 +14,13 @@
 
 use crate::crypto::key::{AbstractKey, Key, Nonce, Wrappable, WrappedKey, WrappedPayload};
 use crate::error::*;
+use data_encoding;
 use failure::format_err;
 use lazy_static::lazy_static;
+use log::error;
 use rmp_serde;
 use serde::{Deserialize, Serialize};
-use std::fs::File;
+use std::fs;
 use std::io::{Read, Write};
 use std::ops::{Deref, DerefMut};
 use std::path::{Path, PathBuf};
@@ -69,10 +71,11 @@ pub struct KeyStore {
 }
 
 impl KeyStore {
-    /// Construct a new KeyStore. A new master key is generated from scratch,
-    /// and the given key is added to the KeyStore (wrapping the new master
-    /// key).
-    pub fn new<K: AbstractKey>(key: &K) -> Result<Self> {
+    /// Construct a new KeyStore. A new master key is generated from scratch.
+    ///
+    /// Note that, before this KeyStore can be meaningfully persisted, you need
+    /// to wrap the master key with at least one key, via `add_key`.
+    pub fn new() -> Result<Self> {
         // Generate a new master key. We'll store this *wrapped with `key`*.
         let master_key = Key::new_random()?;
         // Encrypt the auth token with the master key. This is so we can decrypt
@@ -80,18 +83,12 @@ impl KeyStore {
         // the right master key.
         let (nonce, ciphertext) = master_key.encrypt(AUTH_TOKEN_CONTENTS.as_slice(), None)?;
 
-        let mut store = KeyStore {
+        Ok(KeyStore {
             master_key: Some(master_key),
             token_nonce: nonce,
             token: ciphertext,
             wrapped_keys: Vec::new(),
-        };
-
-        // Add the initial key the caller gave us to the KeyStore. This is just
-        // a convenience.
-        store.add_key(key)?;
-
-        Ok(store)
+        })
     }
 
     /// Load a previously-serialized (with `to_vec`) KeyStore from a byte slice.
@@ -102,6 +99,31 @@ impl KeyStore {
     /// Load a previously-serialized (with `to_vec`) KeyStore from a reader.
     pub fn load_read<R: Read>(rd: R) -> Result<Self> {
         Ok(rmp_serde::from_read(rd)?)
+    }
+
+    /// Return a string which "uniquely" identifies this KeyStore.
+    ///
+    /// (This is quote "unique" because `KeyStore`s with identical master keys
+    /// may return the same string here.) This string is mainly useful for
+    /// debugging / logging purposes.
+    pub fn get_id(&self) -> String {
+        data_encoding::HEXLOWER.encode(&self.token)
+    }
+
+    /// Return whether or not this KeyStore is open.
+    pub fn is_open(&self) -> bool {
+        self.master_key.is_some()
+    }
+
+    /// Return whether or not this KeyStore is meaningfully "persistable". In
+    /// other words, this returns whether or not this KeyStore has at least one
+    /// wrapping key.
+    ///
+    /// Because the master key is not persisted in plain text, if a KeyStore has
+    /// no wrapping keys (yet), it is not useful to persist it, as it can never
+    /// be opened again.
+    pub fn is_persistable(&self) -> bool {
+        !self.wrapped_keys.is_empty()
     }
 
     /// Open this KeyStore (attempt to unwrap the master key) using the given
@@ -230,6 +252,19 @@ impl KeyStore {
     }
 }
 
+fn persist_key_store<P: AsRef<Path>>(path: P, keystore: &KeyStore) -> Result<()> {
+    if !keystore.is_persistable() {
+        return Err(Error::Precondition(format_err!(
+            "KeyStore with no wrapping keys cannot be persisted"
+        )));
+    }
+
+    let mut f = fs::File::create(path.as_ref())?;
+    let data = keystore.to_vec()?;
+    f.write_all(data.as_slice())?;
+    Ok(())
+}
+
 /// DiskKeyStore is a very simple wrapper around KeyStore, which deals with
 /// persisting it to disk. This is provided because it is expected this is a
 /// very common use case, but users of this library can just use KeyStore
@@ -240,32 +275,34 @@ pub struct DiskKeyStore {
 }
 
 impl DiskKeyStore {
-    /// Construct a new DiskKeyStore, which will be persisted to the given path.
-    /// If a file already exists at the given path, it will be overwritten.
-    pub fn new<P: AsRef<Path>, K: AbstractKey>(path: P, key: &K) -> Result<Self> {
+    /// Construct a new DiskKeyStore instance. If the given path already exists,
+    /// a pre-existing key store will be loaded from it. Otherwise, a brand new
+    /// key store will be initialized.
+    ///
+    /// It is up to the caller to check for the latter case, and to add a key
+    /// as appropriate.
+    ///
+    /// If `force_overwrite` is set to `true`, then a fresh instance is created,
+    /// even if a previous one already existed.
+    pub fn new<P: AsRef<Path>>(path: P, force_overwrite: bool) -> Result<Self> {
+        let mut f = fs::OpenOptions::new()
+            .read(true)
+            // Open in write mode, in case we need to create the file.
+            .write(true)
+            // We'll always create it, if it doesn't already exist.
+            .create(true)
+            // Only truncate existing data if `force_overwrite` is set.
+            .truncate(force_overwrite)
+            .open(path.as_ref())?;
+
         Ok(DiskKeyStore {
             path: path.as_ref().to_path_buf(),
-            inner: KeyStore::new(key)?,
+            inner: if f.metadata()?.len() == 0 {
+                KeyStore::new()?
+            } else {
+                KeyStore::load_read(&mut f)?
+            },
         })
-    }
-
-    /// Load a DiskKeyStore which was previously serialized to disk.
-    pub fn load<P: AsRef<Path>>(path: P) -> Result<Self> {
-        let mut f = File::open(path.as_ref())?;
-        Ok(DiskKeyStore {
-            path: path.as_ref().to_path_buf(),
-            inner: KeyStore::load_read(&mut f)?,
-        })
-    }
-
-    /// Load a DiskKeyStore which was previously serialized to disk (if the
-    /// given path exists), or initialize a new one otherwise.
-    pub fn load_or_new<P: AsRef<Path>, K: AbstractKey>(path: P, key: &K) -> Result<Self> {
-        if path.as_ref().exists() {
-            Self::load(path)
-        } else {
-            Self::new(path, key)
-        }
     }
 }
 
@@ -285,8 +322,8 @@ impl DerefMut for DiskKeyStore {
 
 impl Drop for DiskKeyStore {
     fn drop(&mut self) {
-        let mut f = File::create(self.path.as_path()).unwrap();
-        let data = self.inner.to_vec().unwrap();
-        f.write_all(data.as_slice()).unwrap();
+        if let Err(e) = persist_key_store(&self.path, &self.inner) {
+            error!("{} (KeyStore {})", e, self.inner.get_id());
+        }
     }
 }

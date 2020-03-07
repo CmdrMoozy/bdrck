@@ -15,25 +15,22 @@
 use crate::crypto::key::*;
 use crate::crypto::keystore::*;
 use crate::testing::temp;
-use std::fs;
 
 #[test]
 fn test_keystore_save_round_trip() {
     let file = temp::File::new_file().unwrap();
-    // Remove the file: an empty file isn't a valid serialized DiskKeyStore.
-    fs::remove_file(file.path()).unwrap();
 
     let wrap_key = Key::new_random().unwrap();
     let master_key: Option<Key>;
 
     {
-        let mut keystore = DiskKeyStore::load_or_new(file.path(), &wrap_key).unwrap();
-        keystore.open(&wrap_key).unwrap();
+        let mut keystore = DiskKeyStore::new(file.path(), false).unwrap();
+        keystore.add_key(&wrap_key).unwrap();
         master_key = Some(keystore.get_master_key().unwrap().clone());
     }
 
     {
-        let mut keystore = DiskKeyStore::load_or_new(file.path(), &wrap_key).unwrap();
+        let mut keystore = DiskKeyStore::new(file.path(), false).unwrap();
         keystore.open(&wrap_key).unwrap();
         assert_eq!(
             master_key.as_ref().unwrap().get_digest(),
@@ -45,8 +42,6 @@ fn test_keystore_save_round_trip() {
 #[test]
 fn test_keystore_open_with_added_key() {
     let file = temp::File::new_file().unwrap();
-    // Remove the file: an empty file isn't a valid serialized DiskKeyStore.
-    fs::remove_file(file.path()).unwrap();
 
     let salt = Salt::default();
     let keya = Key::new_password(
@@ -67,14 +62,14 @@ fn test_keystore_open_with_added_key() {
     let master_key: Option<Key>;
 
     {
-        let mut keystore = DiskKeyStore::load_or_new(file.path(), &keya).unwrap();
-        keystore.open(&keya).unwrap();
+        let mut keystore = DiskKeyStore::new(file.path(), false).unwrap();
+        keystore.add_key(&keya).unwrap();
         master_key = Some(keystore.get_master_key().unwrap().clone());
         assert!(keystore.add_key(&keyb).unwrap());
     }
 
     {
-        let mut keystore = DiskKeyStore::load_or_new(file.path(), &keyb).unwrap();
+        let mut keystore = DiskKeyStore::new(file.path(), false).unwrap();
         keystore.open(&keyb).unwrap();
         assert_eq!(
             master_key.as_ref().unwrap().get_digest(),
@@ -86,22 +81,18 @@ fn test_keystore_open_with_added_key() {
 #[test]
 fn test_add_duplicate_key() {
     let file = temp::File::new_file().unwrap();
-    // Remove the file: an empty file isn't a valid serialized DiskKeyStore.
-    fs::remove_file(file.path()).unwrap();
 
     let wrap_key = Key::new_random().unwrap();
     // Note that creating a new DiskKeyStore automatically adds the given key.
-    let mut keystore = DiskKeyStore::load_or_new(file.path(), &wrap_key).unwrap();
-    keystore.open(&wrap_key).unwrap();
-    // Check that adding the same key again doesn't work.
+    let mut keystore = DiskKeyStore::new(file.path(), false).unwrap();
+    keystore.add_key(&wrap_key).unwrap();
+    // Check that adding the same key again is a no-op (returns false).
     assert!(!keystore.add_key(&wrap_key).unwrap());
 }
 
 #[test]
 fn test_remove_unused_key() {
     let file = temp::File::new_file().unwrap();
-    // Remove the file: an empty file isn't a valid serialized DiskKeyStore.
-    fs::remove_file(file.path()).unwrap();
 
     let salt = Salt::default();
     let keya = Key::new_password(
@@ -120,8 +111,8 @@ fn test_remove_unused_key() {
     .unwrap();
     assert_ne!(keya.get_digest(), keyb.get_digest());
 
-    let mut keystore = DiskKeyStore::load_or_new(file.path(), &keya).unwrap();
-    keystore.open(&keya).unwrap();
+    let mut keystore = DiskKeyStore::new(file.path(), false).unwrap();
+    keystore.add_key(&keya).unwrap();
     // Test that removing some other key returns false, since it isn't in the
     // DiskKeyStore.
     assert!(!keystore.remove_key(&keyb).unwrap());
@@ -130,12 +121,10 @@ fn test_remove_unused_key() {
 #[test]
 fn test_remove_only_key() {
     let file = temp::File::new_file().unwrap();
-    // Remove the file: an empty file isn't a valid serialized DiskKeyStore.
-    fs::remove_file(file.path()).unwrap();
 
     let key = Key::new_random().unwrap();
-    let mut keystore = DiskKeyStore::load_or_new(file.path(), &key).unwrap();
-    keystore.open(&key).unwrap();
+    let mut keystore = DiskKeyStore::new(file.path(), false).unwrap();
+    keystore.add_key(&key).unwrap();
     // Test that removing the sole key is treated as an error.
     assert!(keystore.remove_key(&key).is_err());
 }
@@ -143,14 +132,12 @@ fn test_remove_only_key() {
 #[test]
 fn test_remove_first_key() {
     let file = temp::File::new_file().unwrap();
-    // Remove the file: an empty file isn't a valid serialized DiskKeyStore.
-    fs::remove_file(file.path()).unwrap();
 
     let key_a = Key::new_random().unwrap();
     let key_b = Key::new_random().unwrap();
     // Create a keystore with one initial key.
-    let mut keystore = DiskKeyStore::load_or_new(file.path(), &key_a).unwrap();
-    keystore.open(&key_a).unwrap();
+    let mut keystore = DiskKeyStore::new(file.path(), false).unwrap();
+    keystore.add_key(&key_a).unwrap();
     // Add a second key.
     assert!(keystore.add_key(&key_b).unwrap());
     // Try removing the original key - this should succeed, since there is a
