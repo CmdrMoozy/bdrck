@@ -298,6 +298,10 @@ impl DiskKeyStore {
         Ok(DiskKeyStore {
             path: path.as_ref().to_path_buf(),
             inner: if f.metadata()?.len() == 0 {
+                // If the file was of zero length, just remove it. Most likely
+                // we created it, but if this key store doens't end up being
+                // persisted we don't want to leave an orphaned file around.
+                fs::remove_file(path.as_ref())?;
                 KeyStore::new()?
             } else {
                 KeyStore::load_read(&mut f)?
