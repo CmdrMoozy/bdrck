@@ -15,6 +15,7 @@
 use crate::crypto::key::*;
 use crate::crypto::keystore::*;
 use crate::testing::temp;
+use std::fs;
 
 #[test]
 fn test_keystore_save_round_trip() {
@@ -143,4 +144,21 @@ fn test_remove_first_key() {
     // Try removing the original key - this should succeed, since there is a
     // second valid key.
     assert!(keystore.remove_key(&key_a).unwrap());
+}
+
+#[test]
+fn test_unpersistable() {
+    let file = temp::File::new_file().unwrap();
+    // Explicitly make sure the file doesn't exist.
+    fs::remove_file(file.path()).unwrap();
+    assert!(!file.path().exists());
+
+    {
+        // Construct a new key store, but don't add any keys.
+        let keystore = DiskKeyStore::new(file.path(), false).unwrap();
+        assert!(!keystore.is_persistable());
+    }
+
+    // Since the key store was not persistable, the file should still not exist.
+    assert!(!file.path().exists());
 }
