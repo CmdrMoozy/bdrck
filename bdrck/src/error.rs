@@ -34,6 +34,11 @@ pub enum Error {
     #[cfg(feature = "reqwest")]
     #[fail(display = "{}", _0)]
     Http(#[cause] ::reqwest::Error),
+    /// This error indicates that we were reading some input, and we encountered
+    /// too many bytes (e.g. because there was an upper bound on how much we
+    /// were willing to read).
+    #[fail(display = "{}", _0)]
+    InputTooBig(::failure::Error),
     /// An internal unrecoverable error, usually due to some underlying library.
     #[fail(display = "{}", _0)]
     Internal(::failure::Error),
