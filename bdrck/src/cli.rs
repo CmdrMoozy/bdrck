@@ -13,10 +13,105 @@
 // limitations under the License.
 
 use crate::error::*;
+use atty;
 use failure::format_err;
 use libc::{self, c_int};
-use std::io::{self, Write};
+use std::io::{self, Read, Write};
 use std::mem::MaybeUninit;
+
+/// An alias for std::io::Result.
+pub type IoResult<T> = io::Result<T>;
+
+fn to_io_result(ret: c_int) -> IoResult<()> {
+    match ret {
+        0 => Ok(()),
+        _ => Err(io::Error::last_os_error()),
+    }
+}
+
+/// This enum describes high-level terminal flags, in an OS-agnostic way.
+#[derive(Clone, Copy, Debug)]
+pub enum TerminalFlag {
+    /// A flag indicating that typed characters should be echoed.
+    Echo,
+    /// A flag indicating that newlines, specifically, should be echoed.
+    EchoNewlines,
+}
+
+impl TerminalFlag {
+    fn to_value(&self) -> libc::tcflag_t {
+        match *self {
+            TerminalFlag::Echo => libc::ECHO,
+            TerminalFlag::EchoNewlines => libc::ECHONL,
+        }
+    }
+}
+
+/// This trait describes an abstract type which describes the attributes of a
+/// terminal.
+///
+/// This trait primarily exists for testing purposes. In almost all cases, users
+/// will instead just use the concrete type `Stream` defined below.
+pub trait AbstractTerminalAttributes {
+    /// Enable a flag in this set of attributes.
+    fn enable(&mut self, flag: TerminalFlag);
+
+    /// Disable a flag in this set of attributes.
+    fn disable(&mut self, flag: TerminalFlag);
+}
+
+/// This is an opaque structure which encapsulates the state / attributes of an
+/// interactive terminal. The contents of this structure are OS-specific.
+pub struct TerminalAttributes {
+    inner: MaybeUninit<libc::termios>,
+}
+
+impl TerminalAttributes {
+    fn new(fd: c_int) -> IoResult<Self> {
+        let mut attrs = MaybeUninit::uninit();
+        to_io_result(unsafe { libc::tcgetattr(fd, attrs.as_mut_ptr()) })?;
+        Ok(TerminalAttributes { inner: attrs })
+    }
+
+    fn apply(&self, fd: c_int) -> IoResult<()> {
+        to_io_result(unsafe { libc::tcsetattr(fd, libc::TCSANOW, self.inner.as_ptr()) })
+    }
+}
+
+impl AbstractTerminalAttributes for TerminalAttributes {
+    fn enable(&mut self, flag: TerminalFlag) {
+        unsafe { *self.inner.as_mut_ptr() }.c_lflag &= !flag.to_value();
+    }
+
+    fn disable(&mut self, flag: TerminalFlag) {
+        unsafe { *self.inner.as_mut_ptr() }.c_lflag |= flag.to_value();
+    }
+}
+
+/// This trait describes an abstract input or output stream.
+///
+/// This trait primarily exists for testing purposes. In almost all cases, users
+/// will instead just use the concrete type `Stream` defined below.
+pub trait AbstractStream {
+    /// A type which describes the attributes of this stream / terminal.
+    type Attributes: AbstractTerminalAttributes;
+
+    /// Returns whether or not this stream refers to an interactive terminal (a
+    /// TTY), as opposed to, for example, a pipe.
+    fn isatty(&self) -> bool;
+
+    /// Retrieve the current attributes of this stream / terminal.
+    fn get_attributes(&self) -> IoResult<Self::Attributes>;
+
+    /// Modify this stream's / terminal's attributes to match the given state.
+    fn set_attributes(&mut self, attributes: &Self::Attributes) -> IoResult<()>;
+
+    /// Return a `Read` for this stream, if reading is supported.
+    fn as_reader(&self) -> Option<Box<dyn Read>>;
+
+    /// Return a `Write` for this stream, if writing is supported.
+    fn as_writer(&self) -> Option<Box<dyn Write>>;
+}
 
 /// Standard input / output streams.
 #[derive(Clone, Copy, Debug)]
@@ -30,18 +125,6 @@ pub enum Stream {
 }
 
 impl Stream {
-    fn to_writer(&self) -> Result<Box<dyn Write>> {
-        Ok(match *self {
-            Stream::Stdout => Box::new(io::stdout()),
-            Stream::Stderr => Box::new(io::stderr()),
-            Stream::Stdin => {
-                return Err(Error::InvalidArgument(format_err!(
-                    "Cannot output interactive prompts on Stdin"
-                )));
-            }
-        })
-    }
-
     fn to_fd(&self) -> c_int {
         match *self {
             Stream::Stdout => libc::STDOUT_FILENO,
@@ -51,73 +134,79 @@ impl Stream {
     }
 }
 
-/// Return whether or not the given stream is a TTY (as opposed to, for example,
-/// a pipe).
-pub fn isatty(stream: Stream) -> bool {
-    ::atty::is(match stream {
-        Stream::Stdout => ::atty::Stream::Stdout,
-        Stream::Stderr => ::atty::Stream::Stderr,
-        Stream::Stdin => ::atty::Stream::Stdin,
-    })
-}
+impl AbstractStream for Stream {
+    type Attributes = TerminalAttributes;
 
-fn to_io_result(ret: c_int) -> ::std::io::Result<()> {
-    match ret {
-        0 => Ok(()),
-        _ => Err(::std::io::Error::last_os_error()),
+    fn isatty(&self) -> bool {
+        atty::is(match *self {
+            Stream::Stdout => atty::Stream::Stdout,
+            Stream::Stderr => atty::Stream::Stderr,
+            Stream::Stdin => atty::Stream::Stdin,
+        })
+    }
+
+    fn get_attributes(&self) -> IoResult<Self::Attributes> {
+        TerminalAttributes::new(self.to_fd())
+    }
+
+    fn set_attributes(&mut self, attributes: &Self::Attributes) -> IoResult<()> {
+        attributes.apply(self.to_fd())
+    }
+
+    fn as_reader(&self) -> Option<Box<dyn Read>> {
+        match *self {
+            Stream::Stdin => Some(Box::new(io::stdin())),
+            _ => None,
+        }
+    }
+
+    fn as_writer(&self) -> Option<Box<dyn Write>> {
+        match *self {
+            Stream::Stdout => Some(Box::new(io::stdout())),
+            Stream::Stderr => Some(Box::new(io::stderr())),
+            _ => None,
+        }
     }
 }
 
-fn get_terminal_attributes(stream: Stream) -> ::std::io::Result<MaybeUninit<libc::termios>> {
-    let mut attrs = MaybeUninit::uninit();
-    to_io_result(unsafe { libc::tcgetattr(stream.to_fd(), attrs.as_mut_ptr()) })?;
-    Ok(attrs)
+/// This structure handles a) disabling the echoing of characters typed to
+/// `Stdin`, and b) remembering to reset the terminal attributes afterwards
+/// (via `Drop`).
+struct DisableEcho<S: AbstractStream> {
+    stream: S,
+    initial_attributes: S::Attributes,
 }
 
-fn set_terminal_attributes(
-    stream: Stream,
-    attributes: &MaybeUninit<libc::termios>,
-) -> ::std::io::Result<()> {
-    to_io_result(unsafe { libc::tcsetattr(stream.to_fd(), libc::TCSANOW, attributes.as_ptr()) })
-}
+impl<S: AbstractStream> DisableEcho<S> {
+    fn new(mut stream: S) -> Result<Self> {
+        let initial_attributes = stream.get_attributes()?;
 
-// This struct handles a) disabling the echoing of characters typed to stdin,
-// and b) remembering to reset the terminal attributes afterwards (via Drop).
-struct DisableEcho {
-    initial_attributes: MaybeUninit<libc::termios>,
-}
-
-impl DisableEcho {
-    fn new() -> Result<Self> {
-        let initial_attributes = get_terminal_attributes(Stream::Stdin)?;
-
-        let mut attributes = get_terminal_attributes(Stream::Stdin)?;
+        let mut attributes = stream.get_attributes()?;
         // Don't echo characters typed to stdin.
-        unsafe { *attributes.as_mut_ptr() }.c_lflag &= !libc::ECHO;
+        attributes.disable(TerminalFlag::Echo);
         // But, *do* echo the newline when the user hits ENTER.
-        unsafe { *attributes.as_mut_ptr() }.c_lflag |= libc::ECHONL;
+        attributes.enable(TerminalFlag::EchoNewlines);
+        stream.set_attributes(&attributes)?;
 
-        set_terminal_attributes(Stream::Stdin, &attributes)?;
         Ok(DisableEcho {
+            stream: stream,
             initial_attributes: initial_attributes,
         })
     }
 }
 
-impl Drop for DisableEcho {
+impl<S: AbstractStream> Drop for DisableEcho<S> {
     fn drop(&mut self) {
-        set_terminal_attributes(Stream::Stdin, &self.initial_attributes).unwrap();
+        self.stream
+            .set_attributes(&self.initial_attributes)
+            .unwrap();
     }
 }
 
 fn remove_newline(mut s: String) -> Result<String> {
     // Remove the trailing newline (if any - not finding one is an error).
     if !s.ends_with('\n') {
-        return Err(::std::io::Error::new(
-            ::std::io::ErrorKind::UnexpectedEof,
-            "unexpected end of input",
-        )
-        .into());
+        return Err(io::Error::new(io::ErrorKind::UnexpectedEof, "unexpected end of input").into());
     }
     s.pop();
 
@@ -129,72 +218,82 @@ fn remove_newline(mut s: String) -> Result<String> {
     Ok(s)
 }
 
-/// Prompt the user for a string (read from Stdin) using the given output stream
-/// (Stdout or Stderr) to display the given prompt message.
+/// Prompt the user for a string (read from the given input stream) using the
+/// given output stream (typically standard output or standard error) to display
+/// the given prompt message.
 ///
 /// If `is_sensitive` is true, then the users characters will not be echoed back
 /// (e.g. this will behave like a password prompt).
 ///
-/// Note that it is an error for output_stream to be Stdin, or for this function
-/// to be called when the given output stream or Stdin are not TTYs.
-pub fn prompt_for_string(
-    output_stream: Stream,
+/// Note that there are various requirements for the given streams, and this
+/// function will return an error if any of them are not met:
+///
+/// - Both `input_stream` and `output_stream` must be TTYs.
+/// - `input_stream` must return a valid `Read` instance.
+/// - `output_stream` must return a valid `Write` instance.
+pub fn prompt_for_string<IS: AbstractStream, OS: AbstractStream>(
+    input_stream: IS,
+    output_stream: OS,
     prompt: &str,
     is_sensitive: bool,
 ) -> Result<String> {
-    if !isatty(output_stream) || !isatty(Stream::Stdin) {
+    use io::BufRead;
+
+    if !input_stream.isatty() {
         return Err(Error::Precondition(format_err!(
-            "Cannot prompt for interactive user input when {:?} and Stdin are not TTYs",
-            output_stream
+            "Cannot prompt for interactive user input when the input stream is not a TTY"
+        )));
+    }
+    if !output_stream.isatty() {
+        return Err(Error::Precondition(format_err!(
+            "Cannot prompt for interactive user input when the output straem is not a TTY"
         )));
     }
 
-    let mut output_stream = output_stream.to_writer()?;
-    write!(output_stream, "{}", prompt)?;
+    let mut reader = io::BufReader::new(match input_stream.as_reader() {
+        None => {
+            return Err(Error::Precondition(format_err!(
+                "The given input stream must support `Read`"
+            )))
+        }
+        Some(r) => r,
+    });
+    let mut writer = match output_stream.as_writer() {
+        None => {
+            return Err(Error::Precondition(format_err!(
+                "The given output stream must support `Write`"
+            )))
+        }
+        Some(w) => w,
+    };
+
+    write!(writer, "{}", prompt)?;
     // We have to flush so the user sees the prompt immediately.
-    output_stream.flush()?;
+    writer.flush()?;
 
     Ok({
         let _disable_echo = match is_sensitive {
             false => None,
-            true => Some(DisableEcho::new()?),
+            true => Some(DisableEcho::new(input_stream)?),
         };
         let mut ret = String::new();
-        io::stdin().read_line(&mut ret)?;
+        reader.read_line(&mut ret)?;
         remove_newline(ret)?
     })
-}
-
-/// Display a "<description> Continue?" confirmation. Returns true if the user
-/// replies "yes" (or similar), or false otherwise.
-pub fn continue_confirmation(output_stream: Stream, description: &str) -> Result<bool> {
-    let prompt = format!("{}Continue? [Yes/No] ", description);
-    loop {
-        let original_response = prompt_for_string(output_stream, prompt.as_str(), false)?;
-        let response = original_response.trim().to_lowercase();
-        if response == "y" || response == "yes" {
-            return Ok(true);
-        } else if response == "n" || response == "no" {
-            return Ok(false);
-        } else {
-            let mut output_stream = output_stream.to_writer()?;
-            write!(output_stream, "Invalid response '{}'.\n", original_response)?;
-            output_stream.flush()?;
-        }
-    }
 }
 
 /// Prompt for a string as per `prompt_for_string`, but additionally have the
 /// user enter the value again to confirm we get the same answer twice. This is
 /// useful for e.g. password entry.
-pub fn prompt_for_string_confirm(
-    output_stream: Stream,
+pub fn prompt_for_string_confirm<IS: AbstractStream + Copy, OS: AbstractStream + Copy>(
+    input_stream: IS,
+    output_stream: OS,
     prompt: &str,
     is_sensitive: bool,
 ) -> Result<String> {
     loop {
-        let string = prompt_for_string(output_stream, prompt, is_sensitive)?;
-        if string == prompt_for_string(output_stream, "Confirm: ", is_sensitive)? {
+        let string = prompt_for_string(input_stream, output_stream, prompt, is_sensitive)?;
+        if string == prompt_for_string(input_stream, output_stream, "Confirm: ", is_sensitive)? {
             return Ok(string);
         }
     }
@@ -213,17 +312,20 @@ pub struct MaybePromptedString {
 impl MaybePromptedString {
     /// Construct a new MaybePromptedString, either using the given value or
     /// prompting the user interactively with the given options.
-    pub fn new(
+    pub fn new<IS: AbstractStream + Copy, OS: AbstractStream + Copy>(
         provided: Option<&str>,
-        output_stream: Stream,
+        input_stream: IS,
+        output_stream: OS,
         prompt: &str,
         is_sensitive: bool,
         confirm: bool,
     ) -> Result<Self> {
         let prompted: Option<String> = match provided {
             None => Some(match confirm {
-                false => prompt_for_string(output_stream, prompt, is_sensitive)?,
-                true => prompt_for_string_confirm(output_stream, prompt, is_sensitive)?,
+                false => prompt_for_string(input_stream, output_stream, prompt, is_sensitive)?,
+                true => {
+                    prompt_for_string_confirm(input_stream, output_stream, prompt, is_sensitive)?
+                }
             }),
             Some(_) => None,
         };
@@ -246,5 +348,41 @@ impl MaybePromptedString {
     /// "Unwraps" this structure into its underlying string.
     pub fn into_inner(self) -> String {
         self.value
+    }
+}
+
+/// Display a "<description> Continue?" confirmation. Returns true if the user
+/// replies "yes" (or similar), or false otherwise.
+pub fn continue_confirmation<IS: AbstractStream + Copy, OS: AbstractStream + Copy>(
+    input_stream: IS,
+    output_stream: OS,
+    description: &str,
+) -> Result<bool> {
+    let prompt = format!("{}Continue? [Yes/No] ", description);
+    loop {
+        let original_response = prompt_for_string(
+            input_stream,
+            output_stream,
+            prompt.as_str(),
+            /*is_sensitive=*/ false,
+        )?;
+        let response = original_response.trim().to_lowercase();
+        if response == "y" || response == "yes" {
+            return Ok(true);
+        } else if response == "n" || response == "no" {
+            return Ok(false);
+        } else {
+            let mut writer = match output_stream.as_writer() {
+                None => {
+                    return Err(Error::Precondition(format_err!(
+                        "The given output stream must support `Write`"
+                    )))
+                }
+                Some(w) => w,
+            };
+            write!(writer, "Invalid response '{}'.\n", original_response)?;
+            // We have to flush so the user sees the prompt immediately.
+            writer.flush()?;
+        }
     }
 }
