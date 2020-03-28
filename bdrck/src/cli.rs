@@ -41,6 +41,14 @@ impl Stream {
             }
         })
     }
+
+    fn to_fd(&self) -> c_int {
+        match *self {
+            Stream::Stdout => libc::STDOUT_FILENO,
+            Stream::Stderr => libc::STDERR_FILENO,
+            Stream::Stdin => libc::STDIN_FILENO,
+        }
+    }
 }
 
 /// Return whether or not the given stream is a TTY (as opposed to, for example,
@@ -60,6 +68,19 @@ fn to_io_result(ret: c_int) -> ::std::io::Result<()> {
     }
 }
 
+fn get_terminal_attributes(stream: Stream) -> ::std::io::Result<MaybeUninit<libc::termios>> {
+    let mut attrs = MaybeUninit::uninit();
+    to_io_result(unsafe { libc::tcgetattr(stream.to_fd(), attrs.as_mut_ptr()) })?;
+    Ok(attrs)
+}
+
+fn set_terminal_attributes(
+    stream: Stream,
+    attributes: &MaybeUninit<libc::termios>,
+) -> ::std::io::Result<()> {
+    to_io_result(unsafe { libc::tcsetattr(stream.to_fd(), libc::TCSANOW, attributes.as_ptr()) })
+}
+
 // This struct handles a) disabling the echoing of characters typed to stdin,
 // and b) remembering to reset the terminal attributes afterwards (via Drop).
 struct DisableEcho {
@@ -68,21 +89,15 @@ struct DisableEcho {
 
 impl DisableEcho {
     fn new() -> Result<Self> {
-        let mut initial_attributes = MaybeUninit::uninit();
-        let mut attributes = MaybeUninit::uninit();
-        to_io_result(unsafe {
-            libc::tcgetattr(libc::STDIN_FILENO, initial_attributes.as_mut_ptr())
-        })?;
-        to_io_result(unsafe { libc::tcgetattr(libc::STDIN_FILENO, attributes.as_mut_ptr()) })?;
+        let initial_attributes = get_terminal_attributes(Stream::Stdin)?;
 
+        let mut attributes = get_terminal_attributes(Stream::Stdin)?;
         // Don't echo characters typed to stdin.
         unsafe { *attributes.as_mut_ptr() }.c_lflag &= !libc::ECHO;
         // But, *do* echo the newline when the user hits ENTER.
         unsafe { *attributes.as_mut_ptr() }.c_lflag |= libc::ECHONL;
-        to_io_result(unsafe {
-            libc::tcsetattr(libc::STDIN_FILENO, libc::TCSANOW, attributes.as_ptr())
-        })?;
 
+        set_terminal_attributes(Stream::Stdin, &attributes)?;
         Ok(DisableEcho {
             initial_attributes: initial_attributes,
         })
@@ -91,13 +106,7 @@ impl DisableEcho {
 
 impl Drop for DisableEcho {
     fn drop(&mut self) {
-        unsafe {
-            libc::tcsetattr(
-                libc::STDIN_FILENO,
-                libc::TCSANOW,
-                self.initial_attributes.as_ptr(),
-            );
-        }
+        set_terminal_attributes(Stream::Stdin, &self.initial_attributes).unwrap();
     }
 }
 
