@@ -114,7 +114,7 @@ pub trait AbstractStream {
 }
 
 /// Standard input / output streams.
-#[derive(Clone, Copy, Debug)]
+#[derive(Debug)]
 pub enum Stream {
     /// Standard output.
     Stdout,
@@ -172,13 +172,13 @@ impl AbstractStream for Stream {
 /// This structure handles a) disabling the echoing of characters typed to
 /// `Stdin`, and b) remembering to reset the terminal attributes afterwards
 /// (via `Drop`).
-struct DisableEcho<S: AbstractStream> {
-    stream: S,
+struct DisableEcho<'s, S: AbstractStream> {
+    stream: &'s mut S,
     initial_attributes: S::Attributes,
 }
 
-impl<S: AbstractStream> DisableEcho<S> {
-    fn new(mut stream: S) -> Result<Self> {
+impl<'s, S: AbstractStream> DisableEcho<'s, S> {
+    fn new(stream: &'s mut S) -> Result<Self> {
         let initial_attributes = stream.get_attributes()?;
 
         let mut attributes = stream.get_attributes()?;
@@ -195,7 +195,7 @@ impl<S: AbstractStream> DisableEcho<S> {
     }
 }
 
-impl<S: AbstractStream> Drop for DisableEcho<S> {
+impl<'s, S: AbstractStream> Drop for DisableEcho<'s, S> {
     fn drop(&mut self) {
         self.stream
             .set_attributes(&self.initial_attributes)
@@ -218,22 +218,9 @@ fn remove_newline(mut s: String) -> Result<String> {
     Ok(s)
 }
 
-/// Prompt the user for a string (read from the given input stream) using the
-/// given output stream (typically standard output or standard error) to display
-/// the given prompt message.
-///
-/// If `is_sensitive` is true, then the users characters will not be echoed back
-/// (e.g. this will behave like a password prompt).
-///
-/// Note that there are various requirements for the given streams, and this
-/// function will return an error if any of them are not met:
-///
-/// - Both `input_stream` and `output_stream` must be TTYs.
-/// - `input_stream` must return a valid `Read` instance.
-/// - `output_stream` must return a valid `Write` instance.
-pub fn prompt_for_string<IS: AbstractStream, OS: AbstractStream>(
-    input_stream: IS,
-    output_stream: OS,
+fn prompt_for_string_impl<IS: AbstractStream, OS: AbstractStream>(
+    input_stream: &mut IS,
+    output_stream: &mut OS,
     prompt: &str,
     is_sensitive: bool,
 ) -> Result<String> {
@@ -282,21 +269,53 @@ pub fn prompt_for_string<IS: AbstractStream, OS: AbstractStream>(
     })
 }
 
-/// Prompt for a string as per `prompt_for_string`, but additionally have the
-/// user enter the value again to confirm we get the same answer twice. This is
-/// useful for e.g. password entry.
-pub fn prompt_for_string_confirm<IS: AbstractStream + Copy, OS: AbstractStream + Copy>(
-    input_stream: IS,
-    output_stream: OS,
+/// Prompt the user for a string (read from the given input stream) using the
+/// given output stream (typically standard output or standard error) to display
+/// the given prompt message.
+///
+/// If `is_sensitive` is true, then the users characters will not be echoed back
+/// (e.g. this will behave like a password prompt).
+///
+/// Note that there are various requirements for the given streams, and this
+/// function will return an error if any of them are not met:
+///
+/// - Both `input_stream` and `output_stream` must be TTYs.
+/// - `input_stream` must return a valid `Read` instance.
+/// - `output_stream` must return a valid `Write` instance.
+pub fn prompt_for_string<IS: AbstractStream, OS: AbstractStream>(
+    mut input_stream: IS,
+    mut output_stream: OS,
+    prompt: &str,
+    is_sensitive: bool,
+) -> Result<String> {
+    prompt_for_string_impl(&mut input_stream, &mut output_stream, prompt, is_sensitive)
+}
+
+fn prompt_for_string_confirm_impl<IS: AbstractStream, OS: AbstractStream>(
+    input_stream: &mut IS,
+    output_stream: &mut OS,
     prompt: &str,
     is_sensitive: bool,
 ) -> Result<String> {
     loop {
-        let string = prompt_for_string(input_stream, output_stream, prompt, is_sensitive)?;
-        if string == prompt_for_string(input_stream, output_stream, "Confirm: ", is_sensitive)? {
+        let string = prompt_for_string_impl(input_stream, output_stream, prompt, is_sensitive)?;
+        if string == prompt_for_string_impl(input_stream, output_stream, "Confirm: ", is_sensitive)?
+        {
             return Ok(string);
         }
     }
+}
+
+/// Prompt for a string as per `prompt_for_string`, but additionally have the
+/// user enter the value again to confirm we get the same answer twice. This is
+/// useful for e.g. password entry.
+pub fn prompt_for_string_confirm<IS: AbstractStream, OS: AbstractStream>(
+    mut input_stream: IS,
+    mut output_stream: OS,
+    prompt: &str,
+    is_sensitive: bool,
+) -> Result<String> {
+    prompt_for_string_confirm_impl(&mut input_stream, &mut output_stream, prompt, is_sensitive)
 }
 
 /// MaybePromptedString is a wrapper for getting user input interactively, while
@@ -312,20 +331,28 @@ pub struct MaybePromptedString {
 impl MaybePromptedString {
     /// Construct a new MaybePromptedString, either using the given value or
     /// prompting the user interactively with the given options.
-    pub fn new<IS: AbstractStream + Copy, OS: AbstractStream + Copy>(
+    pub fn new<IS: AbstractStream, OS: AbstractStream>(
         provided: Option<&str>,
-        input_stream: IS,
-        output_stream: OS,
+        mut input_stream: IS,
+        mut output_stream: OS,
         prompt: &str,
         is_sensitive: bool,
         confirm: bool,
     ) -> Result<Self> {
         let prompted: Option<String> = match provided {
             None => Some(match confirm {
-                false => prompt_for_string(input_stream, output_stream, prompt, is_sensitive)?,
-                true => {
-                    prompt_for_string_confirm(input_stream, output_stream, prompt, is_sensitive)?
-                }
+                false => prompt_for_string_impl(
+                    &mut input_stream,
+                    &mut output_stream,
+                    prompt,
+                    is_sensitive,
+                )?,
+                true => prompt_for_string_confirm_impl(
+                    &mut input_stream,
+                    &mut output_stream,
+                    prompt,
+                    is_sensitive,
+                )?,
             }),
             Some(_) => None,
         };
@@ -353,16 +380,16 @@ impl MaybePromptedString {
 
 /// Display a "<description> Continue?" confirmation. Returns true if the user
 /// replies "yes" (or similar), or false otherwise.
-pub fn continue_confirmation<IS: AbstractStream + Copy, OS: AbstractStream + Copy>(
-    input_stream: IS,
-    output_stream: OS,
+pub fn continue_confirmation<IS: AbstractStream, OS: AbstractStream>(
+    mut input_stream: IS,
+    mut output_stream: OS,
     description: &str,
 ) -> Result<bool> {
     let prompt = format!("{}Continue? [Yes/No] ", description);
     loop {
-        let original_response = prompt_for_string(
-            input_stream,
-            output_stream,
+        let original_response = prompt_for_string_impl(
+            &mut input_stream,
+            &mut output_stream,
             prompt.as_str(),
             /*is_sensitive=*/ false,
         )?;
