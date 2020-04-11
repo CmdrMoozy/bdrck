@@ -19,6 +19,8 @@ use std::io::{Read, Write};
 // The write buffer size we preallocate, per instance of `TestStreamBuffers`.
 const TEST_WRITE_BUFFER_SIZE_BYTES: usize = 1024 * 100;
 
+/// This structure holds some fake terminal attributes, which the `cli` module
+/// can modify via `AbstractStream`, and which we can then inspect in our test.
 #[derive(Clone)]
 struct TestTerminalAttributes {
     on: HashSet<TerminalFlag>,
@@ -46,49 +48,60 @@ impl AbstractTerminalAttributes for TestTerminalAttributes {
     }
 }
 
-struct BufferState {
-    read_ptr: Option<(*const u8, *const u8)>,
-    write_ptr: Option<(*mut u8, *mut u8)>,
+/// This holds raw pointers to various bits of text context. This exists so
+/// `TestStream` and its reader and writer pieces can access / mutate the test
+/// context, while still being able to be consumed (moved) by the `cli` API.
+///
+/// We're doing this with raw pointers / unsafe because it's hard (impossible?)
+/// to accomplish this within Rust's lifetime rules, and after all this is only
+/// for testing, so whatever.
+#[derive(Clone, Copy)]
+struct TestContextPtrs {
+    attributes_ptr: *mut TestTerminalAttributes,
+    read_ptr: (*const u8, *const u8),
+    write_ptr: (*mut u8, *mut u8),
 }
 
+/// A `Read` implementation which operates on our test buffer.
 struct TestStreamReader {
-    state: *mut BufferState,
+    ctx: TestContextPtrs,
 }
 
 impl Read for TestStreamReader {
     fn read(&mut self, buf: &mut [u8]) -> IoResult<usize> {
+        let (current, end) = self.ctx.read_ptr;
+        let remaining = end as usize - current as usize;
+        let to_read = std::cmp::min(remaining, buf.len());
         unsafe {
-            let (current, end) = (*self.state).read_ptr.clone().unwrap();
-            let remaining = end as usize - current as usize;
-            let to_read = std::cmp::min(remaining, buf.len());
             std::ptr::copy_nonoverlapping(current, buf.as_mut_ptr(), to_read);
-            (*self.state).read_ptr = Some((current.offset(to_read as isize), end));
-            Ok(to_read)
+            self.ctx.read_ptr = (current.offset(to_read as isize), end);
         }
+        Ok(to_read)
     }
 }
 
+/// A `Write` implementation which operates on our test buffer.
 struct TestStreamWriter {
-    state: *mut BufferState,
+    ctx: TestContextPtrs,
 }
 
 impl Write for TestStreamWriter {
     fn write(&mut self, buf: &[u8]) -> IoResult<usize> {
-        unsafe {
-            let (current, end) = (*self.state).write_ptr.clone().unwrap();
-            let remaining = end as usize - current as usize;
-            let to_write = std::cmp::min(remaining, buf.len());
-            if to_write < buf.len() {
-                panic!(
-                    "Attempted to write {} bytes, only {} bytes left in buffer",
-                    buf.len(),
-                    remaining
-                );
-            }
-            std::ptr::copy_nonoverlapping(buf.as_ptr(), current, to_write);
-            (*self.state).write_ptr = Some((current.offset(to_write as isize), end));
-            Ok(to_write)
+        let (current, end) = self.ctx.write_ptr;
+        let remaining = end as usize - current as usize;
+        let to_write = std::cmp::min(remaining, buf.len());
+        if to_write < buf.len() {
+            panic!(
+                "Attempted to write {} bytes, only {} bytes left in buffer",
+                buf.len(),
+                remaining
+            );
         }
+        unsafe {
+            std::ptr::copy_nonoverlapping(buf.as_ptr(), current, to_write);
+            self.ctx.write_ptr = (current.offset(to_write as isize), end);
+        }
+        Ok(to_write)
     }
 
     fn flush(&mut self) -> IoResult<()> {
@@ -96,10 +109,23 @@ impl Write for TestStreamWriter {
     }
 }
 
+/// An `AbstractStream` implementation, which references a central
+/// `TestContext`. Importantly, if you create several streams, they all share
+/// the same underlying context.
+///
+/// It's completely fine and intended to create several `TestStream` instances
+/// from a single `TestContext`, and let the `cli` API consume (move) these.
+/// You can examine what was done to those streams by examining the
+/// `TestContext` after the fact.
+///
+/// An important consequence of this is that it is not safe to use these across
+/// threads; doing so results in undefined behavior (crashes or overwritten
+/// data).
 struct TestStream {
     isatty: bool,
-    attributes: TestTerminalAttributes,
-    state: *mut BufferState,
+    support_read: bool,
+    support_write: bool,
+    ctx: TestContextPtrs,
 }
 
 impl AbstractStream for TestStream {
@@ -110,72 +136,74 @@ impl AbstractStream for TestStream {
     }
 
     fn get_attributes(&self) -> IoResult<Self::Attributes> {
-        Ok(self.attributes.clone())
+        unsafe { Ok((*self.ctx.attributes_ptr).clone()) }
     }
 
     fn set_attributes(&mut self, attributes: &Self::Attributes) -> IoResult<()> {
-        self.attributes = attributes.clone();
+        unsafe {
+            *self.ctx.attributes_ptr = attributes.clone();
+        }
         Ok(())
     }
 
     fn as_reader(&self) -> Option<Box<dyn Read>> {
-        unsafe {
-            if (*self.state).read_ptr.is_some() {
-                Some(Box::new(TestStreamReader { state: self.state }))
-            } else {
-                None
-            }
+        match self.support_read {
+            false => None,
+            true => Some(Box::new(TestStreamReader { ctx: self.ctx })),
         }
     }
 
     fn as_writer(&self) -> Option<Box<dyn Write>> {
-        unsafe {
-            if (*self.state).write_ptr.is_some() {
-                Some(Box::new(TestStreamWriter { state: self.state }))
-            } else {
-                None
-            }
+        match self.support_write {
+            false => None,
+            true => Some(Box::new(TestStreamWriter { ctx: self.ctx })),
         }
     }
 }
 
-struct TestStreamBuffers {
-    read_buffer: Option<Vec<u8>>,
-    write_buffer: Option<Vec<u8>>,
-    state: BufferState,
+/// A structure which manages context for a `cli` unit test. This structure
+/// provides both `Read` and `Write` streams. Generally speaking, each test
+/// will create exactly one of these, and use `as_stream` to get
+/// `AbstractStream` instances to pass into the `cli` API.
+struct TestContext {
+    attributes: TestTerminalAttributes,
+    read_buffer: Vec<u8>,
+    write_buffer: Vec<u8>,
+    ctx: TestContextPtrs,
 }
 
-impl TestStreamBuffers {
-    fn new(read_input: Option<String>, support_write: bool) -> Self {
-        let read_buffer = read_input.map(|s| s.into_bytes());
-        let mut write_buffer = match support_write {
-            false => None,
-            true => Some(Vec::with_capacity(TEST_WRITE_BUFFER_SIZE_BYTES)),
-        };
+impl TestContext {
+    fn new(read_input: &str) -> Self {
+        let mut attributes = TestTerminalAttributes::new();
+        let read_buffer = read_input.as_bytes().to_vec();
+        let mut write_buffer = vec![0; TEST_WRITE_BUFFER_SIZE_BYTES];
 
-        let state = BufferState {
-            read_ptr: read_buffer
-                .as_ref()
-                .map(|b| (b.as_ptr(), unsafe { b.as_ptr().offset(b.len() as isize) })),
-            write_ptr: write_buffer.as_mut().map(|b: &mut Vec<u8>| {
-                (b.as_mut_ptr(), unsafe {
-                    b.as_mut_ptr().offset(b.len() as isize)
-                })
+        let ctx = TestContextPtrs {
+            attributes_ptr: &mut attributes,
+            read_ptr: (read_buffer.as_ptr(), unsafe {
+                read_buffer.as_ptr().offset(read_buffer.len() as isize)
+            }),
+            write_ptr: (write_buffer.as_mut_ptr(), unsafe {
+                write_buffer
+                    .as_mut_ptr()
+                    .offset(write_buffer.len() as isize)
             }),
         };
 
-        TestStreamBuffers {
+        TestContext {
+            attributes: attributes,
             read_buffer: read_buffer,
             write_buffer: write_buffer,
-            state: state,
+            ctx: ctx,
         }
     }
 
-    fn as_stream(&mut self, isatty: bool) -> TestStream {
+    fn as_stream(&mut self, isatty: bool, support_read: bool, support_write: bool) -> TestStream {
         TestStream {
+            support_read: support_read,
+            support_write: support_write,
             isatty: isatty,
-            attributes: TestTerminalAttributes::new(),
-            state: &mut self.state,
+            ctx: self.ctx,
         }
     }
 }
