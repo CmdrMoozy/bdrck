@@ -30,7 +30,7 @@ fn to_io_result(ret: c_int) -> IoResult<()> {
 }
 
 /// This enum describes high-level terminal flags, in an OS-agnostic way.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum TerminalFlag {
     /// A flag indicating that typed characters should be echoed.
     Echo,

@@ -13,6 +13,8 @@
 // limitations under the License.
 
 #[cfg(test)]
+mod cli;
+#[cfg(test)]
 mod configuration;
 #[cfg(test)]
 mod crypto;
