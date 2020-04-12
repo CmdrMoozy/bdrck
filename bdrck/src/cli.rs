@@ -203,6 +203,28 @@ impl<'s, S: AbstractStream> Drop for DisableEcho<'s, S> {
     }
 }
 
+fn require_isatty<S: AbstractStream>(s: &mut S) -> Result<()> {
+    if !s.isatty() {
+        Err(Error::Precondition(format_err!("Cannot prompt for interactive user input when the input/output streams are not both TTYs")))
+    } else {
+        Ok(())
+    }
+}
+
+fn build_input_reader<IS: AbstractStream>(
+    input_stream: &mut IS,
+) -> Result<io::BufReader<Box<dyn Read>>> {
+    require_isatty(input_stream)?;
+    Ok(io::BufReader::new(match input_stream.as_reader() {
+        None => {
+            return Err(Error::Precondition(format_err!(
+                "The given input stream must support `Read`"
+            )))
+        }
+        Some(r) => r,
+    }))
+}
+
 fn remove_newline(mut s: String) -> Result<String> {
     // Remove the trailing newline (if any - not finding one is an error).
     if !s.ends_with('\n') {
@@ -220,31 +242,20 @@ fn remove_newline(mut s: String) -> Result<String> {
 
 fn prompt_for_string_impl<IS: AbstractStream, OS: AbstractStream>(
     input_stream: &mut IS,
+    // We have to take the reader as a parameter, since it must be "global",
+    // even if this function is e.g. called in a loop. Otherwise, because it's
+    // buffered, we might buffer some input and then discard it.
+    input_reader: &mut io::BufReader<Box<dyn Read>>,
     output_stream: &mut OS,
     prompt: &str,
     is_sensitive: bool,
 ) -> Result<String> {
     use io::BufRead;
 
-    if !input_stream.isatty() {
-        return Err(Error::Precondition(format_err!(
-            "Cannot prompt for interactive user input when the input stream is not a TTY"
-        )));
-    }
-    if !output_stream.isatty() {
-        return Err(Error::Precondition(format_err!(
-            "Cannot prompt for interactive user input when the output stream is not a TTY"
-        )));
-    }
-
-    let mut reader = io::BufReader::new(match input_stream.as_reader() {
-        None => {
-            return Err(Error::Precondition(format_err!(
-                "The given input stream must support `Read`"
-            )))
-        }
-        Some(r) => r,
-    });
+    require_isatty(output_stream)?;
+    // It's fine to construct a separate writer, potentially on each loop
+    // iteration or whatever, because we flush immediately, and don't do any
+    // buffering.
     let mut writer = match output_stream.as_writer() {
         None => {
             return Err(Error::Precondition(format_err!(
@@ -264,7 +275,7 @@ fn prompt_for_string_impl<IS: AbstractStream, OS: AbstractStream>(
             true => Some(DisableEcho::new(input_stream)?),
         };
         let mut ret = String::new();
-        reader.read_line(&mut ret)?;
+        input_reader.read_line(&mut ret)?;
         remove_newline(ret)?
     })
 }
@@ -288,18 +299,39 @@ pub fn prompt_for_string<IS: AbstractStream, OS: AbstractStream>(
     prompt: &str,
     is_sensitive: bool,
 ) -> Result<String> {
-    prompt_for_string_impl(&mut input_stream, &mut output_stream, prompt, is_sensitive)
+    let mut input_reader = build_input_reader(&mut input_stream)?;
+    prompt_for_string_impl(
+        &mut input_stream,
+        &mut input_reader,
+        &mut output_stream,
+        prompt,
+        is_sensitive,
+    )
 }
 
 fn prompt_for_string_confirm_impl<IS: AbstractStream, OS: AbstractStream>(
     input_stream: &mut IS,
+    input_reader: &mut io::BufReader<Box<dyn Read>>,
     output_stream: &mut OS,
     prompt: &str,
     is_sensitive: bool,
 ) -> Result<String> {
     loop {
-        let string = prompt_for_string_impl(input_stream, output_stream, prompt, is_sensitive)?;
-        if string == prompt_for_string_impl(input_stream, output_stream, "Confirm: ", is_sensitive)?
+        let string = prompt_for_string_impl(
+            input_stream,
+            input_reader,
+            output_stream,
+            prompt,
+            is_sensitive,
+        )?;
+        if string
+            == prompt_for_string_impl(
+                input_stream,
+                input_reader,
+                output_stream,
+                "Confirm: ",
+                is_sensitive,
+            )?
         {
             return Ok(string);
         }
@@ -315,7 +347,14 @@ pub fn prompt_for_string_confirm<IS: AbstractStream, OS: AbstractStream>(
     prompt: &str,
     is_sensitive: bool,
 ) -> Result<String> {
-    prompt_for_string_confirm_impl(&mut input_stream, &mut output_stream, prompt, is_sensitive)
+    let mut input_reader = build_input_reader(&mut input_stream)?;
+    prompt_for_string_confirm_impl(
+        &mut input_stream,
+        &mut input_reader,
+        &mut output_stream,
+        prompt,
+        is_sensitive,
+    )
 }
 
 /// MaybePromptedString is a wrapper for getting user input interactively, while
@@ -339,16 +378,19 @@ impl MaybePromptedString {
         is_sensitive: bool,
         confirm: bool,
     ) -> Result<Self> {
+        let mut input_reader = build_input_reader(&mut input_stream)?;
         let prompted: Option<String> = match provided {
             None => Some(match confirm {
                 false => prompt_for_string_impl(
                     &mut input_stream,
+                    &mut input_reader,
                     &mut output_stream,
                     prompt,
                     is_sensitive,
                 )?,
                 true => prompt_for_string_confirm_impl(
                     &mut input_stream,
+                    &mut input_reader,
                     &mut output_stream,
                     prompt,
                     is_sensitive,
@@ -385,10 +427,13 @@ pub fn continue_confirmation<IS: AbstractStream, OS: AbstractStream>(
     mut output_stream: OS,
     description: &str,
 ) -> Result<bool> {
+    let mut input_reader = build_input_reader(&mut input_stream)?;
     let prompt = format!("{}Continue? [Yes/No] ", description);
+
     loop {
         let original_response = prompt_for_string_impl(
             &mut input_stream,
+            &mut input_reader,
             &mut output_stream,
             prompt.as_str(),
             /*is_sensitive=*/ false,
