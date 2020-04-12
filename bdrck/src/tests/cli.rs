@@ -71,17 +71,17 @@ struct TestContextPtrs {
 
 /// A `Read` implementation which operates on our test buffer.
 struct TestStreamReader {
-    ctx: TestContextPtrs,
+    ctx: *mut TestContextPtrs,
 }
 
 impl Read for TestStreamReader {
     fn read(&mut self, buf: &mut [u8]) -> IoResult<usize> {
-        let (current, end) = self.ctx.read_ptr;
+        let (current, end) = unsafe { (*self.ctx).read_ptr };
         let remaining = end as usize - current as usize;
         let to_read = std::cmp::min(remaining, buf.len());
         unsafe {
             std::ptr::copy_nonoverlapping(current, buf.as_mut_ptr(), to_read);
-            self.ctx.read_ptr = (current.offset(to_read as isize), end);
+            (*self.ctx).read_ptr = (current.offset(to_read as isize), end);
         }
         Ok(to_read)
     }
@@ -89,12 +89,12 @@ impl Read for TestStreamReader {
 
 /// A `Write` implementation which operates on our test buffer.
 struct TestStreamWriter {
-    ctx: TestContextPtrs,
+    ctx: *mut TestContextPtrs,
 }
 
 impl Write for TestStreamWriter {
     fn write(&mut self, buf: &[u8]) -> IoResult<usize> {
-        let (current, end) = self.ctx.write_ptr;
+        let (current, end) = unsafe { (*self.ctx).write_ptr };
         let remaining = end as usize - current as usize;
         let to_write = std::cmp::min(remaining, buf.len());
         if to_write < buf.len() {
@@ -106,7 +106,7 @@ impl Write for TestStreamWriter {
         }
         unsafe {
             std::ptr::copy_nonoverlapping(buf.as_ptr(), current, to_write);
-            self.ctx.write_ptr = (current.offset(to_write as isize), end);
+            (*self.ctx).write_ptr = (current.offset(to_write as isize), end);
         }
         Ok(to_write)
     }
@@ -132,7 +132,7 @@ struct TestStream {
     isatty: bool,
     support_read: bool,
     support_write: bool,
-    ctx: TestContextPtrs,
+    ctx: *mut TestContextPtrs,
 }
 
 impl AbstractStream for TestStream {
@@ -143,12 +143,12 @@ impl AbstractStream for TestStream {
     }
 
     fn get_attributes(&self) -> IoResult<Self::Attributes> {
-        unsafe { Ok((*self.ctx.attributes_ptr).clone()) }
+        unsafe { Ok((*(*self.ctx).attributes_ptr).clone()) }
     }
 
     fn set_attributes(&mut self, attributes: &Self::Attributes) -> IoResult<()> {
         unsafe {
-            *self.ctx.attributes_ptr = attributes.clone();
+            *(*self.ctx).attributes_ptr = attributes.clone();
         }
         Ok(())
     }
@@ -213,7 +213,7 @@ impl TestContext {
             support_read: support_read,
             support_write: support_write,
             isatty: isatty,
-            ctx: self.ctx,
+            ctx: &mut self.ctx,
         }
     }
 
@@ -222,6 +222,8 @@ impl TestContext {
         Ok(std::str::from_utf8(&self.write_buffer[0..len])?)
     }
 }
+
+const TEST_PROMPT: &'static str = "Test Prompt: ";
 
 #[test]
 fn test_input_stream_must_be_a_tty() {
@@ -232,7 +234,7 @@ fn test_input_stream_must_be_a_tty() {
     let os = ctx.as_stream(
         /*isatty=*/ true, /*support_read=*/ false, /*support_write=*/ true,
     );
-    assert!(prompt_for_string(is, os, "Prompt: ", /*is_sensitive=*/ false).is_err());
+    assert!(prompt_for_string(is, os, TEST_PROMPT, /*is_sensitive=*/ false).is_err());
 }
 
 #[test]
@@ -244,7 +246,7 @@ fn test_output_stream_must_be_a_tty() {
     let os = ctx.as_stream(
         /*isatty=*/ false, /*support_read=*/ false, /*support_write=*/ true,
     );
-    assert!(prompt_for_string(is, os, "Prompt: ", /*is_sensitive=*/ false).is_err());
+    assert!(prompt_for_string(is, os, TEST_PROMPT, /*is_sensitive=*/ false).is_err());
 }
 
 #[test]
@@ -256,7 +258,7 @@ fn test_input_stream_must_support_read() {
     let os = ctx.as_stream(
         /*isatty=*/ true, /*support_read=*/ false, /*support_write=*/ true,
     );
-    assert!(prompt_for_string(is, os, "Prompt: ", /*is_sensitive=*/ false).is_err());
+    assert!(prompt_for_string(is, os, TEST_PROMPT, /*is_sensitive=*/ false).is_err());
 }
 
 #[test]
@@ -268,7 +270,7 @@ fn test_output_stream_must_support_write() {
     let os = ctx.as_stream(
         /*isatty=*/ true, /*support_read=*/ false, /*support_write=*/ false,
     );
-    assert!(prompt_for_string(is, os, "Prompt: ", /*is_sensitive=*/ false).is_err());
+    assert!(prompt_for_string(is, os, TEST_PROMPT, /*is_sensitive=*/ false).is_err());
 }
 
 #[test]
@@ -280,9 +282,28 @@ fn test_prompt_for_string() {
     let os = ctx.as_stream(
         /*isatty=*/ true, /*support_read=*/ false, /*support_write=*/ true,
     );
-    let result = prompt_for_string(is, os, "Prompt: ", /*is_sensitive=*/ false).unwrap();
+    let result = prompt_for_string(is, os, TEST_PROMPT, /*is_sensitive=*/ false).unwrap();
 
     assert_eq!("foobar", result);
     assert_eq!(TestTerminalAttributes::default(), ctx.attributes);
-    assert_eq!("Prompt: ", ctx.write_buffer_as_str().unwrap());
+    assert_eq!(TEST_PROMPT, ctx.write_buffer_as_str().unwrap());
+}
+
+#[test]
+fn test_prompt_for_string_confirm() {
+    let mut ctx = TestContext::new("foobar\nfoobar\n");
+    let is = ctx.as_stream(
+        /*isatty=*/ true, /*support_read=*/ true, /*support_write=*/ false,
+    );
+    let os = ctx.as_stream(
+        /*isatty=*/ true, /*support_read=*/ false, /*support_write=*/ true,
+    );
+    let result = prompt_for_string_confirm(is, os, TEST_PROMPT, /*is_sensitive=*/ false).unwrap();
+
+    assert_eq!("foobar", result);
+    assert_eq!(TestTerminalAttributes::default(), ctx.attributes);
+    assert_eq!(
+        format!("{}Confirm: ", TEST_PROMPT),
+        ctx.write_buffer_as_str().unwrap()
+    );
 }
