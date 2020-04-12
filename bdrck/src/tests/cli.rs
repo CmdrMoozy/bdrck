@@ -13,6 +13,7 @@
 // limitations under the License.
 
 use crate::cli::*;
+use crate::error::*;
 use std::collections::HashSet;
 use std::io::{Read, Write};
 
@@ -21,7 +22,7 @@ const TEST_WRITE_BUFFER_SIZE_BYTES: usize = 1024 * 100;
 
 /// This structure holds some fake terminal attributes, which the `cli` module
 /// can modify via `AbstractStream`, and which we can then inspect in our test.
-#[derive(Clone)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 struct TestTerminalAttributes {
     on: HashSet<TerminalFlag>,
     off: HashSet<TerminalFlag>,
@@ -33,6 +34,12 @@ impl TestTerminalAttributes {
             on: [TerminalFlag::Echo].iter().cloned().collect(),
             off: HashSet::new(),
         }
+    }
+}
+
+impl Default for TestTerminalAttributes {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -167,6 +174,9 @@ impl AbstractStream for TestStream {
 /// `AbstractStream` instances to pass into the `cli` API.
 struct TestContext {
     attributes: TestTerminalAttributes,
+    // This field is used via a pointer into it, but because we're doing
+    // `unsafe` weirdness the compiler doesn't notice. Suppress the warning.
+    #[allow(dead_code)]
     read_buffer: Vec<u8>,
     write_buffer: Vec<u8>,
     ctx: TestContextPtrs,
@@ -174,7 +184,7 @@ struct TestContext {
 
 impl TestContext {
     fn new(read_input: &str) -> Self {
-        let mut attributes = TestTerminalAttributes::new();
+        let mut attributes = TestTerminalAttributes::default();
         let read_buffer = read_input.as_bytes().to_vec();
         let mut write_buffer = vec![0; TEST_WRITE_BUFFER_SIZE_BYTES];
 
@@ -206,4 +216,73 @@ impl TestContext {
             ctx: self.ctx,
         }
     }
+
+    fn write_buffer_as_str(&self) -> Result<&str> {
+        let len = self.write_buffer.iter().take_while(|&&b| b != 0).count();
+        Ok(std::str::from_utf8(&self.write_buffer[0..len])?)
+    }
+}
+
+#[test]
+fn test_input_stream_must_be_a_tty() {
+    let mut ctx = TestContext::new("");
+    let is = ctx.as_stream(
+        /*isatty=*/ false, /*support_read=*/ true, /*support_write=*/ false,
+    );
+    let os = ctx.as_stream(
+        /*isatty=*/ true, /*support_read=*/ false, /*support_write=*/ true,
+    );
+    assert!(prompt_for_string(is, os, "Prompt: ", /*is_sensitive=*/ false).is_err());
+}
+
+#[test]
+fn test_output_stream_must_be_a_tty() {
+    let mut ctx = TestContext::new("");
+    let is = ctx.as_stream(
+        /*isatty=*/ true, /*support_read=*/ true, /*support_write=*/ false,
+    );
+    let os = ctx.as_stream(
+        /*isatty=*/ false, /*support_read=*/ false, /*support_write=*/ true,
+    );
+    assert!(prompt_for_string(is, os, "Prompt: ", /*is_sensitive=*/ false).is_err());
+}
+
+#[test]
+fn test_input_stream_must_support_read() {
+    let mut ctx = TestContext::new("");
+    let is = ctx.as_stream(
+        /*isatty=*/ true, /*support_read=*/ false, /*support_write=*/ false,
+    );
+    let os = ctx.as_stream(
+        /*isatty=*/ true, /*support_read=*/ false, /*support_write=*/ true,
+    );
+    assert!(prompt_for_string(is, os, "Prompt: ", /*is_sensitive=*/ false).is_err());
+}
+
+#[test]
+fn test_output_stream_must_support_write() {
+    let mut ctx = TestContext::new("");
+    let is = ctx.as_stream(
+        /*isatty=*/ true, /*support_read=*/ true, /*support_write=*/ false,
+    );
+    let os = ctx.as_stream(
+        /*isatty=*/ true, /*support_read=*/ false, /*support_write=*/ false,
+    );
+    assert!(prompt_for_string(is, os, "Prompt: ", /*is_sensitive=*/ false).is_err());
+}
+
+#[test]
+fn test_prompt_for_string() {
+    let mut ctx = TestContext::new("foobar\n");
+    let is = ctx.as_stream(
+        /*isatty=*/ true, /*support_read=*/ true, /*support_write=*/ false,
+    );
+    let os = ctx.as_stream(
+        /*isatty=*/ true, /*support_read=*/ false, /*support_write=*/ true,
+    );
+    let result = prompt_for_string(is, os, "Prompt: ", /*is_sensitive=*/ false).unwrap();
+
+    assert_eq!("foobar", result);
+    assert_eq!(TestTerminalAttributes::default(), ctx.attributes);
+    assert_eq!("Prompt: ", ctx.write_buffer_as_str().unwrap());
 }

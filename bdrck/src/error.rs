@@ -25,6 +25,9 @@ pub enum Error {
     /// An error decoding bytes as UTF-8 text.
     #[fail(display = "{}", _0)]
     FromUtf8(#[cause] ::std::string::FromUtf8Error),
+    /// An error decoding bytes as UTF-8 text (except for `str` instead of `String`).
+    #[fail(display = "{}", _0)]
+    FromUtf8Str(#[cause] ::std::str::Utf8Error),
     /// An error encountered in trying to decode a hex string to the bytes it
     /// represents.
     #[cfg(feature = "data-encoding")]
@@ -113,6 +116,12 @@ impl From<::std::env::VarError> for Error {
 impl From<::std::string::FromUtf8Error> for Error {
     fn from(e: ::std::string::FromUtf8Error) -> Self {
         Error::FromUtf8(e)
+    }
+}
+
+impl From<::std::str::Utf8Error> for Error {
+    fn from(e: ::std::str::Utf8Error) -> Self {
+        Error::FromUtf8Str(e)
     }
 }
 
