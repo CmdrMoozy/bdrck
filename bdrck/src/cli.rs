@@ -13,9 +13,10 @@
 // limitations under the License.
 
 use crate::error::*;
-use atty;
+use errno;
 use failure::format_err;
 use libc::{self, c_int};
+use log::debug;
 use std::io::{self, Read, Write};
 use std::mem::MaybeUninit;
 
@@ -138,11 +139,29 @@ impl AbstractStream for Stream {
     type Attributes = TerminalAttributes;
 
     fn isatty(&self) -> bool {
-        atty::is(match *self {
-            Stream::Stdout => atty::Stream::Stdout,
-            Stream::Stderr => atty::Stream::Stderr,
-            Stream::Stdin => atty::Stream::Stdin,
-        })
+        let ret = unsafe { libc::isatty(self.to_fd()) };
+        let error: i32 = errno::errno().into();
+        match ret {
+            1 => true,
+            0 => match error {
+                libc::EBADF => false,
+                libc::ENOTTY => false,
+                _ => {
+                    debug!(
+                        "Unrecognized isatty errno: {}; assuming {:?} is not a TTY",
+                        error, *self
+                    );
+                    false
+                }
+            },
+            _ => {
+                debug!(
+                    "Unrecognized isatty return code: {}; assuming {:?} is not a TTY",
+                    ret, *self
+                );
+                false
+            }
+        }
     }
 
     fn get_attributes(&self) -> IoResult<Self::Attributes> {

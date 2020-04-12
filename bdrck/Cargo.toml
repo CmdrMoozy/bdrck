@@ -9,7 +9,6 @@ license = "Apache-2.0"
 edition = "2018"
 
 [dependencies]
-atty = { version = "0.2", optional = true }
 chrono = { version = "0.4", optional = true }
 data-encoding = { version = "2.2", optional = true }
 errno = { version = "0.2", optional = true }
@@ -29,7 +28,7 @@ url = { version = "2.1", optional = true }
 
 [features]
 default = ["cli", "configuration", "crypto", "fs", "http", "io", "logging", "net", "testing"]
-cli = ["atty", "libc"]
+cli = ["errno", "libc", "log"]
 configuration = ["rmp-serde", "serde"]
 crypto = ["data-encoding", "log", "rmp-serde", "serde", "sodiumoxide"]
 fs = ["errno", "libc", "log"]
