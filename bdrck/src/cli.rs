@@ -233,7 +233,7 @@ fn prompt_for_string_impl<IS: AbstractStream, OS: AbstractStream>(
     }
     if !output_stream.isatty() {
         return Err(Error::Precondition(format_err!(
-            "Cannot prompt for interactive user input when the output straem is not a TTY"
+            "Cannot prompt for interactive user input when the output stream is not a TTY"
         )));
     }
 
