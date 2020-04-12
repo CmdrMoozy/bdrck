@@ -14,7 +14,7 @@
 
 use crate::cli::*;
 use crate::error::*;
-use std::collections::HashSet;
+use std::collections::{HashSet, VecDeque};
 use std::io::{Read, Write};
 
 // The write buffer size we preallocate, per instance of `TestStreamBuffers`.
@@ -34,6 +34,17 @@ impl TestTerminalAttributes {
             on: [TerminalFlag::Echo].iter().cloned().collect(),
             off: HashSet::new(),
         }
+    }
+
+    fn new_specific_state(enabled: &[TerminalFlag], disabled: &[TerminalFlag]) -> Self {
+        let mut attrs = Self::new();
+        for &f in enabled {
+            attrs.enable(f);
+        }
+        for &f in disabled {
+            attrs.disable(f);
+        }
+        attrs
     }
 }
 
@@ -64,7 +75,7 @@ impl AbstractTerminalAttributes for TestTerminalAttributes {
 /// for testing, so whatever.
 #[derive(Clone, Copy)]
 struct TestContextPtrs {
-    attributes_ptr: *mut TestTerminalAttributes,
+    attributes_ptr: *mut VecDeque<TestTerminalAttributes>,
     read_ptr: (*const u8, *const u8),
     write_ptr: (*mut u8, *mut u8),
 }
@@ -143,12 +154,12 @@ impl AbstractStream for TestStream {
     }
 
     fn get_attributes(&self) -> IoResult<Self::Attributes> {
-        unsafe { Ok((*(*self.ctx).attributes_ptr).clone()) }
+        unsafe { Ok((*(*self.ctx).attributes_ptr).back().unwrap().clone()) }
     }
 
     fn set_attributes(&mut self, attributes: &Self::Attributes) -> IoResult<()> {
         unsafe {
-            *(*self.ctx).attributes_ptr = attributes.clone();
+            (*(*self.ctx).attributes_ptr).push_back(attributes.clone());
         }
         Ok(())
     }
@@ -173,7 +184,7 @@ impl AbstractStream for TestStream {
 /// will create exactly one of these, and use `as_stream` to get
 /// `AbstractStream` instances to pass into the `cli` API.
 struct TestContext {
-    attributes: TestTerminalAttributes,
+    attributes_over_time: Box<VecDeque<TestTerminalAttributes>>,
     // This field is used via a pointer into it, but because we're doing
     // `unsafe` weirdness the compiler doesn't notice. Suppress the warning.
     #[allow(dead_code)]
@@ -184,12 +195,13 @@ struct TestContext {
 
 impl TestContext {
     fn new(read_input: &str) -> Self {
-        let mut attributes = TestTerminalAttributes::default();
+        let mut attributes_over_time: Box<VecDeque<TestTerminalAttributes>> =
+            Box::new(vec![TestTerminalAttributes::default()].into());
         let read_buffer = read_input.as_bytes().to_vec();
         let mut write_buffer = vec![0; TEST_WRITE_BUFFER_SIZE_BYTES];
 
         let ctx = TestContextPtrs {
-            attributes_ptr: &mut attributes,
+            attributes_ptr: attributes_over_time.as_mut(),
             read_ptr: (read_buffer.as_ptr(), unsafe {
                 read_buffer.as_ptr().offset(read_buffer.len() as isize)
             }),
@@ -201,11 +213,16 @@ impl TestContext {
         };
 
         TestContext {
-            attributes: attributes,
+            attributes_over_time: attributes_over_time,
             read_buffer: read_buffer,
             write_buffer: write_buffer,
             ctx: ctx,
         }
+    }
+
+    fn has_default_attributes(&self) -> bool {
+        self.attributes_over_time.len() == 1
+            && *self.attributes_over_time.back().unwrap() == TestTerminalAttributes::default()
     }
 
     fn as_stream(&mut self, isatty: bool, support_read: bool, support_write: bool) -> TestStream {
@@ -303,11 +320,28 @@ fn test_prompt_for_string() {
     let result = prompt_for_string(is, os, TEST_PROMPT, /*is_sensitive=*/ false).unwrap();
 
     assert_eq!("foobar", result);
-    assert_eq!(TestTerminalAttributes::default(), ctx.attributes);
+    assert!(ctx.has_default_attributes());
     assert_eq!(TEST_PROMPT, ctx.write_buffer_as_str().unwrap());
 }
 
-// TODO: Add test for is_sensitive=true.
+#[test]
+fn test_prompt_for_string_sensitive() {
+    let (ctx, is, os) = create_normal_test_context("foobar\n");
+    let result = prompt_for_string(is, os, TEST_PROMPT, /*is_sensitive=*/ true).unwrap();
+
+    assert_eq!("foobar", result);
+    let expected_attributes_over_time: VecDeque<TestTerminalAttributes> = vec![
+        TestTerminalAttributes::default(),
+        TestTerminalAttributes::new_specific_state(
+            /*enabled=*/ &[TerminalFlag::EchoNewlines],
+            /*disabled=*/ &[TerminalFlag::Echo],
+        ),
+        TestTerminalAttributes::default(),
+    ]
+    .into();
+    assert_eq!(expected_attributes_over_time, *ctx.attributes_over_time);
+    assert_eq!(TEST_PROMPT, ctx.write_buffer_as_str().unwrap());
+}
 
 #[test]
 fn test_prompt_for_string_confirm() {
@@ -315,7 +349,7 @@ fn test_prompt_for_string_confirm() {
     let result = prompt_for_string_confirm(is, os, TEST_PROMPT, /*is_sensitive=*/ false).unwrap();
 
     assert_eq!("foobar", result);
-    assert_eq!(TestTerminalAttributes::default(), ctx.attributes);
+    assert!(ctx.has_default_attributes());
     assert_eq!(
         format!("{}Confirm: ", TEST_PROMPT),
         ctx.write_buffer_as_str().unwrap()
@@ -339,7 +373,7 @@ fn test_maybe_prompted_string() {
 
     assert!(!mps.was_provided());
     assert_eq!("foobar", mps.into_inner());
-    assert_eq!(TestTerminalAttributes::default(), ctx.attributes);
+    assert!(ctx.has_default_attributes());
     assert_eq!(TEST_PROMPT, ctx.write_buffer_as_str().unwrap());
 }
 
@@ -353,7 +387,7 @@ fn test_continue_confirmation_y() {
     let result = continue_confirmation(is, os, TEST_CONTINUE_DESCRIPTION).unwrap();
 
     assert!(result);
-    assert_eq!(TestTerminalAttributes::default(), ctx.attributes);
+    assert!(ctx.has_default_attributes());
     assert_eq!(
         format!("{}Continue? [Yes/No] ", TEST_CONTINUE_DESCRIPTION),
         ctx.write_buffer_as_str().unwrap()
@@ -366,7 +400,7 @@ fn test_continue_confirmation_yes() {
     let result = continue_confirmation(is, os, TEST_CONTINUE_DESCRIPTION).unwrap();
 
     assert!(result);
-    assert_eq!(TestTerminalAttributes::default(), ctx.attributes);
+    assert!(ctx.has_default_attributes());
     assert_eq!(
         format!("{}Continue? [Yes/No] ", TEST_CONTINUE_DESCRIPTION),
         ctx.write_buffer_as_str().unwrap()
@@ -379,7 +413,7 @@ fn test_continue_confirmation_yes_any_case() {
     let result = continue_confirmation(is, os, TEST_CONTINUE_DESCRIPTION).unwrap();
 
     assert!(result);
-    assert_eq!(TestTerminalAttributes::default(), ctx.attributes);
+    assert!(ctx.has_default_attributes());
     assert_eq!(
         format!("{}Continue? [Yes/No] ", TEST_CONTINUE_DESCRIPTION),
         ctx.write_buffer_as_str().unwrap()
@@ -392,7 +426,7 @@ fn test_continue_confirmation_n() {
     let result = continue_confirmation(is, os, TEST_CONTINUE_DESCRIPTION).unwrap();
 
     assert!(!result);
-    assert_eq!(TestTerminalAttributes::default(), ctx.attributes);
+    assert!(ctx.has_default_attributes());
     assert_eq!(
         format!("{}Continue? [Yes/No] ", TEST_CONTINUE_DESCRIPTION),
         ctx.write_buffer_as_str().unwrap()
@@ -405,7 +439,7 @@ fn test_continue_confirmation_no() {
     let result = continue_confirmation(is, os, TEST_CONTINUE_DESCRIPTION).unwrap();
 
     assert!(!result);
-    assert_eq!(TestTerminalAttributes::default(), ctx.attributes);
+    assert!(ctx.has_default_attributes());
     assert_eq!(
         format!("{}Continue? [Yes/No] ", TEST_CONTINUE_DESCRIPTION),
         ctx.write_buffer_as_str().unwrap()
@@ -418,7 +452,7 @@ fn test_continue_confirmation_no_any_case() {
     let result = continue_confirmation(is, os, TEST_CONTINUE_DESCRIPTION).unwrap();
 
     assert!(!result);
-    assert_eq!(TestTerminalAttributes::default(), ctx.attributes);
+    assert!(ctx.has_default_attributes());
     assert_eq!(
         format!("{}Continue? [Yes/No] ", TEST_CONTINUE_DESCRIPTION),
         ctx.write_buffer_as_str().unwrap()
