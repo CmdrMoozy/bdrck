@@ -349,7 +349,45 @@ fn test_prompt_for_string_confirm() {
     );
 }
 
-// TODO: Add test for is_senitive=true.
+#[test]
+fn test_prompt_for_string_confirm_mismatch() {
+    let (ctx, is, os) = create_normal_test_context("foo\nbar\nfoo\nfoo\n");
+    let result = prompt_for_string_confirm(is, os, TEST_PROMPT, /*is_sensitive=*/ false).unwrap();
+
+    assert_eq!("foo", result);
+    assert!(ctx.has_default_attributes());
+    assert_eq!(
+        format!("{}Confirm: {}Confirm: ", TEST_PROMPT, TEST_PROMPT),
+        ctx.write_buffer_as_str().unwrap()
+    );
+}
+
+#[test]
+fn test_prompt_for_string_confirm_sensitive() {
+    let (ctx, is, os) = create_normal_test_context("foobar\nfoobar\n");
+    let result = prompt_for_string_confirm(is, os, TEST_PROMPT, /*is_sensitive=*/ true).unwrap();
+
+    assert_eq!("foobar", result);
+    let expected_attributes_over_time: VecDeque<TestTerminalAttributes> = vec![
+        TestTerminalAttributes::default(),
+        TestTerminalAttributes::new_specific_state(
+            /*enabled=*/ &[TerminalFlag::EchoNewlines],
+            /*disabled=*/ &[TerminalFlag::Echo],
+        ),
+        TestTerminalAttributes::default(),
+        TestTerminalAttributes::new_specific_state(
+            /*enabled=*/ &[TerminalFlag::EchoNewlines],
+            /*disabled=*/ &[TerminalFlag::Echo],
+        ),
+        TestTerminalAttributes::default(),
+    ]
+    .into();
+    assert_eq!(expected_attributes_over_time, *ctx.attributes_over_time);
+    assert_eq!(
+        format!("{}Confirm: ", TEST_PROMPT),
+        ctx.write_buffer_as_str().unwrap()
+    );
+}
 
 #[test]
 fn test_maybe_prompted_string() {
@@ -373,6 +411,7 @@ fn test_maybe_prompted_string() {
 // TODO: Add test for provided.
 // TODO: Add test for is_sensitive=true.
 // TODO: Add test for confirm=true.
+// TODO: Add test for confirm=true, mismatched input.
 
 #[test]
 fn test_continue_confirmation_y() {
