@@ -223,7 +223,31 @@ impl TestContext {
     }
 }
 
+/// Create a standard test context, which works for "successful" tests. If you
+/// want to test an error / edge case, you might need to do this manually
+/// instead.
+///
+/// This function is always inlined, because something about leaving it
+/// non-inlined (and therefore moving the structs/Vecs or something?)
+/// causes our pointers to become invalid. Because this is for testing only,
+/// I'm not super interested in spending the time to make this super correct
+/// or robust, so inlining seems like the easy way out.
+///
+/// Returns a tuple of (context, input stream, output stream).
+#[inline(always)]
+fn create_normal_test_context(read_input: &str) -> (TestContext, TestStream, TestStream) {
+    let mut ctx = TestContext::new(read_input);
+    let is = ctx.as_stream(
+        /*isatty=*/ true, /*support_read=*/ true, /*support_write=*/ false,
+    );
+    let os = ctx.as_stream(
+        /*isatty=*/ true, /*support_read=*/ false, /*support_write=*/ true,
+    );
+    (ctx, is, os)
+}
+
 const TEST_PROMPT: &'static str = "Test Prompt: ";
+const TEST_CONTINUE_DESCRIPTION: &'static str = "Some test thing is about to happen.";
 
 #[test]
 fn test_input_stream_must_be_a_tty() {
@@ -275,13 +299,7 @@ fn test_output_stream_must_support_write() {
 
 #[test]
 fn test_prompt_for_string() {
-    let mut ctx = TestContext::new("foobar\n");
-    let is = ctx.as_stream(
-        /*isatty=*/ true, /*support_read=*/ true, /*support_write=*/ false,
-    );
-    let os = ctx.as_stream(
-        /*isatty=*/ true, /*support_read=*/ false, /*support_write=*/ true,
-    );
+    let (ctx, is, os) = create_normal_test_context("foobar\n");
     let result = prompt_for_string(is, os, TEST_PROMPT, /*is_sensitive=*/ false).unwrap();
 
     assert_eq!("foobar", result);
@@ -289,15 +307,11 @@ fn test_prompt_for_string() {
     assert_eq!(TEST_PROMPT, ctx.write_buffer_as_str().unwrap());
 }
 
+// TODO: Add test for is_sensitive=true.
+
 #[test]
 fn test_prompt_for_string_confirm() {
-    let mut ctx = TestContext::new("foobar\nfoobar\n");
-    let is = ctx.as_stream(
-        /*isatty=*/ true, /*support_read=*/ true, /*support_write=*/ false,
-    );
-    let os = ctx.as_stream(
-        /*isatty=*/ true, /*support_read=*/ false, /*support_write=*/ true,
-    );
+    let (ctx, is, os) = create_normal_test_context("foobar\nfoobar\n");
     let result = prompt_for_string_confirm(is, os, TEST_PROMPT, /*is_sensitive=*/ false).unwrap();
 
     assert_eq!("foobar", result);
@@ -307,3 +321,108 @@ fn test_prompt_for_string_confirm() {
         ctx.write_buffer_as_str().unwrap()
     );
 }
+
+// TODO: Add test for is_senitive=true.
+
+#[test]
+fn test_maybe_prompted_string() {
+    let (ctx, is, os) = create_normal_test_context("foobar\n");
+    let mps = MaybePromptedString::new(
+        /*provided=*/ None,
+        is,
+        os,
+        TEST_PROMPT,
+        /*is_sensitive=*/ false,
+        /*confirm=*/ false,
+    )
+    .unwrap();
+
+    assert!(!mps.was_provided());
+    assert_eq!("foobar", mps.into_inner());
+    assert_eq!(TestTerminalAttributes::default(), ctx.attributes);
+    assert_eq!(TEST_PROMPT, ctx.write_buffer_as_str().unwrap());
+}
+
+// TODO: Add test for provided.
+// TODO: Add test for is_sensitive=true.
+// TODO: Add test for confirm=true.
+
+#[test]
+fn test_continue_confirmation_y() {
+    let (ctx, is, os) = create_normal_test_context("y\n");
+    let result = continue_confirmation(is, os, TEST_CONTINUE_DESCRIPTION).unwrap();
+
+    assert!(result);
+    assert_eq!(TestTerminalAttributes::default(), ctx.attributes);
+    assert_eq!(
+        format!("{}Continue? [Yes/No] ", TEST_CONTINUE_DESCRIPTION),
+        ctx.write_buffer_as_str().unwrap()
+    );
+}
+
+#[test]
+fn test_continue_confirmation_yes() {
+    let (ctx, is, os) = create_normal_test_context("yes\n");
+    let result = continue_confirmation(is, os, TEST_CONTINUE_DESCRIPTION).unwrap();
+
+    assert!(result);
+    assert_eq!(TestTerminalAttributes::default(), ctx.attributes);
+    assert_eq!(
+        format!("{}Continue? [Yes/No] ", TEST_CONTINUE_DESCRIPTION),
+        ctx.write_buffer_as_str().unwrap()
+    );
+}
+
+#[test]
+fn test_continue_confirmation_yes_any_case() {
+    let (ctx, is, os) = create_normal_test_context("YeS\n");
+    let result = continue_confirmation(is, os, TEST_CONTINUE_DESCRIPTION).unwrap();
+
+    assert!(result);
+    assert_eq!(TestTerminalAttributes::default(), ctx.attributes);
+    assert_eq!(
+        format!("{}Continue? [Yes/No] ", TEST_CONTINUE_DESCRIPTION),
+        ctx.write_buffer_as_str().unwrap()
+    );
+}
+
+#[test]
+fn test_continue_confirmation_n() {
+    let (ctx, is, os) = create_normal_test_context("n\n");
+    let result = continue_confirmation(is, os, TEST_CONTINUE_DESCRIPTION).unwrap();
+
+    assert!(!result);
+    assert_eq!(TestTerminalAttributes::default(), ctx.attributes);
+    assert_eq!(
+        format!("{}Continue? [Yes/No] ", TEST_CONTINUE_DESCRIPTION),
+        ctx.write_buffer_as_str().unwrap()
+    );
+}
+
+#[test]
+fn test_continue_confirmation_no() {
+    let (ctx, is, os) = create_normal_test_context("no\n");
+    let result = continue_confirmation(is, os, TEST_CONTINUE_DESCRIPTION).unwrap();
+
+    assert!(!result);
+    assert_eq!(TestTerminalAttributes::default(), ctx.attributes);
+    assert_eq!(
+        format!("{}Continue? [Yes/No] ", TEST_CONTINUE_DESCRIPTION),
+        ctx.write_buffer_as_str().unwrap()
+    );
+}
+
+#[test]
+fn test_continue_confirmation_no_any_case() {
+    let (ctx, is, os) = create_normal_test_context("nO\n");
+    let result = continue_confirmation(is, os, TEST_CONTINUE_DESCRIPTION).unwrap();
+
+    assert!(!result);
+    assert_eq!(TestTerminalAttributes::default(), ctx.attributes);
+    assert_eq!(
+        format!("{}Continue? [Yes/No] ", TEST_CONTINUE_DESCRIPTION),
+        ctx.write_buffer_as_str().unwrap()
+    );
+}
+
+// TODO: Add tests for invalid inputs.
