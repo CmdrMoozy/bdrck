@@ -408,10 +408,96 @@ fn test_maybe_prompted_string() {
     assert_eq!(TEST_PROMPT, ctx.write_buffer_as_str().unwrap());
 }
 
-// TODO: Add test for provided.
-// TODO: Add test for is_sensitive=true.
-// TODO: Add test for confirm=true.
-// TODO: Add test for confirm=true, mismatched input.
+#[test]
+fn test_maybe_prompted_string_provided() {
+    let (ctx, is, os) = create_normal_test_context("");
+    let mps = MaybePromptedString::new(
+        /*provided=*/ Some("foobar"),
+        is,
+        os,
+        TEST_PROMPT,
+        /*is_sensitive=*/ false,
+        /*confirm=*/ false,
+    )
+    .unwrap();
+
+    assert!(mps.was_provided());
+    assert_eq!("foobar", mps.into_inner());
+    assert!(ctx.has_default_attributes());
+    assert!(ctx.write_buffer_as_str().unwrap().is_empty());
+}
+
+#[test]
+fn test_maybe_prompted_string_sensitive() {
+    let (ctx, is, os) = create_normal_test_context("foobar\n");
+    let mps = MaybePromptedString::new(
+        /*provided=*/ None,
+        is,
+        os,
+        TEST_PROMPT,
+        /*is_sensitive=*/ true,
+        /*confirm=*/ false,
+    )
+    .unwrap();
+
+    assert!(!mps.was_provided());
+    assert_eq!("foobar", mps.into_inner());
+    let expected_attributes_over_time: VecDeque<TestTerminalAttributes> = vec![
+        TestTerminalAttributes::default(),
+        TestTerminalAttributes::new_specific_state(
+            /*enabled=*/ &[TerminalFlag::EchoNewlines],
+            /*disabled=*/ &[TerminalFlag::Echo],
+        ),
+        TestTerminalAttributes::default(),
+    ]
+    .into();
+    assert_eq!(expected_attributes_over_time, *ctx.attributes_over_time);
+    assert_eq!(TEST_PROMPT, ctx.write_buffer_as_str().unwrap());
+}
+
+#[test]
+fn test_maybe_prompted_string_confirm() {
+    let (ctx, is, os) = create_normal_test_context("foobar\nfoobar\n");
+    let mps = MaybePromptedString::new(
+        /*provided=*/ None,
+        is,
+        os,
+        TEST_PROMPT,
+        /*is_sensitive=*/ false,
+        /*confirm=*/ true,
+    )
+    .unwrap();
+
+    assert!(!mps.was_provided());
+    assert_eq!("foobar", mps.into_inner());
+    assert!(ctx.has_default_attributes());
+    assert_eq!(
+        format!("{}Confirm: ", TEST_PROMPT),
+        ctx.write_buffer_as_str().unwrap()
+    );
+}
+
+#[test]
+fn test_maybe_prompted_string_confirm_mismatch() {
+    let (ctx, is, os) = create_normal_test_context("foo\nbar\nfoo\nfoo\n");
+    let mps = MaybePromptedString::new(
+        /*provided=*/ None,
+        is,
+        os,
+        TEST_PROMPT,
+        /*is_sensitive=*/ false,
+        /*confirm=*/ true,
+    )
+    .unwrap();
+
+    assert!(!mps.was_provided());
+    assert_eq!("foo", mps.into_inner());
+    assert!(ctx.has_default_attributes());
+    assert_eq!(
+        format!("{}Confirm: {}Confirm: ", TEST_PROMPT, TEST_PROMPT),
+        ctx.write_buffer_as_str().unwrap()
+    );
+}
 
 #[test]
 fn test_continue_confirmation_y() {
@@ -491,4 +577,18 @@ fn test_continue_confirmation_no_any_case() {
     );
 }
 
-// TODO: Add tests for invalid inputs.
+#[test]
+fn test_continue_confirmation_bad_input() {
+    let (ctx, is, os) = create_normal_test_context("foo\nYes\n");
+    let result = continue_confirmation(is, os, TEST_CONTINUE_DESCRIPTION).unwrap();
+
+    assert!(result);
+    assert!(ctx.has_default_attributes());
+    assert_eq!(
+        format!(
+            "{}Continue? [Yes/No] Invalid response 'foo'.\n{}Continue? [Yes/No] ",
+            TEST_CONTINUE_DESCRIPTION, TEST_CONTINUE_DESCRIPTION
+        ),
+        ctx.write_buffer_as_str().unwrap()
+    );
+}
