@@ -190,7 +190,7 @@ struct TestContext {
     #[allow(dead_code)]
     read_buffer: Vec<u8>,
     write_buffer: Vec<u8>,
-    ctx: TestContextPtrs,
+    ctx: Box<TestContextPtrs>,
 }
 
 impl TestContext {
@@ -200,7 +200,7 @@ impl TestContext {
         let read_buffer = read_input.as_bytes().to_vec();
         let mut write_buffer = vec![0; TEST_WRITE_BUFFER_SIZE_BYTES];
 
-        let ctx = TestContextPtrs {
+        let ctx = Box::new(TestContextPtrs {
             attributes_ptr: attributes_over_time.as_mut(),
             read_ptr: (read_buffer.as_ptr(), unsafe {
                 read_buffer.as_ptr().offset(read_buffer.len() as isize)
@@ -210,7 +210,7 @@ impl TestContext {
                     .as_mut_ptr()
                     .offset(write_buffer.len() as isize)
             }),
-        };
+        });
 
         TestContext {
             attributes_over_time: attributes_over_time,
@@ -230,7 +230,7 @@ impl TestContext {
             support_read: support_read,
             support_write: support_write,
             isatty: isatty,
-            ctx: &mut self.ctx,
+            ctx: self.ctx.as_mut(),
         }
     }
 
@@ -244,14 +244,7 @@ impl TestContext {
 /// want to test an error / edge case, you might need to do this manually
 /// instead.
 ///
-/// This function is always inlined, because something about leaving it
-/// non-inlined (and therefore moving the structs/Vecs or something?)
-/// causes our pointers to become invalid. Because this is for testing only,
-/// I'm not super interested in spending the time to make this super correct
-/// or robust, so inlining seems like the easy way out.
-///
 /// Returns a tuple of (context, input stream, output stream).
-#[inline(always)]
 fn create_normal_test_context(read_input: &str) -> (TestContext, TestStream, TestStream) {
     let mut ctx = TestContext::new(read_input);
     let is = ctx.as_stream(
