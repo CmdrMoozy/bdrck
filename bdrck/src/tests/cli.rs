@@ -75,7 +75,8 @@ impl AbstractTerminalAttributes for TestTerminalAttributes {
 /// for testing, so whatever.
 #[derive(Clone, Copy)]
 struct TestContextPtrs {
-    attributes_ptr: *mut VecDeque<TestTerminalAttributes>,
+    read_attributes_ptr: *mut VecDeque<TestTerminalAttributes>,
+    write_attributes_ptr: *mut VecDeque<TestTerminalAttributes>,
     read_ptr: (*const u8, *const u8),
     write_ptr: (*mut u8, *mut u8),
 }
@@ -146,6 +147,16 @@ struct TestStream {
     ctx: *mut TestContextPtrs,
 }
 
+impl TestStream {
+    fn get_attributes_ptr(&self) -> *mut VecDeque<TestTerminalAttributes> {
+        if self.support_read {
+            unsafe { (*self.ctx).read_attributes_ptr }
+        } else {
+            unsafe { (*self.ctx).write_attributes_ptr }
+        }
+    }
+}
+
 impl AbstractStream for TestStream {
     type Attributes = TestTerminalAttributes;
 
@@ -154,13 +165,11 @@ impl AbstractStream for TestStream {
     }
 
     fn get_attributes(&self) -> IoResult<Self::Attributes> {
-        unsafe { Ok((*(*self.ctx).attributes_ptr).back().unwrap().clone()) }
+        Ok(unsafe { (*self.get_attributes_ptr()).back().unwrap().clone() })
     }
 
     fn set_attributes(&mut self, attributes: &Self::Attributes) -> IoResult<()> {
-        unsafe {
-            (*(*self.ctx).attributes_ptr).push_back(attributes.clone());
-        }
+        unsafe { (*self.get_attributes_ptr()).push_back(attributes.clone()) };
         Ok(())
     }
 
@@ -179,12 +188,18 @@ impl AbstractStream for TestStream {
     }
 }
 
+fn attributes_are_default(attributes: &VecDeque<TestTerminalAttributes>) -> bool {
+    return attributes.len() == 1
+        && *attributes.back().unwrap() == TestTerminalAttributes::default();
+}
+
 /// A structure which manages context for a `cli` unit test. This structure
 /// provides both `Read` and `Write` streams. Generally speaking, each test
 /// will create exactly one of these, and use `as_stream` to get
 /// `AbstractStream` instances to pass into the `cli` API.
 struct TestContext {
-    attributes_over_time: Box<VecDeque<TestTerminalAttributes>>,
+    read_attributes_over_time: Box<VecDeque<TestTerminalAttributes>>,
+    write_attributes_over_time: Box<VecDeque<TestTerminalAttributes>>,
     // This field is used via a pointer into it, but because we're doing
     // `unsafe` weirdness the compiler doesn't notice. Suppress the warning.
     #[allow(dead_code)]
@@ -195,13 +210,15 @@ struct TestContext {
 
 impl TestContext {
     fn new(read_input: &str) -> Self {
-        let mut attributes_over_time: Box<VecDeque<TestTerminalAttributes>> =
+        let mut read_attributes_over_time: Box<VecDeque<TestTerminalAttributes>> =
             Box::new(vec![TestTerminalAttributes::default()].into());
+        let mut write_attributes_over_time = read_attributes_over_time.clone();
         let read_buffer = read_input.as_bytes().to_vec();
         let mut write_buffer = vec![0; TEST_WRITE_BUFFER_SIZE_BYTES];
 
         let ctx = Box::new(TestContextPtrs {
-            attributes_ptr: attributes_over_time.as_mut(),
+            read_attributes_ptr: read_attributes_over_time.as_mut(),
+            write_attributes_ptr: write_attributes_over_time.as_mut(),
             read_ptr: (read_buffer.as_ptr(), unsafe {
                 read_buffer.as_ptr().offset(read_buffer.len() as isize)
             }),
@@ -213,7 +230,8 @@ impl TestContext {
         });
 
         TestContext {
-            attributes_over_time: attributes_over_time,
+            read_attributes_over_time: read_attributes_over_time,
+            write_attributes_over_time: write_attributes_over_time,
             read_buffer: read_buffer,
             write_buffer: write_buffer,
             ctx: ctx,
@@ -221,11 +239,14 @@ impl TestContext {
     }
 
     fn has_default_attributes(&self) -> bool {
-        self.attributes_over_time.len() == 1
-            && *self.attributes_over_time.back().unwrap() == TestTerminalAttributes::default()
+        attributes_are_default(&self.read_attributes_over_time)
+            && attributes_are_default(&self.write_attributes_over_time)
     }
 
     fn as_stream(&mut self, isatty: bool, support_read: bool, support_write: bool) -> TestStream {
+        if support_read && support_write {
+            panic!("Test streams must be either read streams or write streams.");
+        }
         TestStream {
             support_read: support_read,
             support_write: support_write,
@@ -323,7 +344,7 @@ fn test_prompt_for_string_sensitive() {
     let result = prompt_for_string(is, os, TEST_PROMPT, /*is_sensitive=*/ true).unwrap();
 
     assert_eq!("foobar", result);
-    let expected_attributes_over_time: VecDeque<TestTerminalAttributes> = vec![
+    let expected_read_attributes_over_time: VecDeque<TestTerminalAttributes> = vec![
         TestTerminalAttributes::default(),
         TestTerminalAttributes::new_specific_state(
             /*enabled=*/ &[TerminalFlag::EchoNewlines],
@@ -332,7 +353,13 @@ fn test_prompt_for_string_sensitive() {
         TestTerminalAttributes::default(),
     ]
     .into();
-    assert_eq!(expected_attributes_over_time, *ctx.attributes_over_time);
+    assert_eq!(
+        expected_read_attributes_over_time,
+        *ctx.read_attributes_over_time
+    );
+    assert!(attributes_are_default(
+        ctx.write_attributes_over_time.as_ref()
+    ));
     assert_eq!(TEST_PROMPT, ctx.write_buffer_as_str().unwrap());
 }
 
@@ -368,7 +395,7 @@ fn test_prompt_for_string_confirm_sensitive() {
     let result = prompt_for_string_confirm(is, os, TEST_PROMPT, /*is_sensitive=*/ true).unwrap();
 
     assert_eq!("foobar", result);
-    let expected_attributes_over_time: VecDeque<TestTerminalAttributes> = vec![
+    let expected_read_attributes_over_time: VecDeque<TestTerminalAttributes> = vec![
         TestTerminalAttributes::default(),
         TestTerminalAttributes::new_specific_state(
             /*enabled=*/ &[TerminalFlag::EchoNewlines],
@@ -382,7 +409,13 @@ fn test_prompt_for_string_confirm_sensitive() {
         TestTerminalAttributes::default(),
     ]
     .into();
-    assert_eq!(expected_attributes_over_time, *ctx.attributes_over_time);
+    assert_eq!(
+        expected_read_attributes_over_time,
+        *ctx.read_attributes_over_time
+    );
+    assert!(attributes_are_default(
+        ctx.write_attributes_over_time.as_ref()
+    ));
     assert_eq!(
         format!("{}Confirm: ", TEST_PROMPT),
         ctx.write_buffer_as_str().unwrap()
@@ -442,7 +475,7 @@ fn test_maybe_prompted_string_sensitive() {
 
     assert!(!mps.was_provided());
     assert_eq!("foobar", mps.into_inner());
-    let expected_attributes_over_time: VecDeque<TestTerminalAttributes> = vec![
+    let expected_read_attributes_over_time: VecDeque<TestTerminalAttributes> = vec![
         TestTerminalAttributes::default(),
         TestTerminalAttributes::new_specific_state(
             /*enabled=*/ &[TerminalFlag::EchoNewlines],
@@ -451,7 +484,13 @@ fn test_maybe_prompted_string_sensitive() {
         TestTerminalAttributes::default(),
     ]
     .into();
-    assert_eq!(expected_attributes_over_time, *ctx.attributes_over_time);
+    assert_eq!(
+        expected_read_attributes_over_time,
+        *ctx.read_attributes_over_time
+    );
+    assert!(attributes_are_default(
+        ctx.write_attributes_over_time.as_ref()
+    ));
     assert_eq!(TEST_PROMPT, ctx.write_buffer_as_str().unwrap());
 }
 
