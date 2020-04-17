@@ -79,6 +79,182 @@ impl TerminalAttributes {
     }
 }
 
+fn debug_format_flag_field(
+    mut v: libc::tcflag_t,
+    fs: &'static [(&'static str, libc::tcflag_t)],
+) -> std::result::Result<String, std::fmt::Error> {
+    use std::fmt::Write;
+
+    let mut s = String::new();
+    for (fname, fvalue) in fs {
+        if (v & fvalue) != 0 {
+            let was_empty = s.is_empty();
+            write!(
+                &mut s,
+                "{}{}",
+                match was_empty {
+                    true => "",
+                    false => " | ",
+                },
+                fname
+            )?;
+            v &= !v;
+        }
+    }
+    if v != 0 {
+        let was_empty = s.is_empty();
+        write!(
+            &mut s,
+            "{}(extra: {:x})",
+            match was_empty {
+                true => "",
+                false => " ",
+            },
+            v
+        )?;
+    }
+    Ok(s)
+}
+
+fn debug_format_c_cc_field(
+    c_cc: &[libc::cc_t; 32],
+) -> std::result::Result<String, std::fmt::Error> {
+    use std::fmt::Write;
+
+    const INDICES: &'static [(&'static str, usize)] = &[
+        ("VDISCARD", libc::VDISCARD),
+        ("VEOF", libc::VEOF),
+        ("VEOL", libc::VEOL),
+        ("VEOL2", libc::VEOL2),
+        ("VERASE", libc::VERASE),
+        ("VINTR", libc::VINTR),
+        ("VKILL", libc::VKILL),
+        ("VLNEXT", libc::VLNEXT),
+        ("VMIN", libc::VMIN),
+        ("VQUIT", libc::VQUIT),
+        ("VREPRINT", libc::VREPRINT),
+        ("VSTART", libc::VSTART),
+        ("VSTOP", libc::VSTOP),
+        ("VSUSP", libc::VSUSP),
+        ("VSWTC", libc::VSWTC),
+        ("VTIME", libc::VTIME),
+        ("VWERASE", libc::VWERASE),
+    ];
+
+    let mut s = String::new();
+    for &(name, idx) in INDICES {
+        let was_empty = s.is_empty();
+        write!(
+            &mut s,
+            "{}{}:{}",
+            match was_empty {
+                true => "",
+                false => ", ",
+            },
+            name,
+            c_cc[idx]
+        )?;
+    }
+    write!(&mut s, "]")?;
+    Ok(s)
+}
+
+impl std::fmt::Debug for TerminalAttributes {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let inner: &libc::termios = unsafe { &*self.inner.as_ptr() };
+        f.debug_struct("TerminalAttributes")
+            .field(
+                "c_iflag",
+                &debug_format_flag_field(
+                    inner.c_iflag,
+                    &[
+                        ("IGNBRK", libc::IGNBRK),
+                        ("BRKINT", libc::BRKINT),
+                        ("IGNPAR", libc::IGNPAR),
+                        ("PARMRK", libc::PARMRK),
+                        ("INPCK", libc::INPCK),
+                        ("ISTRIP", libc::ISTRIP),
+                        ("INLCR", libc::INLCR),
+                        ("IGNCR", libc::IGNCR),
+                        ("ICRNL", libc::ICRNL),
+                        ("IXON", libc::IXON),
+                        ("IXANY", libc::IXANY),
+                        ("IXOFF", libc::IXOFF),
+                        ("IMAXBEL", libc::IMAXBEL),
+                        ("IUTF8", libc::IUTF8),
+                    ],
+                )?,
+            )
+            .field(
+                "c_oflag",
+                &debug_format_flag_field(
+                    inner.c_oflag,
+                    &[
+                        ("OPOST", libc::OPOST),
+                        ("OLCUC", libc::OLCUC),
+                        ("ONLCR", libc::ONLCR),
+                        ("ONOCR", libc::ONOCR),
+                        ("ONLRET", libc::ONLRET),
+                        ("OFILL", libc::OFILL),
+                        ("OFDEL", libc::OFDEL),
+                        ("NLDLY", libc::NLDLY),
+                        ("CRDLY", libc::CRDLY),
+                        ("TABDLY", libc::TABDLY),
+                        ("BSDLY", libc::BSDLY),
+                        ("VTDLY", libc::VTDLY),
+                        ("FFDLY", libc::FFDLY),
+                    ],
+                )?,
+            )
+            .field(
+                "c_cflag",
+                &debug_format_flag_field(
+                    inner.c_cflag,
+                    &[
+                        ("CBAUD", libc::CBAUD),
+                        ("CBAUDEX", libc::CBAUDEX),
+                        ("CSIZE", libc::CSIZE),
+                        ("CSTOPB", libc::CSTOPB),
+                        ("CREAD", libc::CREAD),
+                        ("PARENB", libc::PARENB),
+                        ("PARODD", libc::PARODD),
+                        ("HUPCL", libc::HUPCL),
+                        ("CLOCAL", libc::CLOCAL),
+                        ("CIBAUD", libc::CIBAUD),
+                        ("CMSPAR", libc::CMSPAR),
+                        ("CRTSCTS", libc::CRTSCTS),
+                    ],
+                )?,
+            )
+            .field(
+                "c_lflag",
+                &debug_format_flag_field(
+                    inner.c_lflag,
+                    &[
+                        ("ISIG", libc::ISIG),
+                        ("ICANON", libc::ICANON),
+                        ("ECHO", libc::ECHO),
+                        ("ECHOE", libc::ECHOE),
+                        ("ECHOK", libc::ECHOK),
+                        ("ECHONL", libc::ECHONL),
+                        ("ECHOCTL", libc::ECHOCTL),
+                        ("ECHOPRT", libc::ECHOPRT),
+                        ("ECHOKE", libc::ECHOKE),
+                        ("FLUSHO", libc::FLUSHO),
+                        ("NOFLSH", libc::NOFLSH),
+                        ("TOSTOP", libc::TOSTOP),
+                        ("PENDIN", libc::PENDIN),
+                        ("IEXTEN", libc::IEXTEN),
+                    ],
+                )?,
+            )
+            .field("c_cc", &debug_format_c_cc_field(&inner.c_cc)?)
+            .field("c_ispeed", unsafe { &libc::cfgetispeed(inner) })
+            .field("c_ospeed", unsafe { &libc::cfgetospeed(inner) })
+            .finish()
+    }
+}
+
 impl AbstractTerminalAttributes for TerminalAttributes {
     fn enable(&mut self, flag: TerminalFlag) {
         unsafe { *self.inner.as_mut_ptr() }.c_lflag &= !flag.to_value();
@@ -95,7 +271,7 @@ impl AbstractTerminalAttributes for TerminalAttributes {
 /// will instead just use the concrete type `Stream` defined below.
 pub trait AbstractStream {
     /// A type which describes the attributes of this stream / terminal.
-    type Attributes: AbstractTerminalAttributes;
+    type Attributes: AbstractTerminalAttributes + std::fmt::Debug;
 
     /// Returns whether or not this stream refers to an interactive terminal (a
     /// TTY), as opposed to, for example, a pipe.
@@ -199,13 +375,16 @@ struct DisableEcho<'s, S: AbstractStream> {
 impl<'s, S: AbstractStream> DisableEcho<'s, S> {
     fn new(stream: &'s mut S) -> Result<Self> {
         let initial_attributes = stream.get_attributes()?;
+        debug!("Initial stream attributes: {:#?}", initial_attributes);
 
         let mut attributes = stream.get_attributes()?;
         // Don't echo characters typed to stdin.
         attributes.disable(TerminalFlag::Echo);
         // But, *do* echo the newline when the user hits ENTER.
         attributes.enable(TerminalFlag::EchoNewlines);
+        debug!("Setting attributes to: {:#?}", attributes);
         stream.set_attributes(&attributes)?;
+        debug!("Current attributes: {:#?}", stream.get_attributes()?);
 
         Ok(DisableEcho {
             stream: stream,
@@ -216,9 +395,11 @@ impl<'s, S: AbstractStream> DisableEcho<'s, S> {
 
 impl<'s, S: AbstractStream> Drop for DisableEcho<'s, S> {
     fn drop(&mut self) {
+        debug!("Current attributes: {:#?}", self.stream.get_attributes());
         self.stream
             .set_attributes(&self.initial_attributes)
             .unwrap();
+        debug!("Attributes reset to: {:#?}", self.stream.get_attributes());
     }
 }
 
