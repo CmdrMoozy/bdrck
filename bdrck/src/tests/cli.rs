@@ -281,6 +281,31 @@ const TEST_PROMPT: &'static str = "Test Prompt: ";
 const TEST_CONTINUE_DESCRIPTION: &'static str = "Some test thing is about to happen.";
 
 #[test]
+fn test_real_terminal_attributes() {
+    let mut attrs = TerminalAttributes::new_empty();
+
+    // Empty, so nothing should be enabled.
+    assert!(!attrs.is_enabled(TerminalFlag::Echo));
+    assert!(!attrs.is_enabled(TerminalFlag::EchoNewlines));
+
+    // If we enable them, then they should actually be enabled.
+    attrs.enable(TerminalFlag::Echo);
+    assert!(attrs.is_enabled(TerminalFlag::Echo));
+    assert!(!attrs.is_enabled(TerminalFlag::EchoNewlines));
+    attrs.enable(TerminalFlag::EchoNewlines);
+    assert!(attrs.is_enabled(TerminalFlag::Echo));
+    assert!(attrs.is_enabled(TerminalFlag::EchoNewlines));
+
+    // And, finally, if we disable them, they should actually be disabled.
+    attrs.disable(TerminalFlag::Echo);
+    assert!(!attrs.is_enabled(TerminalFlag::Echo));
+    assert!(attrs.is_enabled(TerminalFlag::EchoNewlines));
+    attrs.disable(TerminalFlag::EchoNewlines);
+    assert!(!attrs.is_enabled(TerminalFlag::Echo));
+    assert!(!attrs.is_enabled(TerminalFlag::EchoNewlines));
+}
+
+#[test]
 fn test_input_stream_must_be_a_tty() {
     let mut ctx = TestContext::new("");
     let is = ctx.as_stream(

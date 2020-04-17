@@ -74,8 +74,21 @@ impl TerminalAttributes {
         Ok(TerminalAttributes { inner: attrs })
     }
 
+    /// Create a new TerminalAttributes, with an "empty" state (no flags
+    /// enabled).
+    pub fn new_empty() -> Self {
+        TerminalAttributes {
+            inner: MaybeUninit::zeroed(),
+        }
+    }
+
     fn apply(&self, fd: c_int) -> IoResult<()> {
         to_io_result(unsafe { libc::tcsetattr(fd, libc::TCSANOW, self.inner.as_ptr()) })
+    }
+
+    /// Test whether or not the given `TerminalFlag` is currently enabled.
+    pub fn is_enabled(&self, flag: TerminalFlag) -> bool {
+        unsafe { *self.inner.as_ptr() }.c_lflag & flag.to_value() != 0
     }
 }
 
@@ -257,11 +270,11 @@ impl std::fmt::Debug for TerminalAttributes {
 
 impl AbstractTerminalAttributes for TerminalAttributes {
     fn enable(&mut self, flag: TerminalFlag) {
-        unsafe { *self.inner.as_mut_ptr() }.c_lflag &= !flag.to_value();
+        unsafe { &mut *self.inner.as_mut_ptr() }.c_lflag |= flag.to_value();
     }
 
     fn disable(&mut self, flag: TerminalFlag) {
-        unsafe { *self.inner.as_mut_ptr() }.c_lflag |= flag.to_value();
+        unsafe { &mut *self.inner.as_mut_ptr() }.c_lflag &= !flag.to_value();
     }
 }
 
