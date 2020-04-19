@@ -64,42 +64,60 @@ pub trait AbstractTerminalAttributes {
 /// This is an opaque structure which encapsulates the state / attributes of an
 /// interactive terminal. The contents of this structure are OS-specific.
 pub struct TerminalAttributes {
-    inner: MaybeUninit<libc::termios>,
+    inner: libc::termios,
 }
 
 impl TerminalAttributes {
     fn new(fd: c_int) -> IoResult<Self> {
         let mut attrs = MaybeUninit::uninit();
         to_io_result(unsafe { libc::tcgetattr(fd, attrs.as_mut_ptr()) })?;
-        Ok(TerminalAttributes { inner: attrs })
+        Ok(TerminalAttributes {
+            inner: unsafe { attrs.assume_init() },
+        })
     }
 
     /// Create a new TerminalAttributes, with an "empty" state (no flags
     /// enabled).
     pub fn new_empty() -> Self {
         TerminalAttributes {
-            inner: MaybeUninit::zeroed(),
+            inner: unsafe { MaybeUninit::zeroed().assume_init() },
         }
     }
 
     fn apply(&self, fd: c_int) -> IoResult<()> {
-        to_io_result(unsafe { libc::tcsetattr(fd, libc::TCSANOW, self.inner.as_ptr()) })
+        to_io_result(unsafe { libc::tcsetattr(fd, libc::TCSANOW, &self.inner) })
     }
 
     /// Test whether or not the given `TerminalFlag` is currently enabled.
     pub fn is_enabled(&self, flag: TerminalFlag) -> bool {
-        unsafe { *self.inner.as_ptr() }.c_lflag & flag.to_value() != 0
+        self.inner.c_lflag & flag.to_value() != 0
     }
 }
 
+impl PartialEq for TerminalAttributes {
+    fn eq(&self, other: &Self) -> bool {
+        self.inner.c_iflag == other.inner.c_iflag
+            && self.inner.c_oflag == other.inner.c_oflag
+            && self.inner.c_cflag == other.inner.c_cflag
+            && self.inner.c_lflag == other.inner.c_lflag
+            && self.inner.c_line == other.inner.c_line
+            && self.inner.c_cc == other.inner.c_cc
+            && self.inner.c_ispeed == other.inner.c_ispeed
+            && self.inner.c_ospeed == other.inner.c_ospeed
+    }
+}
+
+impl Eq for TerminalAttributes {}
+
 fn debug_format_flag_field(
-    mut v: libc::tcflag_t,
+    v: libc::tcflag_t,
     fs: &'static [(&'static str, libc::tcflag_t)],
 ) -> std::result::Result<String, std::fmt::Error> {
     use std::fmt::Write;
 
+    let mut remaining_v: libc::tcflag_t = v;
     let mut s = String::new();
-    for (fname, fvalue) in fs {
+    for &(fname, fvalue) in fs {
         if (v & fvalue) != 0 {
             let was_empty = s.is_empty();
             write!(
@@ -111,10 +129,10 @@ fn debug_format_flag_field(
                 },
                 fname
             )?;
-            v &= !v;
+            remaining_v &= !v;
         }
     }
-    if v != 0 {
+    if remaining_v != 0 {
         let was_empty = s.is_empty();
         write!(
             &mut s,
@@ -123,7 +141,7 @@ fn debug_format_flag_field(
                 true => "",
                 false => " ",
             },
-            v
+            remaining_v
         )?;
     }
     Ok(s)
@@ -168,18 +186,16 @@ fn debug_format_c_cc_field(
             c_cc[idx]
         )?;
     }
-    write!(&mut s, "]")?;
     Ok(s)
 }
 
 impl std::fmt::Debug for TerminalAttributes {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let inner: &libc::termios = unsafe { &*self.inner.as_ptr() };
         f.debug_struct("TerminalAttributes")
             .field(
                 "c_iflag",
                 &debug_format_flag_field(
-                    inner.c_iflag,
+                    self.inner.c_iflag,
                     &[
                         ("IGNBRK", libc::IGNBRK),
                         ("BRKINT", libc::BRKINT),
@@ -201,7 +217,7 @@ impl std::fmt::Debug for TerminalAttributes {
             .field(
                 "c_oflag",
                 &debug_format_flag_field(
-                    inner.c_oflag,
+                    self.inner.c_oflag,
                     &[
                         ("OPOST", libc::OPOST),
                         ("OLCUC", libc::OLCUC),
@@ -222,7 +238,7 @@ impl std::fmt::Debug for TerminalAttributes {
             .field(
                 "c_cflag",
                 &debug_format_flag_field(
-                    inner.c_cflag,
+                    self.inner.c_cflag,
                     &[
                         ("CBAUD", libc::CBAUD),
                         ("CBAUDEX", libc::CBAUDEX),
@@ -242,7 +258,7 @@ impl std::fmt::Debug for TerminalAttributes {
             .field(
                 "c_lflag",
                 &debug_format_flag_field(
-                    inner.c_lflag,
+                    self.inner.c_lflag,
                     &[
                         ("ISIG", libc::ISIG),
                         ("ICANON", libc::ICANON),
@@ -261,20 +277,20 @@ impl std::fmt::Debug for TerminalAttributes {
                     ],
                 )?,
             )
-            .field("c_cc", &debug_format_c_cc_field(&inner.c_cc)?)
-            .field("c_ispeed", unsafe { &libc::cfgetispeed(inner) })
-            .field("c_ospeed", unsafe { &libc::cfgetospeed(inner) })
+            .field("c_cc", &debug_format_c_cc_field(&self.inner.c_cc)?)
+            .field("c_ispeed", unsafe { &libc::cfgetispeed(&self.inner) })
+            .field("c_ospeed", unsafe { &libc::cfgetospeed(&self.inner) })
             .finish()
     }
 }
 
 impl AbstractTerminalAttributes for TerminalAttributes {
     fn enable(&mut self, flag: TerminalFlag) {
-        unsafe { &mut *self.inner.as_mut_ptr() }.c_lflag |= flag.to_value();
+        self.inner.c_lflag |= flag.to_value();
     }
 
     fn disable(&mut self, flag: TerminalFlag) {
-        unsafe { &mut *self.inner.as_mut_ptr() }.c_lflag &= !flag.to_value();
+        self.inner.c_lflag &= !flag.to_value();
     }
 }
 
@@ -358,7 +374,9 @@ impl AbstractStream for Stream {
     }
 
     fn set_attributes(&mut self, attributes: &Self::Attributes) -> IoResult<()> {
-        attributes.apply(self.to_fd())
+        let ret = attributes.apply(self.to_fd());
+        debug_assert!(ret.is_err() || *attributes == Self::Attributes::new(self.to_fd()).unwrap());
+        ret
     }
 
     fn as_reader(&self) -> Option<Box<dyn Read>> {
@@ -397,7 +415,6 @@ impl<'s, S: AbstractStream> DisableEcho<'s, S> {
         attributes.enable(TerminalFlag::EchoNewlines);
         debug!("Setting attributes to: {:#?}", attributes);
         stream.set_attributes(&attributes)?;
-        debug!("Current attributes: {:#?}", stream.get_attributes()?);
 
         Ok(DisableEcho {
             stream: stream,
@@ -408,17 +425,17 @@ impl<'s, S: AbstractStream> DisableEcho<'s, S> {
 
 impl<'s, S: AbstractStream> Drop for DisableEcho<'s, S> {
     fn drop(&mut self) {
-        debug!("Current attributes: {:#?}", self.stream.get_attributes());
         self.stream
             .set_attributes(&self.initial_attributes)
             .unwrap();
-        debug!("Attributes reset to: {:#?}", self.stream.get_attributes());
     }
 }
 
 fn require_isatty<S: AbstractStream>(s: &mut S) -> Result<()> {
     if !s.isatty() {
-        Err(Error::Precondition(format_err!("Cannot prompt for interactive user input when the input/output streams are not both TTYs")))
+        Err(Error::Precondition(format_err!(
+            "Cannot prompt interactively when the I/O streams are not TTYs"
+        )))
     } else {
         Ok(())
     }
