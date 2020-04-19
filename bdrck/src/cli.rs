@@ -17,6 +17,7 @@ use errno;
 use failure::format_err;
 use libc::{self, c_int};
 use log::debug;
+use std::fmt;
 use std::io::{self, Read, Write};
 use std::mem::MaybeUninit;
 
@@ -112,8 +113,8 @@ impl Eq for TerminalAttributes {}
 fn debug_format_flag_field(
     v: libc::tcflag_t,
     fs: &'static [(&'static str, libc::tcflag_t)],
-) -> std::result::Result<String, std::fmt::Error> {
-    use std::fmt::Write;
+) -> std::result::Result<String, fmt::Error> {
+    use fmt::Write;
 
     let mut remaining_v: libc::tcflag_t = v;
     let mut s = String::new();
@@ -147,10 +148,8 @@ fn debug_format_flag_field(
     Ok(s)
 }
 
-fn debug_format_c_cc_field(
-    c_cc: &[libc::cc_t; 32],
-) -> std::result::Result<String, std::fmt::Error> {
-    use std::fmt::Write;
+fn debug_format_c_cc_field(c_cc: &[libc::cc_t; 32]) -> std::result::Result<String, fmt::Error> {
+    use fmt::Write;
 
     const INDICES: &'static [(&'static str, usize)] = &[
         ("VDISCARD", libc::VDISCARD),
@@ -189,8 +188,8 @@ fn debug_format_c_cc_field(
     Ok(s)
 }
 
-impl std::fmt::Debug for TerminalAttributes {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl fmt::Debug for TerminalAttributes {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("TerminalAttributes")
             .field(
                 "c_iflag",
@@ -300,7 +299,7 @@ impl AbstractTerminalAttributes for TerminalAttributes {
 /// will instead just use the concrete type `Stream` defined below.
 pub trait AbstractStream {
     /// A type which describes the attributes of this stream / terminal.
-    type Attributes: AbstractTerminalAttributes + std::fmt::Debug;
+    type Attributes: AbstractTerminalAttributes + fmt::Debug;
 
     /// Returns whether or not this stream refers to an interactive terminal (a
     /// TTY), as opposed to, for example, a pipe.
