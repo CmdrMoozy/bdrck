@@ -14,7 +14,6 @@
 
 use crate::error::*;
 use errno;
-use failure::format_err;
 use libc::{self, c_int};
 use log::debug;
 use std::fmt;
@@ -432,8 +431,8 @@ impl<'s, S: AbstractStream> Drop for DisableEcho<'s, S> {
 
 fn require_isatty<S: AbstractStream>(s: &mut S) -> Result<()> {
     if !s.isatty() {
-        Err(Error::Precondition(format_err!(
-            "Cannot prompt interactively when the I/O streams are not TTYs"
+        Err(Error::Precondition(format!(
+            "cannot prompt interactively when the I/O streams are not TTYs"
         )))
     } else {
         Ok(())
@@ -446,8 +445,8 @@ fn build_input_reader<IS: AbstractStream>(
     require_isatty(input_stream)?;
     Ok(io::BufReader::new(match input_stream.as_reader() {
         None => {
-            return Err(Error::Precondition(format_err!(
-                "The given input stream must support `Read`"
+            return Err(Error::Precondition(format!(
+                "the given input stream must support `Read`"
             )))
         }
         Some(r) => r,
@@ -487,8 +486,8 @@ fn prompt_for_string_impl<IS: AbstractStream, OS: AbstractStream>(
     // buffering.
     let mut writer = match output_stream.as_writer() {
         None => {
-            return Err(Error::Precondition(format_err!(
-                "The given output stream must support `Write`"
+            return Err(Error::Precondition(format!(
+                "the given output stream must support `Write`"
             )))
         }
         Some(w) => w,
@@ -675,8 +674,8 @@ pub fn continue_confirmation<IS: AbstractStream, OS: AbstractStream>(
         } else {
             let mut writer = match output_stream.as_writer() {
                 None => {
-                    return Err(Error::Precondition(format_err!(
-                        "The given output stream must support `Write`"
+                    return Err(Error::Precondition(format!(
+                        "the given output stream must support `Write`"
                     )))
                 }
                 Some(w) => w,

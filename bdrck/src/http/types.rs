@@ -13,7 +13,6 @@
 // limitations under the License.
 
 use crate::error::*;
-use failure::format_err;
 use reqwest::header::HeaderValue;
 use reqwest::{Response, StatusCode};
 use serde::{Deserialize, Serialize};
@@ -95,8 +94,8 @@ impl ResponseMetadata {
     /// get_status returns this metadata's HTTP status code.
     pub fn get_status(&self) -> Result<StatusCode> {
         match StatusCode::from_u16(self.status) {
-            Err(_) => Err(Error::Internal(format_err!(
-                "Invalid ResponseMetadata status code representation {}",
+            Err(_) => Err(Error::Internal(format!(
+                "invalid ResponseMetadata status code representation {}",
                 self.status
             ))),
             Ok(status) => Ok(status),

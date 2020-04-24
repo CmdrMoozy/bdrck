@@ -14,7 +14,6 @@
 
 use crate::error::*;
 use errno;
-use failure::format_err;
 use libc;
 use log::warn;
 use std::ffi::{CString, OsString};
@@ -151,11 +150,7 @@ pub fn set_ownership<P: AsRef<Path>>(
                 error
             );
         } else {
-            return Err(Error::Unknown(format_err!(
-                "Failed to change ownership of '{}': {}",
-                path.as_ref().display(),
-                error
-            )));
+            return Err(std::io::Error::from_raw_os_error(error.into()).into());
         }
     }
 
@@ -198,16 +193,12 @@ fn lookup_uid(name: &str) -> Result<u32> {
             || ret == libc::EBADF
             || ret == libc::EPERM
         {
-            return Err(Error::NotFound(format_err!(
-                "Unrecognized user name '{}'",
+            return Err(Error::NotFound(format!(
+                "unrecognized user name '{}'",
                 name
             )));
         } else {
-            return Err(Error::Unknown(format_err!(
-                "Failed to lookup UID for '{}': {}",
-                name,
-                errno::Errno(ret)
-            )));
+            return Err(std::io::Error::from_raw_os_error(ret).into());
         }
     }
     Ok(passwd.pw_uid)
@@ -242,16 +233,12 @@ fn lookup_gid(name: &str) -> Result<u32> {
             || ret == libc::EBADF
             || ret == libc::EPERM
         {
-            return Err(Error::NotFound(format_err!(
-                "Unrecognized group name '{}'",
+            return Err(Error::NotFound(format!(
+                "unrecognized group name '{}'",
                 name
             )));
         } else {
-            return Err(Error::Unknown(format_err!(
-                "Failed to lookup GID for '{}': {}",
-                name,
-                errno::Errno(ret)
-            )));
+            return Err(std::io::Error::from_raw_os_error(ret).into());
         }
     }
     Ok(group.gr_gid)

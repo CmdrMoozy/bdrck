@@ -15,7 +15,6 @@
 use crate::crypto::key::{AbstractKey, Key, Nonce, Wrappable, WrappedKey, WrappedPayload};
 use crate::error::*;
 use data_encoding;
-use failure::format_err;
 use lazy_static::lazy_static;
 use log::error;
 use rmp_serde;
@@ -154,7 +153,7 @@ impl KeyStore {
         }
 
         if master_key.is_none() {
-            return Err(Error::InvalidArgument(format_err!(
+            return Err(Error::InvalidArgument(format!(
                 "KeyStore unlocking failed: the given key is not present in this KeyStore"
             )));
         }
@@ -175,7 +174,7 @@ impl KeyStore {
         if let Some(k) = self.master_key.as_ref() {
             return Ok(k);
         }
-        Err(Error::Precondition(format_err!(
+        Err(Error::Precondition(format!(
             "KeyStore must be opened before you can access the master key"
         )))
     }
@@ -189,7 +188,7 @@ impl KeyStore {
     pub fn add_key<K: AbstractKey>(&mut self, key: &K) -> Result<bool> {
         let wrapped_key = match self.master_key.clone() {
             None => {
-                return Err(Error::Precondition(format_err!(
+                return Err(Error::Precondition(format!(
                     "KeyStore must be `new` or opened to add keys"
                 )))
             }
@@ -224,8 +223,8 @@ impl KeyStore {
         if self.wrapped_keys.len() == 1 {
             if let Some(wrapped_key) = self.wrapped_keys.first() {
                 if *wrapped_key.get_wrapping_digest() == key.get_digest() {
-                    return Err(Error::Precondition(format_err!(
-                        "Refusing to remove all valid keys from this KeyStore"
+                    return Err(Error::Precondition(format!(
+                        "refusing to remove all valid keys from this KeyStore"
                     )));
                 }
             }
@@ -254,7 +253,7 @@ impl KeyStore {
 
 fn persist_key_store<P: AsRef<Path>>(path: P, keystore: &KeyStore) -> Result<()> {
     if !keystore.is_persistable() {
-        return Err(Error::Precondition(format_err!(
+        return Err(Error::Precondition(format!(
             "KeyStore with no wrapping keys cannot be persisted"
         )));
     }

@@ -13,7 +13,6 @@
 // limitations under the License.
 
 use crate::error::{Error, Result};
-use failure::format_err;
 use lazy_static::lazy_static;
 use rmp_serde::{Deserializer, Serializer};
 use serde::de::DeserializeOwned;
@@ -44,8 +43,8 @@ fn get_configuration_directory(application: &str) -> Result<PathBuf> {
 
     fs::create_dir_all(path.as_path())?;
     if !path.is_dir() {
-        return Err(Error::InvalidArgument(format_err!(
-            "Configuration path '{}' is not a directory",
+        return Err(Error::InvalidArgument(format!(
+            "configuration path '{}' is not a directory",
             path.as_path().display()
         )));
     }
@@ -69,8 +68,8 @@ fn get_configuration_directory(application: &str) -> Result<PathBuf> {
 
     fs::create_dir_all(path.as_path())?;
     if !path.is_dir() {
-        return Err(Error::InvalidArgument(format_err!(
-            "Configuration path '{}' is not a directory",
+        return Err(Error::InvalidArgument(format!(
+            "configuration path '{}' is not a directory",
             path.as_path().display()
         )));
     }
@@ -212,8 +211,8 @@ pub fn remove<T: Clone + Serialize + DeserializeOwned + 'static>(id: &Identifier
         if let Some(config) = instance.downcast_ref::<Configuration<T>>() {
             config.persist()?;
         } else {
-            return Err(Error::InvalidArgument(format_err!(
-                "Wrong type specified for configuration {:?}",
+            return Err(Error::InvalidArgument(format!(
+                "wrong type specified for configuration {:?}",
                 id
             )));
         }
@@ -222,8 +221,8 @@ pub fn remove<T: Clone + Serialize + DeserializeOwned + 'static>(id: &Identifier
     match guard.remove(id) {
         Some(_) => Ok(()),
         None => {
-            return Err(Error::InvalidArgument(format_err!(
-                "Unrecognized configuration identifier: {:?}",
+            return Err(Error::InvalidArgument(format!(
+                "unrecognized configuration identifier: {:?}",
                 id
             )));
         }
@@ -242,15 +241,15 @@ pub fn instance_apply<T: 'static, R, F: FnOnce(&Configuration<T>) -> R>(
         Some(instance) => match instance.downcast_ref() {
             Some(config) => Ok(f(config)),
             None => {
-                return Err(Error::InvalidArgument(format_err!(
-                    "Wrong type specified for configuration {:?}",
+                return Err(Error::InvalidArgument(format!(
+                    "wrong type specified for configuration {:?}",
                     id
                 )));
             }
         },
         None => {
-            return Err(Error::InvalidArgument(format_err!(
-                "Unrecognized configuration identifier: {:?}",
+            return Err(Error::InvalidArgument(format!(
+                "unrecognized configuration identifier: {:?}",
                 id
             )));
         }
@@ -269,15 +268,15 @@ pub fn instance_apply_mut<T: 'static, R, F: FnOnce(&mut Configuration<T>) -> R>(
         Some(instance) => match instance.downcast_mut() {
             Some(config) => Ok(f(config)),
             None => {
-                return Err(Error::InvalidArgument(format_err!(
-                    "Wrong type specified for configuration {:?}",
+                return Err(Error::InvalidArgument(format!(
+                    "wrong type specified for configuration {:?}",
                     id
                 )));
             }
         },
         None => {
-            return Err(Error::InvalidArgument(format_err!(
-                "Unrecognized configuration identifier: {:?}",
+            return Err(Error::InvalidArgument(format!(
+                "unrecognized configuration identifier: {:?}",
                 id
             )));
         }

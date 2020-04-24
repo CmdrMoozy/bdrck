@@ -14,7 +14,6 @@
 
 use crate::error::*;
 use crate::fs::{create_file, create_symlink};
-use failure::format_err;
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
 use std::env;
@@ -82,8 +81,8 @@ impl Dir {
     /// temporary directory's absolute path.
     pub fn sub_path<P: AsRef<Path>>(&self, path: P) -> Result<PathBuf> {
         if path.as_ref().is_absolute() {
-            return Err(Error::InvalidArgument(format_err!(
-                "Cannot add absolute path '{}' to temporary directory path",
+            return Err(Error::InvalidArgument(format!(
+                "cannot add absolute path '{}' to temporary directory path",
                 path.as_ref().display()
             )));
         }

@@ -13,7 +13,6 @@
 // limitations under the License.
 
 use crate::error::*;
-use failure::format_err;
 
 /// Type denotes the particular type of flag a Spec structure describes. It
 /// also contains extra metadata about the flag, if applicable for that type.
@@ -132,7 +131,7 @@ impl Spec {
     ) -> Result<Spec> {
         if let Some(dvs) = default_value {
             if dvs.len() > 1 && !is_variadic {
-                return Err(Error::InvalidArgument(format_err!(
+                return Err(Error::InvalidArgument(format!(
                     "Only variadic positional arguments can have multiple default values"
                 )));
             }
@@ -282,7 +281,7 @@ impl Specs {
             .skip_while(|s| !s.has_default_value())
             .all(|s| s.has_default_value())
         {
-            return Err(Error::InvalidArgument(format_err!(
+            return Err(Error::InvalidArgument(format!(
                 "Positional flags after the first one with a default must also have defaults"
             )));
         }
@@ -294,7 +293,7 @@ impl Specs {
             .next()
             .map_or(true, |s| s.is_variadic() || s.default_value_len() <= 1)
         {
-            return Err(Error::InvalidArgument(format_err!(
+            return Err(Error::InvalidArgument(format!(
                 "The last positional flag can only have multiple default values if it is variadic"
             )));
         }

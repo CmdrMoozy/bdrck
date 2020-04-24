@@ -19,7 +19,6 @@ pub mod write;
 use crate::error::*;
 use crate::logging::write::*;
 use chrono;
-use failure::format_err;
 use lazy_static::lazy_static;
 use log::{self, LevelFilter, Log, Metadata, Record};
 use regex::Regex;
@@ -67,8 +66,8 @@ pub fn parse_log_level_filter(s: &str) -> Result<LevelFilter> {
     let normalized = s.trim().to_lowercase();
     match STRING_MAPPING.get(&normalized) {
         None => {
-            return Err(Error::InvalidArgument(format_err!(
-                "Invalid LevelFilter '{}'",
+            return Err(Error::InvalidArgument(format!(
+                "invalid LevelFilter '{}'",
                 s
             )));
         }

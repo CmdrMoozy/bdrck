@@ -13,7 +13,6 @@
 // limitations under the License.
 
 use crate::error::*;
-use failure::format_err;
 use std::io::{self, Read};
 
 /// Reads from the givne `Read` until the buffer is filled. If EOF is reached
@@ -75,8 +74,8 @@ pub fn read_at_most_into<R: Read>(r: &mut R, mut buf: &mut [u8]) -> Result<usize
     }
 
     if !hit_eof {
-        return Err(Error::InputTooBig(format_err!(
-            "Refusing to read more bytes; expected at most {}",
+        return Err(Error::InputTooBig(format!(
+            "refusing to read more bytes; expected at most {}",
             maximum_bytes
         )));
     }

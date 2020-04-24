@@ -13,7 +13,6 @@
 // limitations under the License.
 
 use crate::error::*;
-use failure::format_err;
 use rmp_serde;
 use serde::de::{SeqAccess, Visitor};
 use serde::ser::SerializeSeq;
@@ -74,8 +73,8 @@ impl Nonce {
     /// exactly NONCE_BYTES long.
     pub fn from_bytes(bytes: &[u8]) -> Result<Self> {
         if bytes.len() != NONCE_BYTES {
-            return Err(Error::InvalidArgument(format_err!(
-                "Expected {} Nonce bytes, got {}",
+            return Err(Error::InvalidArgument(format!(
+                "expected {} Nonce bytes, got {}",
                 NONCE_BYTES,
                 bytes.len()
             )));
@@ -188,6 +187,9 @@ impl Default for Salt {
 /// An AbstractKey is any cryptographic structure which supports encryption and
 /// decryption.
 pub trait AbstractKey {
+    /// The Error type this key's functions can return.
+    type Error: std::error::Error;
+
     /// Return a digest/signature computed from this key.
     fn get_digest(&self) -> Digest;
 
@@ -202,7 +204,7 @@ pub trait AbstractKey {
         &self,
         plaintext: &[u8],
         nonce: Option<Nonce>,
-    ) -> ::std::result::Result<(Option<Nonce>, Vec<u8>), ::failure::Error>;
+    ) -> std::result::Result<(Option<Nonce>, Vec<u8>), Self::Error>;
 
     /// Decrypt the given ciphertext using this key and the nonce which was
     /// generated at encryption time (if any), returning the plaintext.
@@ -210,31 +212,7 @@ pub trait AbstractKey {
         &self,
         nonce: Option<&Nonce>,
         ciphertext: &[u8],
-    ) -> ::std::result::Result<Vec<u8>, ::failure::Error>;
-}
-
-// Implement AbstractKey for trait objects, so we can use any of the various
-// types of keys dynamically.
-impl AbstractKey for Box<dyn AbstractKey> {
-    fn get_digest(&self) -> Digest {
-        (**self).get_digest()
-    }
-
-    fn encrypt(
-        &self,
-        plaintext: &[u8],
-        nonce: Option<Nonce>,
-    ) -> ::std::result::Result<(Option<Nonce>, Vec<u8>), ::failure::Error> {
-        (**self).encrypt(plaintext, nonce)
-    }
-
-    fn decrypt(
-        &self,
-        nonce: Option<&Nonce>,
-        ciphertext: &[u8],
-    ) -> ::std::result::Result<Vec<u8>, ::failure::Error> {
-        (**self).decrypt(nonce, ciphertext)
-    }
+    ) -> std::result::Result<Vec<u8>, Self::Error>;
 }
 
 /// A WrappedPayload is the data which was wrapped by a key. Because keys can be
@@ -265,6 +243,8 @@ pub struct Key {
 }
 
 impl AbstractKey for Key {
+    type Error = Error;
+
     fn get_digest(&self) -> Digest {
         Digest::from_bytes(self.key.0.as_ref())
     }
@@ -273,7 +253,7 @@ impl AbstractKey for Key {
         &self,
         plaintext: &[u8],
         nonce: Option<Nonce>,
-    ) -> ::std::result::Result<(Option<Nonce>, Vec<u8>), ::failure::Error> {
+    ) -> std::result::Result<(Option<Nonce>, Vec<u8>), Self::Error> {
         let nonce = nonce.unwrap_or_else(|| Nonce::default());
         let ciphertext = secretbox::seal(plaintext, &nonce.nonce, &self.key);
         Ok((Some(nonce), ciphertext))
@@ -283,13 +263,13 @@ impl AbstractKey for Key {
         &self,
         nonce: Option<&Nonce>,
         ciphertext: &[u8],
-    ) -> ::std::result::Result<Vec<u8>, ::failure::Error> {
+    ) -> std::result::Result<Vec<u8>, Self::Error> {
         let result = secretbox::open(
             ciphertext,
             match nonce {
                 None => {
-                    return Err(Error::InvalidArgument(format_err!(
-                        "Decrypting with a Key requires a nonce"
+                    return Err(Error::InvalidArgument(format!(
+                        "decrypting with a Key requires a nonce"
                     ))
                     .into());
                 }
@@ -298,10 +278,9 @@ impl AbstractKey for Key {
             &self.key,
         );
         if result.is_err() {
-            return Err(Error::InvalidArgument(format_err!(
-                "Failed to decrypt with incorrect Key"
-            ))
-            .into());
+            return Err(
+                Error::InvalidArgument(format!("failed to decrypt with incorrect Key")).into(),
+            );
         }
         Ok(result.ok().unwrap())
     }
@@ -321,8 +300,8 @@ impl Key {
     fn from_bytes(data: Vec<u8>) -> Result<Self> {
         let key = secretbox::Key::from_slice(data.as_slice());
         if key.is_none() {
-            return Err(Error::InvalidArgument(format_err!(
-                "Invalid Key; expected {} bytes, got {}",
+            return Err(Error::InvalidArgument(format!(
+                "invalid Key; expected {} bytes, got {}",
                 KEY_BYTES,
                 data.len()
             )));
@@ -360,8 +339,8 @@ impl Key {
                 // NOTE: We handle this error gracefully, but in reality (by inspecting the
                 // libsodium source code) the only way this can actually fail is if the input
                 // password is *enormous*. So, this won't really fail in practice.
-                return Err(Error::Internal(format_err!(
-                    "Deriving key from password failed"
+                return Err(Error::Internal(format!(
+                    "deriving key from password failed"
                 )));
             }
         }
@@ -397,7 +376,7 @@ impl WrappedKey {
     fn wrap_payload<K: AbstractKey>(payload: WrappedPayload, key: &K) -> Result<Self> {
         let serialized = rmp_serde::to_vec(&payload)?;
         let (nonce, ciphertext) = match key.encrypt(serialized.as_slice(), None) {
-            Err(e) => return Err(Error::Unknown(format_err!("Wrapping key failed: {}", e))),
+            Err(e) => return Err(Error::Crypto(format!("wrapping key failed: {}", e))),
             Ok(tuple) => tuple,
         };
         let digest = key.get_digest();
@@ -424,12 +403,12 @@ impl WrappedKey {
     /// wrapped more than one time.
     pub fn unwrap<K: AbstractKey>(self, key: &K) -> Result<WrappedPayload> {
         if key.get_digest() != self.wrapping_digest {
-            return Err(Error::InvalidArgument(format_err!(
-                "The specified key is not the correct wrapping key"
+            return Err(Error::InvalidArgument(format!(
+                "the specified key is not the correct wrapping key"
             )));
         }
         let plaintext = match key.decrypt(self.nonce.as_ref(), self.data.as_slice()) {
-            Err(e) => return Err(Error::Unknown(format_err!("Unwrapping key failed: {}", e))),
+            Err(e) => return Err(Error::Crypto(format!("unwrapping key failed: {}", e))),
             Ok(pt) => pt,
         };
         Ok(rmp_serde::from_slice(plaintext.as_slice())?)

@@ -89,10 +89,9 @@ lazy_static! {
 
 #[cfg(feature = "sodiumoxide")]
 fn init_sodiumoxide() -> self::error::Result<()> {
-    use failure::format_err;
     if !::sodiumoxide::init().is_ok() {
-        return Err(self::error::Error::Internal(format_err!(
-            "Initializing cryptographic dependencies failed"
+        return Err(self::error::Error::Internal(format!(
+            "initializing cryptographic dependencies failed"
         )));
     }
     Ok(())
