@@ -17,7 +17,6 @@ use crate::error::*;
 #[cfg(debug_assertions)]
 use crate::http::recording::{RecordedRequest, RecordedResponse, Recording, RecordingEntry};
 use crate::http::types::ResponseMetadata;
-use failure::format_err;
 use futures::executor::block_on;
 use log::{debug, info};
 use rand::Rng;
@@ -91,9 +90,7 @@ pub trait AbstractClient {
         // retry value we can store in a u64 is 57 (so max_retries must
         // be <= 58, so retry will be in the range [0, 57)).
         if max_retries > 58 {
-            return Err(Error::InvalidArgument(format_err!(
-                "max_retries must be <= 58"
-            )));
+            return Err(Error::InvalidArgument(format!("max_retries must be <= 58")));
         }
 
         let mut rng = rand::thread_rng();
@@ -126,8 +123,8 @@ pub trait AbstractClient {
             }
         }
 
-        Err(Error::Unknown(format_err!(
-            "Failed to get a success response after {} retries.",
+        Err(Error::HttpRetry(format!(
+            "failed to get a success response after {} retries.",
             max_retries
         )))
     }

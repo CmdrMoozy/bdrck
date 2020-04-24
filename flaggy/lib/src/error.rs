@@ -12,63 +12,34 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use failure::Fail;
+use thiserror::Error;
 
 /// Error represents the various errors which can come up while parsing
 /// command-line flags.
-#[derive(Fail, Debug)]
+#[derive(Debug, Error)]
 pub enum Error {
     /// An error parsing an IP address.
-    #[fail(display = "{}", _0)]
-    AddrParse(#[cause] ::std::net::AddrParseError),
+    #[error("{0}")]
+    AddrParse(#[from] std::net::AddrParseError),
     /// An internal unrecoverable error, usually due to some underlying library.
-    #[fail(display = "{}", _0)]
-    Internal(::failure::Error),
+    #[error("Internal error: {0}")]
+    Internal(String),
     /// Errors akin to EINVAL - essentially, an argument passed into a function
     /// was invalid in some way..
-    #[fail(display = "{}", _0)]
-    InvalidArgument(::failure::Error),
+    #[error("Invalid argument: {0}")]
+    InvalidArgument(String),
     /// An I/O error, generally encountered when interacting with the
     /// filesystem.
-    #[fail(display = "{}", _0)]
-    Io(#[cause] ::std::io::Error),
+    #[error("{0}")]
+    Io(#[from] std::io::Error),
     /// An awkward hack; this error exists to use String's FromStr impl, but
     /// this operation won't actually ever fail.
-    #[fail(display = "{}", _0)]
-    StringParse(#[cause] ::std::string::ParseError),
-    /// An error of an unknown type occurred. Generally this comes from some
-    /// dependency or underlying library, in a case where it's difficult to tell
-    /// exactly what kind of problem occurred.
-    #[fail(display = "{}", _0)]
-    Unknown(::failure::Error),
+    #[error("{0}")]
+    StringParse(#[from] std::string::ParseError),
     /// A flaggy_values error.
-    #[fail(display = "{}", _0)]
-    Values(::failure::Error),
-}
-
-impl From<::std::net::AddrParseError> for Error {
-    fn from(e: ::std::net::AddrParseError) -> Self {
-        Error::AddrParse(e)
-    }
-}
-
-impl From<::std::io::Error> for Error {
-    fn from(e: ::std::io::Error) -> Self {
-        Error::Io(e)
-    }
-}
-
-impl From<::std::string::ParseError> for Error {
-    fn from(e: ::std::string::ParseError) -> Self {
-        Error::StringParse(e)
-    }
-}
-
-impl From<::flaggy_values::error::ValueError> for Error {
-    fn from(e: ::flaggy_values::error::ValueError) -> Self {
-        Error::Values(::failure::format_err!("{}", e))
-    }
+    #[error("{0}")]
+    Values(#[from] flaggy_values::error::ValueError),
 }
 
 /// A Result type which uses flaggy's internal Error type.
-pub type Result<T> = ::std::result::Result<T, Error>;
+pub type Result<T> = std::result::Result<T, Error>;

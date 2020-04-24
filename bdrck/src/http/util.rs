@@ -14,7 +14,6 @@
 
 use crate::error::*;
 use crate::http::types::HeaderMap;
-use failure::format_err;
 use reqwest::header;
 use reqwest::Url;
 use std::collections::HashMap;
@@ -30,15 +29,15 @@ pub fn get_links(headers: &HeaderMap) -> Result<HashMap<String, Vec<Url>>> {
             while !value.is_empty() {
                 // Parse the URL from the front of this string.
                 if !value.starts_with('<') {
-                    return Err(Error::InvalidArgument(format_err!(
-                        "Invalid link header value format: '{}'",
+                    return Err(Error::InvalidArgument(format!(
+                        "invalid link header value format: '{}'",
                         value
                     )));
                 }
                 let url_end = match value.find('>') {
                     None => {
-                        return Err(Error::InvalidArgument(format_err!(
-                            "Invalid link header value format: '{}'",
+                        return Err(Error::InvalidArgument(format!(
+                            "invalid link header value format: '{}'",
                             value
                         )));
                     }
@@ -49,16 +48,16 @@ pub fn get_links(headers: &HeaderMap) -> Result<HashMap<String, Vec<Url>>> {
 
                 // Parse the rel string.
                 if !value.starts_with("; rel=\"") {
-                    return Err(Error::InvalidArgument(format_err!(
-                        "Invalid link header value format: '{}'",
+                    return Err(Error::InvalidArgument(format!(
+                        "invalid link header value format: '{}'",
                         value
                     )));
                 }
                 value.replace_range(0..7, "");
                 let rel_end = match value.find("\"") {
                     None => {
-                        return Err(Error::InvalidArgument(format_err!(
-                            "Invalid link header value format: '{}'",
+                        return Err(Error::InvalidArgument(format!(
+                            "invalid link header value format: '{}'",
                             value
                         )));
                     }

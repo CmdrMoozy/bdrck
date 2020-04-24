@@ -12,206 +12,101 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use failure::Fail;
+use thiserror::Error;
 
 /// Error is a structure which denotes all of the possible kinds of errors bdrck
 /// can produce, including errors from any of its underlying dependencies.
-#[derive(Fail, Debug)]
+#[derive(Debug, Error)]
 pub enum Error {
+    /// An error encountered while performing a cryptographic operation.
+    #[error("cryptographic operation failed: {0}")]
+    Crypto(String),
     /// An error encountered while trying to interact with environment
     /// variables.
-    #[fail(display = "{}", _0)]
-    EnvVar(#[cause] ::std::env::VarError),
+    #[error("{0}")]
+    EnvVar(#[from] std::env::VarError),
     /// An error decoding bytes as UTF-8 text.
-    #[fail(display = "{}", _0)]
-    FromUtf8(#[cause] ::std::string::FromUtf8Error),
+    #[error("{0}")]
+    FromUtf8(#[from] std::string::FromUtf8Error),
     /// An error decoding bytes as UTF-8 text (except for `str` instead of `String`).
-    #[fail(display = "{}", _0)]
-    FromUtf8Str(#[cause] ::std::str::Utf8Error),
+    #[error("{0}")]
+    FromUtf8Str(#[from] std::str::Utf8Error),
     /// An error encountered in trying to decode a hex string to the bytes it
     /// represents.
     #[cfg(feature = "data-encoding")]
-    #[fail(display = "{}", _0)]
-    HexDecode(#[cause] ::data_encoding::DecodeError),
+    #[error("{0}")]
+    HexDecode(#[from] data_encoding::DecodeError),
     /// An error originating in HTTP client code.
     #[cfg(feature = "reqwest")]
-    #[fail(display = "{}", _0)]
-    Http(#[cause] ::reqwest::Error),
+    #[error("{0}")]
+    Http(#[from] reqwest::Error),
+    /// An HTTP request failed, despite multiple retries.
+    #[error("HTTP request failed despite retries: {0}")]
+    HttpRetry(String),
     /// This error indicates that we were reading some input, and we encountered
     /// too many bytes (e.g. because there was an upper bound on how much we
     /// were willing to read).
-    #[fail(display = "{}", _0)]
-    InputTooBig(::failure::Error),
+    #[error("input too big: {0}")]
+    InputTooBig(String),
     /// An internal unrecoverable error, usually due to some underlying library.
-    #[fail(display = "{}", _0)]
-    Internal(::failure::Error),
+    #[error("internal error: {0}")]
+    Internal(String),
     /// Errors akin to EINVAL - essentially, an argument passed into a function
     /// was invalid in some way..
-    #[fail(display = "{}", _0)]
-    InvalidArgument(::failure::Error),
+    #[error("invalid argument: {0}")]
+    InvalidArgument(String),
     /// An I/O error, generally encountered when interacting with the
     /// filesystem.
-    #[fail(display = "{}", _0)]
-    Io(#[cause] ::std::io::Error),
+    #[error("{0}")]
+    Io(#[from] std::io::Error),
     /// An error encountered while serializing or deserializing JSON.
     #[cfg(feature = "serde_json")]
-    #[fail(display = "{}", _0)]
-    Json(#[cause] ::serde_json::Error),
+    #[error("{0}")]
+    Json(#[from] serde_json::Error),
     /// An error encountered when decoding a serialized message.
     #[cfg(feature = "rmp-serde")]
-    #[fail(display = "{}", _0)]
-    MsgDecode(#[cause] ::rmp_serde::decode::Error),
+    #[error("{0}")]
+    MsgDecode(#[from] rmp_serde::decode::Error),
     /// An error encountered when encoding a struct to a serialized message.
     #[cfg(feature = "rmp-serde")]
-    #[fail(display = "{}", _0)]
-    MsgEncode(#[cause] ::rmp_serde::encode::Error),
+    #[error("{0}")]
+    MsgEncode(#[from] rmp_serde::encode::Error),
     /// Errors akin to ENOENT - something like e.g. "file not found", although
     /// this is not necessarily *always* about files.
-    #[fail(display = "{}", _0)]
-    NotFound(::failure::Error),
+    #[error("not found: {0}")]
+    NotFound(String),
     /// An error where some data returned by an underlying library call
     /// contained a NUL byte ('\0'), in a context where such a thing is invalid.
-    #[fail(display = "{}", _0)]
-    Nul(#[cause] ::std::ffi::NulError),
+    #[error("{0}")]
+    Nul(#[from] std::ffi::NulError),
     /// An error encountered when trying to parse an integer from a string.
-    #[fail(display = "{}", _0)]
-    ParseInt(#[cause] ::std::num::ParseIntError),
+    #[error("{0}")]
+    ParseInt(#[from] std::num::ParseIntError),
     /// An error encountered when trying to parse an IP address from a string.
-    #[fail(display = "{}", _0)]
-    ParseIpAddr(#[cause] ::std::net::AddrParseError),
+    #[error("{0}")]
+    ParseIpAddr(#[from] std::net::AddrParseError),
     /// A precondition error, which basically amounts to a function being called
     /// when one or more of its preconditions were not satisfied.
-    #[fail(display = "{}", _0)]
-    Precondition(::failure::Error),
+    #[error("precondition not satisfied: {0}")]
+    Precondition(String),
     /// An error encountered in either parsing or applying a regular expression.
     #[cfg(feature = "regex")]
-    #[fail(display = "{}", _0)]
-    Regex(#[cause] ::regex::Error),
+    #[error("{0}")]
+    Regex(#[from] regex::Error),
     /// An error encountered when attempting to set the global Logger
     /// implementation.
     #[cfg(feature = "log")]
-    #[fail(display = "{}", _0)]
-    SetLogger(#[cause] ::log::SetLoggerError),
+    #[error("{0}")]
+    SetLogger(#[from] log::SetLoggerError),
     /// An awkward hack; this error exists to use String's FromStr impl, but
     /// this operation won't actually ever fail.
-    #[fail(display = "{}", _0)]
-    StringParse(#[cause] ::std::string::ParseError),
-    /// An error of an unknown type occurred. Generally this comes from some
-    /// dependency or underlying library, in a case where it's difficult to tell
-    /// exactly what kind of problem occurred.
-    #[fail(display = "{}", _0)]
-    Unknown(::failure::Error),
+    #[error("{0}")]
+    StringParse(#[from] std::string::ParseError),
     /// An error in decoding a URL.
     #[cfg(feature = "url")]
-    #[fail(display = "{}", _0)]
-    Url(#[cause] ::url::ParseError),
-}
-
-impl From<::std::env::VarError> for Error {
-    fn from(e: ::std::env::VarError) -> Self {
-        Error::EnvVar(e)
-    }
-}
-
-impl From<::std::string::FromUtf8Error> for Error {
-    fn from(e: ::std::string::FromUtf8Error) -> Self {
-        Error::FromUtf8(e)
-    }
-}
-
-impl From<::std::str::Utf8Error> for Error {
-    fn from(e: ::std::str::Utf8Error) -> Self {
-        Error::FromUtf8Str(e)
-    }
-}
-
-#[cfg(feature = "reqwest")]
-impl From<::reqwest::Error> for Error {
-    fn from(e: ::reqwest::Error) -> Self {
-        Error::Http(e)
-    }
-}
-
-impl From<::std::io::Error> for Error {
-    fn from(e: ::std::io::Error) -> Self {
-        Error::Io(e)
-    }
-}
-
-#[cfg(feature = "serde_json")]
-impl From<::serde_json::Error> for Error {
-    fn from(e: ::serde_json::Error) -> Self {
-        Error::Json(e)
-    }
-}
-
-#[cfg(feature = "rmp-serde")]
-impl From<::rmp_serde::decode::Error> for Error {
-    fn from(e: ::rmp_serde::decode::Error) -> Self {
-        Error::MsgDecode(e)
-    }
-}
-
-#[cfg(feature = "rmp-serde")]
-impl From<::rmp_serde::encode::Error> for Error {
-    fn from(e: ::rmp_serde::encode::Error) -> Self {
-        Error::MsgEncode(e)
-    }
-}
-
-impl From<::std::ffi::NulError> for Error {
-    fn from(e: ::std::ffi::NulError) -> Self {
-        Error::Nul(e)
-    }
-}
-
-impl From<::std::num::ParseIntError> for Error {
-    fn from(e: ::std::num::ParseIntError) -> Self {
-        Error::ParseInt(e)
-    }
-}
-
-impl From<::std::net::AddrParseError> for Error {
-    fn from(e: ::std::net::AddrParseError) -> Self {
-        Error::ParseIpAddr(e)
-    }
-}
-
-#[cfg(feature = "regex")]
-impl From<::regex::Error> for Error {
-    fn from(e: ::regex::Error) -> Self {
-        Error::Regex(e)
-    }
-}
-
-#[cfg(feature = "log")]
-impl From<::log::SetLoggerError> for Error {
-    fn from(e: ::log::SetLoggerError) -> Self {
-        Error::SetLogger(e)
-    }
-}
-
-impl From<::std::string::ParseError> for Error {
-    fn from(e: ::std::string::ParseError) -> Self {
-        Error::StringParse(e)
-    }
-}
-
-// If we try! or ? a generic failure::Error, just return an unknown error.
-// Generally this happens when we want to use ? with an underlying library
-// which also uses failure.
-impl From<::failure::Error> for Error {
-    fn from(e: ::failure::Error) -> Self {
-        Error::Unknown(e)
-    }
-}
-
-#[cfg(feature = "url")]
-impl From<::url::ParseError> for Error {
-    fn from(e: ::url::ParseError) -> Self {
-        Error::Url(e)
-    }
+    #[error("{0}")]
+    Url(#[from] url::ParseError),
 }
 
 /// A Result type which uses bdrck's internal Error type.
-pub type Result<T> = ::std::result::Result<T, Error>;
+pub type Result<T> = std::result::Result<T, Error>;

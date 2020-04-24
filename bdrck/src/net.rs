@@ -14,7 +14,6 @@
 
 use crate::error::*;
 use data_encoding::HEXLOWER_PERMISSIVE;
-use failure::format_err;
 use serde::de::{Deserialize, Deserializer, Unexpected, Visitor};
 use serde::ser::{Serialize, Serializer};
 use std::cmp::Ordering;
@@ -171,8 +170,8 @@ impl FromStr for HardwareAddr {
             Err(e) => return Err(Error::HexDecode(e)),
         };
         if address_vec.len() != 6 {
-            return Err(Error::InvalidArgument(format_err!(
-                "Invalid MAC address '{}', expected 6 bytes found {}",
+            return Err(Error::InvalidArgument(format!(
+                "invalid MAC address '{}', expected 6 bytes found {}",
                 s,
                 address_vec.len()
             )));
@@ -387,8 +386,8 @@ impl FromStr for IpNet {
     fn from_str(s: &str) -> Result<Self> {
         let (ip, mask): (&str, &str) = s.split_at(match s.find('/') {
             None => {
-                return Err(Error::InvalidArgument(format_err!(
-                    "Invalid IP network specifier '{}'",
+                return Err(Error::InvalidArgument(format!(
+                    "invalid IP network specifier '{}'",
                     s
                 )));
             }
