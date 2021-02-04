@@ -106,7 +106,7 @@ pub trait AbstractClient {
             if retry > 0 {
                 let jitter: u64 = match add_jitter {
                     false => 0,
-                    true => rng.gen_range(0, 10),
+                    true => rng.gen_range(0..10),
                 };
                 let wait: u64 = (1_u64 << retry - 1) * 100 + jitter;
                 info!("Sleep for {}ms before retrying {} {}", wait, method, url);
