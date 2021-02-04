@@ -15,7 +15,7 @@
 use crate::error::*;
 use errno;
 use libc;
-use log::warn;
+use log::{debug, warn};
 use std::ffi::{CString, OsString};
 use std::fs::{self, Permissions};
 use std::mem;
@@ -165,6 +165,48 @@ pub fn set_ownership<P: AsRef<Path>>(_: P, _: u32, _: u32, _: bool, _: bool) -> 
     Ok(())
 }
 
+#[cfg(not(target_os = "windows"))]
+#[derive(Debug)]
+enum SysconfBufferKind {
+    User,
+    Group,
+}
+
+#[cfg(not(target_os = "windows"))]
+fn get_sysconf_buffer_size(kind: SysconfBufferKind) -> usize {
+    let k = match kind {
+        SysconfBufferKind::User => libc::_SC_GETPW_R_SIZE_MAX,
+        SysconfBufferKind::Group => libc::_SC_GETGR_R_SIZE_MAX,
+    };
+
+    let mut s = unsafe { libc::sysconf(k) } as usize;
+
+    /*
+     * This platform might not have any real maximum, in which case -1 is returned. Check for this,
+     * so we don't try to allocate a buffer of 2^64 bytes. :)
+     *
+     * In this case, we just default to 1024 bytes, which seems to be a common value returned by
+     * most Linux libc implementations.
+     *
+     * Also, just for safety's sake, deal with any "unreasonably large" value.
+     */
+    if s == usize::MAX {
+        debug!(
+            "libc has no maximum {:?} buffer size; defaulting to 1024 bytes",
+            kind
+        );
+        s = 1024;
+    } else if s > 1024 * 1024 * 10 {
+        debug!(
+            "libc returned unreasonable {:?} buffer size ({} bytes); defaulting to 1024 bytes",
+            kind, s
+        );
+        s = 1024;
+    }
+
+    s
+}
+
 /// Returns the UNIX uid for the user with the given name.
 #[cfg(not(target_os = "windows"))]
 fn lookup_uid(name: &str) -> Result<u32> {
@@ -175,7 +217,7 @@ fn lookup_uid(name: &str) -> Result<u32> {
     };
     let mut passwd_ptr: *mut libc::passwd = ptr::null_mut();
     let cname = CString::new(name)?;
-    let buf_len = unsafe { libc::sysconf(libc::_SC_GETPW_R_SIZE_MAX) } as usize;
+    let buf_len = get_sysconf_buffer_size(SysconfBufferKind::User);
     let mut buf = vec![0_i8; buf_len];
     let ret = unsafe {
         libc::getpwnam_r(
@@ -215,7 +257,7 @@ fn lookup_gid(name: &str) -> Result<u32> {
     };
     let mut group_ptr: *mut libc::group = ptr::null_mut();
     let cname = CString::new(name)?;
-    let buf_len = unsafe { libc::sysconf(libc::_SC_GETGR_R_SIZE_MAX) } as usize;
+    let buf_len = get_sysconf_buffer_size(SysconfBufferKind::Group);
     let mut buf = vec![0_i8; buf_len];
     let ret = unsafe {
         libc::getgrnam_r(
