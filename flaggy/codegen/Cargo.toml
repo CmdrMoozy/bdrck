@@ -1,12 +1,12 @@
 [package]
 name = "flaggy-codegen"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Axel Rasmussen <axel.rasmussen1@gmail.com>"]
 description = "proc-macro code generation for flaggy."
 homepage = "https://github.com/CmdrMoozy/bdrck"
 repository = "https://github.com/CmdrMoozy/bdrck"
 license = "Apache-2.0"
-edition = "2018"
+edition = "2021"
 
 [lib]
 proc-macro = true
