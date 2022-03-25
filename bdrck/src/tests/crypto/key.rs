@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::crypto::digest::*;
 use crate::crypto::key::*;
 use rmp_serde;
 use sodiumoxide::randombytes::randombytes;

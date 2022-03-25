@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+/// digest defines an API for computing cryptographically secure digests of data.
+pub mod digest;
 /// key defines structures which represent cryptographic keys, and provides
 /// some generic code to implement basic operations like encryption, decryption,
 /// and key wrapping.
