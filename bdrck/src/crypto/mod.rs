@@ -19,3 +19,6 @@ pub mod key;
 /// keystore defines a structure for persisting a "master key" on disk, via key
 /// wrapping.
 pub mod keystore;
+/// secret defines a structure for "safely" storing "secret" data in memory.
+/// Think things like keys, plaintext, etc.
+pub mod secret;
