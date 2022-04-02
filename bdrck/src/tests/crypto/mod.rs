@@ -18,3 +18,5 @@ mod key;
 mod keystore;
 #[cfg(test)]
 mod secret;
+#[cfg(test)]
+mod wrap;

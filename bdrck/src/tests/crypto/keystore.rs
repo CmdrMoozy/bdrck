@@ -23,19 +23,19 @@ fn test_keystore_save_round_trip() {
     let file = temp::File::new_file().unwrap();
 
     let wrap_key = Key::new_random().unwrap();
-    let master_key: Option<Key>;
+    let master_digest: Option<Digest>;
 
     {
         let mut keystore = DiskKeyStore::new(file.path(), false).unwrap();
-        keystore.add_key(&wrap_key).unwrap();
-        master_key = Some(keystore.get_master_key().unwrap().clone());
+        assert!(keystore.add_key(&wrap_key).unwrap());
+        master_digest = Some(keystore.get_master_key().unwrap().get_digest());
     }
 
     {
         let mut keystore = DiskKeyStore::new(file.path(), false).unwrap();
         keystore.open(&wrap_key).unwrap();
         assert_eq!(
-            master_key.as_ref().unwrap().get_digest(),
+            master_digest.unwrap(),
             keystore.get_master_key().unwrap().get_digest()
         );
     }
@@ -61,12 +61,12 @@ fn test_keystore_open_with_added_key() {
     )
     .unwrap();
     assert_ne!(keya.get_digest(), keyb.get_digest());
-    let master_key: Option<Key>;
+    let master_digest: Option<Digest>;
 
     {
         let mut keystore = DiskKeyStore::new(file.path(), false).unwrap();
-        keystore.add_key(&keya).unwrap();
-        master_key = Some(keystore.get_master_key().unwrap().clone());
+        assert!(keystore.add_key(&keya).unwrap());
+        master_digest = Some(keystore.get_master_key().unwrap().get_digest());
         assert!(keystore.add_key(&keyb).unwrap());
     }
 
@@ -74,7 +74,7 @@ fn test_keystore_open_with_added_key() {
         let mut keystore = DiskKeyStore::new(file.path(), false).unwrap();
         keystore.open(&keyb).unwrap();
         assert_eq!(
-            master_key.as_ref().unwrap().get_digest(),
+            master_digest.unwrap(),
             keystore.get_master_key().unwrap().get_digest()
         );
     }

@@ -14,13 +14,15 @@
 
 /// digest defines an API for computing cryptographically secure digests of data.
 pub mod digest;
-/// key defines structures which represent cryptographic keys, and provides
-/// some generic code to implement basic operations like encryption, decryption,
-/// and key wrapping.
+/// key defines structures which represent cryptographic keys, and provides some generic code to
+/// implement basic operations like encryption and decryption.
 pub mod key;
-/// keystore defines a structure for persisting a "master key" on disk, via key
-/// wrapping.
+/// keystore defines a structure for persisting a "master key" on disk, via key wrapping.
 pub mod keystore;
-/// secret defines a structure for "safely" storing "secret" data in memory.
-/// Think things like keys, plaintext, etc.
+/// secret defines a structure for "safely" storing "secret" data in memory. Think things like keys,
+/// plaintext, etc.
 pub mod secret;
+/// wrap defines utilities for "wrapping" a key with another key. This is useful, for instance, to
+/// have a single "master key", which is then encrypted with potentially many other keys. Then, any
+/// of the other keys can be used to "unwrap" the "real" master key.
+pub mod wrap;

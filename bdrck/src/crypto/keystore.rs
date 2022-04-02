@@ -12,7 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::crypto::key::{AbstractKey, Key, Nonce, Wrappable, WrappedKey, WrappedPayload};
+use crate::crypto::key::{AbstractKey, Key, Nonce};
+use crate::crypto::wrap::WrappedKey;
 use crate::error::*;
 use data_encoding;
 use lazy_static::lazy_static;
@@ -136,17 +137,9 @@ impl KeyStore {
 
         let mut master_key: Option<Key> = None;
         for wrapped_key in self.wrapped_keys.iter() {
-            if let Ok(payload) = wrapped_key.clone().unwrap(key) {
-                let unwrapped_key = match payload {
-                    WrappedPayload::Key(k) => k,
-                    _ => continue,
-                };
-                if is_master_key(
-                    &unwrapped_key,
-                    self.token_nonce.as_ref(),
-                    self.token.as_slice(),
-                ) {
-                    master_key = Some(unwrapped_key);
+            if let Ok(k) = wrapped_key.unwrap(key) {
+                if is_master_key(&k, self.token_nonce.as_ref(), self.token.as_slice()) {
+                    master_key = Some(k);
                     break;
                 }
             }
@@ -186,15 +179,14 @@ impl KeyStore {
     /// If this KeyStore has no master key (it was neither newly generated nor
     /// unwrapped), this will return an error instead.
     pub fn add_key<K: AbstractKey>(&mut self, key: &K) -> Result<bool> {
-        let wrapped_key = match self.master_key.clone() {
+        let wrapped_key = match self.master_key.as_ref() {
             None => {
                 return Err(Error::Precondition(format!(
                     "KeyStore must be `new` or opened to add keys"
                 )))
             }
-            Some(k) => k,
-        }
-        .wrap(key)?;
+            Some(mk) => WrappedKey::wrap(/*to_wrap=*/ mk, /*wrap_with=*/ key)?,
+        };
 
         // If this key is already in the KeyStore, just return.
         if self
