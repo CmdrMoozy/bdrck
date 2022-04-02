@@ -172,13 +172,18 @@ impl Secret {
         self.len
     }
 
-    fn slice_ptr(&self) -> *mut u8 {
-        if self.len > 0 {
+    /// Returns a pointer to this Secret's underlying memory. The returned pointer is guaranteed to
+    /// be suitable for constructing a slice, even if this Secret is empty. This pointer is
+    /// guaranteed to be non-NULL.
+    pub unsafe fn slice_ptr(&self) -> *mut u8 {
+        let ret = if self.len > 0 {
             debug_assert!(!self.ptr.is_null());
             self.ptr as *mut u8
         } else {
             std::ptr::NonNull::dangling().as_ptr()
-        }
+        };
+        debug_assert!(!ret.is_null());
+        ret
     }
 
     /// Access the underlying secret data. This function is unsafe primarily because you're
@@ -192,5 +197,13 @@ impl Secret {
     /// the data!
     pub unsafe fn as_mut_slice(&mut self) -> &mut [u8] {
         std::slice::from_raw_parts_mut(self.slice_ptr(), self.len)
+    }
+
+    /// Duplicate this Secret and its contents. Since creating a new Secret can fail, this can also
+    /// fail, unlike the more normal Clone trait.
+    pub fn try_clone(&self) -> Result<Secret> {
+        let mut s = Secret::with_len(self.len())?;
+        unsafe { s.as_mut_slice() }.copy_from_slice(unsafe { self.as_slice() });
+        Ok(s)
     }
 }

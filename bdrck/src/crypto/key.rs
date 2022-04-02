@@ -100,6 +100,8 @@ pub trait AbstractKey: Sized {
     /// implementation.
     fn deserialize(data: Secret) -> std::result::Result<Self, Self::Error>;
 
+    // TODO: Refactor encrypt and decrypt to use Secret properly.
+
     /// Encrypt the given plaintext with this key. This function optionally
     /// takes a nonce as an argument. If this key's encryption algorithm
     /// utilizes a nonce, the provided one will be used.
@@ -122,39 +124,37 @@ pub trait AbstractKey: Sized {
     ) -> std::result::Result<Vec<u8>, Self::Error>;
 }
 
+const fn key_data_len() -> usize {
+    std::mem::size_of::<secretbox::Key>()
+}
+
 /// In this module's terminology, a Key is a cryptographic key of any type
 /// *which is suitable to use for encryption* (i.e., is has not been wrapped).
 pub struct Key {
-    key: secretbox::Key,
+    key_data: Secret,
 }
 
 impl AbstractKey for Key {
     type Error = Error;
 
     fn get_digest(&self) -> Digest {
-        Digest::from_bytes(self.key.0.as_ref())
+        Digest::from_bytes(self.inner().0.as_ref())
     }
 
     fn serialize(&self) -> std::result::Result<Secret, Self::Error> {
-        // TODO: Don't convert to Secret, just represent self.key as a Secret in the first place.
-        let mut s = Secret::with_len(KEY_BYTES)?;
-        unsafe { s.as_mut_slice() }.copy_from_slice(self.key.0.as_slice());
-        Ok(s)
+        self.key_data.try_clone()
     }
 
     fn deserialize(data: Secret) -> std::result::Result<Self, Self::Error> {
-        // TODO: Don't convert to Secret, just represent self.key as a Secret in the first place.
-        let k = match secretbox::Key::from_slice(unsafe { data.as_slice() }) {
-            Some(k) => k,
-            None => {
-                return Err(Error::InvalidArgument(format!(
-                    "invalid Key; expected {} bytes, got {}",
-                    KEY_BYTES,
-                    data.len()
-                )))
-            }
-        };
-        Ok(Key { key: k })
+        if data.len() != key_data_len() {
+            return Err(Error::InvalidArgument(format!(
+                "invalid Key data; expected {} bytes, found {}",
+                key_data_len(),
+                data.len()
+            )));
+        }
+
+        Ok(Key { key_data: data })
     }
 
     fn encrypt(
@@ -163,7 +163,7 @@ impl AbstractKey for Key {
         nonce: Option<Nonce>,
     ) -> std::result::Result<(Option<Nonce>, Vec<u8>), Self::Error> {
         let nonce = nonce.unwrap_or_else(|| Nonce::default());
-        let ciphertext = secretbox::seal(plaintext, &nonce.nonce, &self.key);
+        let ciphertext = secretbox::seal(plaintext, &nonce.nonce, self.inner());
         Ok((Some(nonce), ciphertext))
     }
 
@@ -183,7 +183,7 @@ impl AbstractKey for Key {
                 }
                 Some(nonce) => &nonce.nonce,
             },
-            &self.key,
+            self.inner(),
         );
         if result.is_err() {
             return Err(
@@ -222,5 +222,13 @@ impl Key {
             mem_limit,
         )?;
         Self::deserialize(key_buffer)
+    }
+
+    unsafe fn key_ptr(&self) -> *mut secretbox::Key {
+        self.key_data.slice_ptr() as *mut secretbox::Key
+    }
+
+    fn inner(&self) -> &secretbox::Key {
+        unsafe { self.key_ptr().as_ref().unwrap() }
     }
 }
