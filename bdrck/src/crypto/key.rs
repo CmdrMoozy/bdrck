@@ -142,11 +142,13 @@ impl AbstractKey for Key {
     }
 
     fn serialize(&self) -> std::result::Result<Secret, Self::Error> {
-        self.key_data.try_clone()
+        let mut s = Secret::with_len(self.inner().0.len())?;
+        unsafe { s.as_mut_slice() }.copy_from_slice(&self.inner().0);
+        Ok(s)
     }
 
     fn deserialize(data: Secret) -> std::result::Result<Self, Self::Error> {
-        if data.len() != key_data_len() {
+        if data.len() != KEY_BYTES {
             return Err(Error::InvalidArgument(format!(
                 "invalid Key data; expected {} bytes, found {}",
                 key_data_len(),
@@ -154,7 +156,12 @@ impl AbstractKey for Key {
             )));
         }
 
-        Ok(Key { key_data: data })
+        let mut k = Key {
+            key_data: Secret::with_len(key_data_len())?,
+        };
+
+        k.inner_mut().0.copy_from_slice(unsafe { data.as_slice() });
+        Ok(k)
     }
 
     fn encrypt(
@@ -223,5 +230,9 @@ impl Key {
 
     fn inner(&self) -> &secretbox::Key {
         unsafe { self.key_ptr().as_ref().unwrap() }
+    }
+
+    fn inner_mut(&mut self) -> &mut secretbox::Key {
+        unsafe { self.key_ptr().as_mut().unwrap() }
     }
 }

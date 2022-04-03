@@ -198,12 +198,4 @@ impl Secret {
     pub unsafe fn as_mut_slice(&mut self) -> &mut [u8] {
         std::slice::from_raw_parts_mut(self.slice_ptr(), self.len)
     }
-
-    /// Duplicate this Secret and its contents. Since creating a new Secret can fail, this can also
-    /// fail, unlike the more normal Clone trait.
-    pub fn try_clone(&self) -> Result<Secret> {
-        let mut s = Secret::with_len(self.len())?;
-        unsafe { s.as_mut_slice() }.copy_from_slice(unsafe { self.as_slice() });
-        Ok(s)
-    }
 }
