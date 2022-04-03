@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::crypto::secret::Secret;
 use crate::error::*;
 use serde::de::{SeqAccess, Visitor};
 use serde::ser::SerializeSeq;
@@ -38,23 +39,17 @@ pub const MEM_LIMIT_SENSITIVE: usize = pwhash::MEMLIMIT_SENSITIVE.0;
 
 /// A digest is a cryptographic hash of some arbitrary input data, with the goal
 /// of identifying it or detecting changes with high probability.
-#[derive(Clone)]
+#[derive(Clone, Eq, PartialEq)]
 pub struct Digest([u8; DIGEST_BYTES]);
 
+// Implement by hand instead of derive for slightly nicer output (no struct name).
 impl fmt::Debug for Digest {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?}", self.0.as_ref())
     }
 }
 
-impl PartialEq for Digest {
-    fn eq(&self, other: &Digest) -> bool {
-        self.0.as_ref() == other.0.as_ref()
-    }
-}
-
-impl Eq for Digest {}
-
+// Unfortunately has to be implemented manually, as derive doesn't work for large fixed-size arrays.
 impl Serialize for Digest {
     fn serialize<S: Serializer>(&self, serializer: S) -> ::std::result::Result<S::Ok, S::Error> {
         let mut seq = serializer.serialize_seq(Some(DIGEST_BYTES))?;
@@ -65,6 +60,7 @@ impl Serialize for Digest {
     }
 }
 
+// Unfortunately has to be implemented manually, as derive doesn't work for large fixed-size arrays.
 impl<'de> Deserialize<'de> for Digest {
     fn deserialize<D: Deserializer<'de>>(
         deserializer: D,
@@ -120,16 +116,24 @@ impl Default for Salt {
 
 /// Hash the given password using the given salt and ops limits, placing the result in the given
 /// buffer. Note that the length of "out" is mostly arbitrary.
+///
+/// The purpose of this is basically to take a password of arbitrary length, and to generate a key
+/// of some other length from it.
+///
+/// Both the input and output here are Secrets, because the key derivation algorithm is not secret.
+/// The output, the key, is ostensibly going to be used for encryption, or whatever, so it needs to
+/// remain secret. The key derivation algorithm isn't secret, so the output can be trivially
+/// derived from the input. Therefore, the input needs to be a Secret as well.
 pub fn derive_key(
-    out: &mut [u8],
-    password: &[u8],
+    out: &mut Secret,
+    password: &Secret,
     salt: &Salt,
     ops_limit: usize,
     mem_limit: usize,
 ) -> Result<()> {
     let result = pwhash::derive_key(
-        out,
-        password,
+        unsafe { out.as_mut_slice() },
+        unsafe { password.as_slice() },
         &salt.0,
         pwhash::OpsLimit(ops_limit),
         pwhash::MemLimit(mem_limit),

@@ -15,8 +15,26 @@
 use crate::crypto::digest::*;
 use crate::crypto::key::*;
 use crate::crypto::keystore::*;
+use crate::crypto::secret::Secret;
 use crate::testing::temp;
 use std::fs;
+
+fn new_password(password: &str) -> Secret {
+    let bytes = password.as_bytes();
+    let mut s = Secret::with_len(bytes.len()).unwrap();
+    unsafe { s.as_mut_slice() }.copy_from_slice(bytes);
+    s
+}
+
+fn new_password_key(password: &str, salt: &Salt) -> Key {
+    Key::new_password(
+        &new_password(password),
+        salt,
+        OPS_LIMIT_INTERACTIVE,
+        MEM_LIMIT_INTERACTIVE,
+    )
+    .unwrap()
+}
 
 #[test]
 fn test_keystore_save_round_trip() {
@@ -46,20 +64,8 @@ fn test_keystore_open_with_added_key() {
     let file = temp::File::new_file().unwrap();
 
     let salt = Salt::default();
-    let keya = Key::new_password(
-        "foo".as_bytes(),
-        &salt,
-        OPS_LIMIT_INTERACTIVE,
-        MEM_LIMIT_INTERACTIVE,
-    )
-    .unwrap();
-    let keyb = Key::new_password(
-        "bar".as_bytes(),
-        &salt,
-        OPS_LIMIT_INTERACTIVE,
-        MEM_LIMIT_INTERACTIVE,
-    )
-    .unwrap();
+    let keya = new_password_key("foo", &salt);
+    let keyb = new_password_key("bar", &salt);
     assert_ne!(keya.get_digest(), keyb.get_digest());
     let master_digest: Option<Digest>;
 
@@ -97,20 +103,8 @@ fn test_remove_unused_key() {
     let file = temp::File::new_file().unwrap();
 
     let salt = Salt::default();
-    let keya = Key::new_password(
-        "foo".as_bytes(),
-        &salt,
-        OPS_LIMIT_INTERACTIVE,
-        MEM_LIMIT_INTERACTIVE,
-    )
-    .unwrap();
-    let keyb = Key::new_password(
-        "bar".as_bytes(),
-        &salt,
-        OPS_LIMIT_INTERACTIVE,
-        MEM_LIMIT_INTERACTIVE,
-    )
-    .unwrap();
+    let keya = new_password_key("foo", &salt);
+    let keyb = new_password_key("bar", &salt);
     assert_ne!(keya.get_digest(), keyb.get_digest());
 
     let mut keystore = DiskKeyStore::new(file.path(), false).unwrap();

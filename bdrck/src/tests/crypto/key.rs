@@ -14,11 +14,19 @@
 
 use crate::crypto::digest::*;
 use crate::crypto::key::*;
+use crate::crypto::secret::Secret;
 use rmp_serde;
 use sodiumoxide::randombytes::randombytes;
 
 fn clone_key(key: &Key) -> Key {
     Key::deserialize(key.serialize().unwrap()).unwrap()
+}
+
+fn new_password(password: &str) -> Secret {
+    let bytes = password.as_bytes();
+    let mut s = Secret::with_len(bytes.len()).unwrap();
+    unsafe { s.as_mut_slice() }.copy_from_slice(bytes);
+    s
 }
 
 #[test]
@@ -42,7 +50,7 @@ fn test_digest_serde_round_trip() {
 fn test_password_key_derivation() {
     let salt = Salt::default();
     let _key = Key::new_password(
-        "foobar".as_bytes(),
+        &new_password("foobar"),
         &salt,
         OPS_LIMIT_INTERACTIVE,
         MEM_LIMIT_INTERACTIVE,

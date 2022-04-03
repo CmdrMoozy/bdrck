@@ -207,20 +207,13 @@ impl Key {
     /// need to remain fixed if you e.g. re-derive the key to decrypt some
     /// previously-encrypted data.
     pub fn new_password(
-        password: &[u8],
+        password: &Secret,
         salt: &Salt,
         ops_limit: usize,
         mem_limit: usize,
     ) -> Result<Self> {
         let mut key_buffer = Secret::with_len(KEY_BYTES)?;
-        // TODO: Refactor derive_key to use Secret properly.
-        derive_key(
-            unsafe { key_buffer.as_mut_slice() },
-            password,
-            salt,
-            ops_limit,
-            mem_limit,
-        )?;
+        derive_key(&mut key_buffer, password, salt, ops_limit, mem_limit)?;
         Self::deserialize(key_buffer)
     }
 
