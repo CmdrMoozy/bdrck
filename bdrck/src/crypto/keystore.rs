@@ -13,6 +13,7 @@
 // limitations under the License.
 
 use crate::crypto::key::{AbstractKey, Key, Nonce};
+use crate::crypto::secret::Secret;
 use crate::crypto::wrap::WrappedKey;
 use crate::error::*;
 use data_encoding;
@@ -29,7 +30,12 @@ lazy_static! {
     /// This token is used to verify that authentication was successful. We encrypt it with a master
     /// key which we then wrap with user key(s), so we can verify that the user presented a valid
     /// key by trying to decrypt this token.
-    static ref AUTH_TOKEN_CONTENTS: Vec<u8> = "3c017f717b39247c351154a41d2850e4187284da4b928f13c723d54440ba2dfe".bytes().collect();
+    static ref AUTH_TOKEN_CONTENTS: Secret = {
+        let data: Vec<u8> = "3c017f717b39247c351154a41d2850e4187284da4b928f13c723d54440ba2dfe".bytes().collect();
+        let mut secret = Secret::with_len(data.len()).unwrap();
+        unsafe { secret.as_mut_slice() }.copy_from_slice(data.as_slice());
+        secret
+    };
 }
 
 /// Returns true if the given key is this structure's "master key" which was
@@ -39,7 +45,7 @@ fn is_master_key<K: AbstractKey>(key: &K, nonce: Option<&Nonce>, token: &[u8]) -
         Err(_) => return false,
         Ok(d) => d,
     };
-    decrypted.as_slice() == AUTH_TOKEN_CONTENTS.as_slice()
+    unsafe { decrypted.as_slice() == AUTH_TOKEN_CONTENTS.as_slice() }
 }
 
 /// A KeyStore is a structure which contains a single "master key", wrapped with
@@ -81,7 +87,7 @@ impl KeyStore {
         // Encrypt the auth token with the master key. This is so we can decrypt
         // it later, and verify we get the right result, to guarantee we have
         // the right master key.
-        let (nonce, ciphertext) = master_key.encrypt(AUTH_TOKEN_CONTENTS.as_slice(), None)?;
+        let (nonce, ciphertext) = master_key.encrypt(&AUTH_TOKEN_CONTENTS, None)?;
 
         Ok(KeyStore {
             master_key: Some(master_key),

@@ -23,6 +23,8 @@ use sodiumoxide::randombytes::randombytes_into;
 pub const NONCE_BYTES: usize = secretbox::NONCEBYTES;
 /// xsalsa20poly1305 uses 32 byte keys.
 pub const KEY_BYTES: usize = secretbox::KEYBYTES;
+/// xsalsa20poly1305 authenticator tags are 16 bytes.
+pub const TAG_BYTES: usize = secretbox::MACBYTES;
 
 /// A cryptographic nonce is an arbitrary number that can be used only once
 /// (e.g. for encryption).
@@ -100,8 +102,6 @@ pub trait AbstractKey: Sized {
     /// implementation.
     fn deserialize(data: Secret) -> std::result::Result<Self, Self::Error>;
 
-    // TODO: Refactor encrypt and decrypt to use Secret properly.
-
     /// Encrypt the given plaintext with this key. This function optionally
     /// takes a nonce as an argument. If this key's encryption algorithm
     /// utilizes a nonce, the provided one will be used.
@@ -111,7 +111,7 @@ pub trait AbstractKey: Sized {
     /// returned.
     fn encrypt(
         &self,
-        plaintext: &[u8],
+        plaintext: &Secret,
         nonce: Option<Nonce>,
     ) -> std::result::Result<(Option<Nonce>, Vec<u8>), Self::Error>;
 
@@ -121,7 +121,7 @@ pub trait AbstractKey: Sized {
         &self,
         nonce: Option<&Nonce>,
         ciphertext: &[u8],
-    ) -> std::result::Result<Vec<u8>, Self::Error>;
+    ) -> std::result::Result<Secret, Self::Error>;
 }
 
 const fn key_data_len() -> usize {
@@ -166,30 +166,57 @@ impl AbstractKey for Key {
 
     fn encrypt(
         &self,
-        plaintext: &[u8],
+        plaintext: &Secret,
         nonce: Option<Nonce>,
     ) -> std::result::Result<(Option<Nonce>, Vec<u8>), Self::Error> {
-        let nonce = nonce.unwrap_or_else(|| Nonce::default());
-        let ciphertext = secretbox::seal(plaintext, &nonce.nonce, self.inner());
-        Ok((Some(nonce), ciphertext))
+        let nonce = nonce.unwrap_or_else(Nonce::default);
+
+        let mut buf = plaintext.try_clone()?;
+        let tag =
+            secretbox::seal_detached(unsafe { buf.as_mut_slice() }, &nonce.nonce, self.inner());
+
+        let mut ret = Vec::new();
+        ret.extend_from_slice(&tag.0);
+        ret.extend_from_slice(unsafe { buf.as_slice() });
+
+        Ok((Some(nonce), ret))
     }
 
     fn decrypt(
         &self,
         nonce: Option<&Nonce>,
         ciphertext: &[u8],
-    ) -> std::result::Result<Vec<u8>, Self::Error> {
-        let result = secretbox::open(
-            ciphertext,
-            match nonce {
-                None => {
-                    return Err(Error::InvalidArgument(format!(
-                        "decrypting with a Key requires a nonce"
-                    ))
-                    .into());
-                }
-                Some(nonce) => &nonce.nonce,
-            },
+    ) -> std::result::Result<Secret, Self::Error> {
+        if ciphertext.len() < TAG_BYTES {
+            return Err(Error::InvalidArgument(format!(
+                "can't decrypt ciphertext which is missing an authentication tag"
+            ))
+            .into());
+        }
+
+        if nonce.is_none() {
+            return Err(
+                Error::InvalidArgument(format!("decrypting with a Key requires a Nonce")).into(),
+            );
+        }
+
+        let (tag, ciphertext) = ciphertext.split_at(TAG_BYTES);
+        let tag = match secretbox::Tag::from_slice(tag) {
+            None => {
+                return Err(Error::InvalidArgument(format!(
+                    "constructing authentication tag from ciphertext failed"
+                ))
+                .into())
+            }
+            Some(t) => t,
+        };
+
+        let mut plaintext = Secret::with_len(ciphertext.len())?;
+        unsafe { plaintext.as_mut_slice() }.copy_from_slice(ciphertext);
+        let result = secretbox::open_detached(
+            unsafe { plaintext.as_mut_slice() },
+            &tag,
+            &nonce.unwrap().nonce,
             self.inner(),
         );
         if result.is_err() {
@@ -197,7 +224,8 @@ impl AbstractKey for Key {
                 Error::InvalidArgument(format!("failed to decrypt with incorrect Key")).into(),
             );
         }
-        Ok(result.ok().unwrap())
+
+        Ok(plaintext)
     }
 }
 

@@ -198,4 +198,14 @@ impl Secret {
     pub unsafe fn as_mut_slice(&mut self) -> &mut [u8] {
         std::slice::from_raw_parts_mut(self.slice_ptr(), self.len)
     }
+
+    /// Try to copy this Secret's contents into a new Secret.
+    pub fn try_clone(&self) -> Result<Self> {
+        let mut other = Secret::with_len(self.len())?;
+        unsafe { other.as_mut_slice().copy_from_slice(self.as_slice()) }
+        Ok(other)
+    }
 }
+
+unsafe impl Send for Secret {}
+unsafe impl Sync for Secret {}

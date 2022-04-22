@@ -16,7 +16,7 @@ use crate::crypto::digest::*;
 use crate::crypto::key::*;
 use crate::crypto::secret::Secret;
 use rmp_serde;
-use sodiumoxide::randombytes::randombytes;
+use sodiumoxide::randombytes::randombytes_into;
 
 fn clone_key(key: &Key) -> Key {
     Key::deserialize(key.serialize().unwrap()).unwrap()
@@ -26,6 +26,12 @@ fn new_password(password: &str) -> Secret {
     let bytes = password.as_bytes();
     let mut s = Secret::with_len(bytes.len()).unwrap();
     unsafe { s.as_mut_slice() }.copy_from_slice(bytes);
+    s
+}
+
+fn random_secret(len: usize) -> Secret {
+    let mut s = Secret::with_len(len).unwrap();
+    randombytes_into(unsafe { s.as_mut_slice() });
     s
 }
 
@@ -71,19 +77,21 @@ fn test_basic_key_digest_comparison() {
 #[test]
 fn test_encryption_roundtrip() {
     let key = Key::new_random().unwrap();
-    let plaintext = randombytes(1024);
-    let (nonce, ciphertext) = key.encrypt(plaintext.as_slice(), None).unwrap();
-    assert_ne!(plaintext.as_slice(), ciphertext.as_slice());
+    let plaintext = random_secret(1024);
+    let (nonce, ciphertext) = key.encrypt(&plaintext, None).unwrap();
+    assert_ne!(unsafe { plaintext.as_slice() }, ciphertext.as_slice());
     let decrypted = key.decrypt(nonce.as_ref(), ciphertext.as_slice()).unwrap();
-    assert_eq!(plaintext, decrypted);
+    assert_eq!(unsafe { plaintext.as_slice() }, unsafe {
+        decrypted.as_slice()
+    });
 }
 
 #[test]
 fn test_decrypting_with_wrong_key_fails() {
     let key = Key::new_random().unwrap();
-    let plaintext = randombytes(1024);
-    let (nonce, ciphertext) = key.encrypt(plaintext.as_slice(), None).unwrap();
-    assert_ne!(plaintext.as_slice(), ciphertext.as_slice());
+    let plaintext = random_secret(1024);
+    let (nonce, ciphertext) = key.encrypt(&plaintext, None).unwrap();
+    assert_ne!(unsafe { plaintext.as_slice() }, ciphertext.as_slice());
 
     let wrong_key = Key::new_random().unwrap();
     let decrypted_result = wrong_key.decrypt(nonce.as_ref(), ciphertext.as_slice());

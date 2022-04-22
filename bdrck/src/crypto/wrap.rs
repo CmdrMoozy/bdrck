@@ -14,7 +14,6 @@
 
 use crate::crypto::digest::Digest;
 use crate::crypto::key::{AbstractKey, Nonce};
-use crate::crypto::secret::Secret;
 use crate::error::*;
 use serde::{Deserialize, Serialize};
 
@@ -41,8 +40,7 @@ impl WrappedKey {
             Ok(d) => d,
         };
 
-        // TODO: Refactor encrypt to properly use Secret.
-        let (nonce, data) = match wrap_with.encrypt(unsafe { data.as_slice() }, None) {
+        let (nonce, data) = match wrap_with.encrypt(&data, None) {
             Err(e) => return Err(Error::Crypto(format!("wrapping key failed: {}", e))),
             Ok(nd) => nd,
         };
@@ -63,15 +61,9 @@ impl WrappedKey {
             )));
         }
 
-        // TODO: Don't do this Secret conversion.
-        let data = {
-            let d = match wrapped_with.decrypt(self.nonce.as_ref(), self.data.as_slice()) {
-                Err(e) => return Err(Error::Crypto(format!("unwrapping key failed: {}", e))),
-                Ok(d) => d,
-            };
-            let mut ds = Secret::with_len(d.len())?;
-            unsafe { ds.as_mut_slice() }.copy_from_slice(d.as_slice());
-            ds
+        let data = match wrapped_with.decrypt(self.nonce.as_ref(), self.data.as_slice()) {
+            Err(e) => return Err(Error::Crypto(format!("unwrapping key failed: {}", e))),
+            Ok(d) => d,
         };
 
         match KA::deserialize(data) {
