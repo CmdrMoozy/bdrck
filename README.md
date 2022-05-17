@@ -20,6 +20,10 @@ Bdrck is a crate containing generic common utilities. In particular, it has seve
 
 Flaggy is a separate but related crate which provides command-line flag parsing.
 
+# halite-sys
+
+halite-sys provides Rust bindings for libsodium. Why not use libsodium-sys? Because it's [deprecated](https://github.com/sodiumoxide/sodiumoxide/blob/master/README.md).
+
 ## Versioning
 
 This project adheres to [Semantic Versioning](http://semver.org/). However, prior to 1.0.0 this project will adhere to the following rules:

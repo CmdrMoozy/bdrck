@@ -4,4 +4,5 @@ members = [
     "flaggy/codegen",
     "flaggy/lib",
     "flaggy/values",
+    "halite-sys",
 ]
