@@ -15,8 +15,14 @@
 use crate::crypto::digest::*;
 use crate::crypto::key::*;
 use crate::crypto::secret::Secret;
+use libc::{c_ulonglong, c_void};
 use rmp_serde;
-use sodiumoxide::randombytes::randombytes_into;
+
+fn randombytes_into(buf: &mut [u8]) {
+    unsafe {
+        halite_sys::randombytes_buf(buf.as_mut_ptr() as *mut c_void, buf.len() as c_ulonglong);
+    }
+}
 
 fn clone_key(key: &Key) -> Key {
     Key::deserialize(key.serialize().unwrap()).unwrap()

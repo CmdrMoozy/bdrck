@@ -13,29 +13,34 @@
 // limitations under the License.
 
 use crate::crypto::secret::Secret;
+use crate::crypto::util::*;
 use crate::error::*;
+use halite_sys;
+use libc::{c_char, c_ulonglong};
 use serde::de::{SeqAccess, Visitor};
 use serde::ser::SerializeSeq;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use sodiumoxide::crypto::hash;
-use sodiumoxide::crypto::pwhash;
 use std::fmt;
 
 /// This module uses sha512, which produces 64 byte digests.
-pub const DIGEST_BYTES: usize = hash::DIGESTBYTES;
+pub const DIGEST_BYTES: usize = halite_sys::crypto_hash_sha512_BYTES as usize;
 /// scryptsalsa208sha256 uses 32 byte salts.
-pub const SALT_BYTES: usize = pwhash::SALTBYTES;
+pub const SALT_BYTES: usize = halite_sys::crypto_pwhash_scryptsalsa208sha256_SALTBYTES as usize;
 
 /// Safe ops_limit base line for password-based key derivation, for interactive
 /// password hashing.
-pub const OPS_LIMIT_INTERACTIVE: usize = pwhash::OPSLIMIT_INTERACTIVE.0;
+pub const OPS_LIMIT_INTERACTIVE: usize =
+    halite_sys::crypto_pwhash_scryptsalsa208sha256_OPSLIMIT_INTERACTIVE as usize;
 /// ops_limit for highly sensitive data.
-pub const OPS_LIMIT_SENSITIVE: usize = pwhash::OPSLIMIT_SENSITIVE.0;
+pub const OPS_LIMIT_SENSITIVE: usize =
+    halite_sys::crypto_pwhash_scryptsalsa208sha256_OPSLIMIT_SENSITIVE as usize;
 /// Safe mem_limit base line for password-based key derivation, for interactive
 /// password hashing.
-pub const MEM_LIMIT_INTERACTIVE: usize = pwhash::MEMLIMIT_INTERACTIVE.0;
+pub const MEM_LIMIT_INTERACTIVE: usize =
+    halite_sys::crypto_pwhash_scryptsalsa208sha256_MEMLIMIT_INTERACTIVE as usize;
 /// mem_limit for highly sensitive data.
-pub const MEM_LIMIT_SENSITIVE: usize = pwhash::MEMLIMIT_SENSITIVE.0;
+pub const MEM_LIMIT_SENSITIVE: usize =
+    halite_sys::crypto_pwhash_scryptsalsa208sha256_MEMLIMIT_SENSITIVE as usize;
 
 /// A digest is a cryptographic hash of some arbitrary input data, with the goal
 /// of identifying it or detecting changes with high probability.
@@ -99,18 +104,29 @@ impl<'de> Deserialize<'de> for Digest {
 impl Digest {
     /// Construct a new Digest object by hashing the given raw bytes.
     pub fn from_bytes(data: &[u8]) -> Self {
-        Digest(hash::hash(data).0)
+        let mut digest = Digest([0; DIGEST_BYTES]);
+        unsafe {
+            halite_sys::crypto_hash_sha512(digest.0.as_mut_ptr(), data.as_ptr(), data.len() as u64);
+        }
+        digest
+    }
+
+    /// Construct a new Digest object by hashing the given Secret's raw bytes.
+    pub fn from_secret(secret: &Secret) -> Self {
+        Self::from_bytes(unsafe { secret.as_slice() })
     }
 }
 
 /// A salt is an arbitrary byte sequence which is used for password-based key
 /// derivation.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub struct Salt(pwhash::Salt);
+pub struct Salt([u8; SALT_BYTES]);
 
 impl Default for Salt {
     fn default() -> Self {
-        Salt(pwhash::gen_salt())
+        let mut salt = Salt([0; SALT_BYTES]);
+        randombytes_into(&mut salt.0);
+        salt
     }
 }
 
@@ -131,21 +147,25 @@ pub fn derive_key(
     ops_limit: usize,
     mem_limit: usize,
 ) -> Result<()> {
-    let result = pwhash::derive_key(
-        unsafe { out.as_mut_slice() },
-        unsafe { password.as_slice() },
-        &salt.0,
-        pwhash::OpsLimit(ops_limit),
-        pwhash::MemLimit(mem_limit),
-    );
-    if result.is_err() {
+    if unsafe {
+        halite_sys::crypto_pwhash_scryptsalsa208sha256(
+            out.slice_ptr(),
+            out.len() as c_ulonglong,
+            password.slice_ptr() as *const c_char,
+            password.len() as c_ulonglong,
+            salt.0.as_ptr(),
+            ops_limit as c_ulonglong,
+            mem_limit as c_ulonglong,
+        )
+    } == 0
+    {
+        Ok(())
+    } else {
         // NOTE: We handle this error gracefully, but in reality (by inspecting the
         // libsodium source code) the only way this can actually fail is if the input
         // password is *enormous*. So, this won't really fail in practice.
-        return Err(Error::Internal(format!(
+        Err(Error::Internal(format!(
             "deriving key from password failed"
-        )));
+        )))
     }
-
-    Ok(())
 }
