@@ -1,6 +1,4 @@
-# Bdrck
-
-[![Build Status](https://travis-ci.org/CmdrMoozy/bdrck.svg?branch=master)](https://travis-ci.org/CmdrMoozy/bdrck)
+# bdrck
 
 Bdrck is a crate containing generic common utilities. In particular, it has several top-level modules which provide various functionality:
 
@@ -16,7 +14,7 @@ Bdrck is a crate containing generic common utilities. In particular, it has seve
 | net           | Networking utilities / types.                 |
 | testing       | Unit testing utilities.                       |
 
-# Flaggy
+# flaggy
 
 Flaggy is a separate but related crate which provides command-line flag parsing.
 
