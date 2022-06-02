@@ -16,12 +16,17 @@ use crate::crypto::secret::Secret;
 use halite_sys;
 use libc::{c_ulonglong, c_void};
 
-pub(crate) fn randombytes_into(buf: &mut [u8]) {
+/// Fill the given buffer with random bytes. This function is guaranteed to be thread safe and
+/// cryptographically secure. In other words, it's fine to use this for generating passwords, key
+/// material, etc.
+pub fn randombytes_into(buf: &mut [u8]) {
     unsafe {
         halite_sys::randombytes_buf(buf.as_mut_ptr() as *mut c_void, buf.len() as c_ulonglong);
     }
 }
 
-pub(crate) fn randombytes_into_secret(s: &mut Secret) {
+/// A simple wrapper around `randombytes_into` which fills a `Secret` instead of a simple byte
+/// buffer.
+pub fn randombytes_into_secret(s: &mut Secret) {
     randombytes_into(unsafe { s.as_mut_slice() });
 }

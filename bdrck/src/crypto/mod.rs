@@ -22,7 +22,8 @@ pub mod keystore;
 /// secret defines a structure for "safely" storing "secret" data in memory. Think things like keys,
 /// plaintext, etc.
 pub mod secret;
-mod util;
+/// util provides some trivial crypto-related utility functions.
+pub mod util;
 /// wrap defines utilities for "wrapping" a key with another key. This is useful, for instance, to
 /// have a single "master key", which is then encrypted with potentially many other keys. Then, any
 /// of the other keys can be used to "unwrap" the "real" master key.
