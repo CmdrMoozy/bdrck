@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::crypto::compat::{self, Compatible};
 use crate::crypto::digest::{derive_key, Digest, Salt};
 use crate::crypto::secret::Secret;
 use crate::crypto::util::*;
@@ -30,7 +31,12 @@ pub const TAG_BYTES: usize = halite_sys::crypto_secretbox_xsalsa20poly1305_MACBY
 /// A cryptographic nonce is an arbitrary number that can be used only once
 /// (e.g. for encryption).
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub struct Nonce([u8; NONCE_BYTES]);
+pub struct Nonce {
+    // NOTE: This is a proper structure instead of a simple tuple structure, because this way of
+    // defining it is part of our serialization format. Changing it would cause us to be unable to
+    // deserialize instances serialized based on an old version of the code.
+    nonce: compat::Nonce,
+}
 
 impl Default for Nonce {
     /// Return a new randomly generated nonce. This is the default, because it's
@@ -38,7 +44,7 @@ impl Default for Nonce {
     /// twice.
     fn default() -> Self {
         let mut nonce = Nonce::new();
-        randombytes_into(&mut nonce.0);
+        randombytes_into(&mut nonce.nonce.0);
         nonce
     }
 }
@@ -46,40 +52,30 @@ impl Default for Nonce {
 impl Nonce {
     /// Return a new, zero-initialized nonce.
     pub fn new() -> Self {
-        Nonce([0; NONCE_BYTES])
+        Nonce {
+            nonce: compat::Nonce([0; NONCE_BYTES]),
+        }
     }
 
-    /// Construct a new Nonce from raw bytes. The given byte slice must be
-    /// exactly NONCE_BYTES long.
-    pub fn from_bytes(bytes: &[u8]) -> Result<Self> {
-        if bytes.len() != NONCE_BYTES {
-            return Err(Error::InvalidArgument(format!(
-                "expected {} Nonce bytes, got {}",
-                NONCE_BYTES,
-                bytes.len()
-            )));
-        }
-
-        let mut nonce = Nonce::new();
-        for (dst, src) in nonce.0.iter_mut().zip(bytes.iter()) {
-            *dst = *src;
-        }
-
-        Ok(nonce)
+    /// Construct a Nonce from a properly sized byte slice.
+    pub fn from_slice(bytes: &[u8]) -> Result<Self> {
+        Ok(Nonce {
+            nonce: compat::Nonce::from_slice(bytes)?,
+        })
     }
 
     /// Increment this nonce's bytes by 1. This is useful for counter-style
     /// nonces.
     pub fn increment(mut self) -> Self {
         unsafe {
-            halite_sys::sodium_increment(self.0.as_mut_ptr(), NONCE_BYTES as u64);
+            halite_sys::sodium_increment(self.nonce.0.as_mut_ptr(), NONCE_BYTES as u64);
         }
         self
     }
 
     /// Access the raw bytes which make up this Nonce.
     pub fn as_bytes(&self) -> &[u8] {
-        &self.0
+        &self.nonce.0
     }
 }
 
@@ -166,7 +162,7 @@ impl AbstractKey for Key {
                 tag.as_mut_ptr(),
                 buf.slice_ptr(),
                 buf.len() as c_ulonglong,
-                nonce.0.as_ptr(),
+                nonce.nonce.0.as_ptr(),
                 self.key_data.slice_ptr(),
             );
         }
@@ -211,7 +207,7 @@ impl AbstractKey for Key {
                 plaintext.slice_ptr(),
                 tag.as_ptr(),
                 plaintext.len() as c_ulonglong,
-                nonce.0.as_ptr(),
+                nonce.nonce.0.as_ptr(),
                 self.key_data.slice_ptr(),
             )
         } == 0

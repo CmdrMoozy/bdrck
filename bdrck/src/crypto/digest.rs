@@ -12,8 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::crypto::compat;
 use crate::crypto::secret::Secret;
-use crate::crypto::util::*;
+use crate::crypto::util::randombytes_into;
 use crate::error::*;
 use halite_sys;
 use libc::{c_char, c_ulonglong};
@@ -120,13 +121,13 @@ impl Digest {
 /// A salt is an arbitrary byte sequence which is used for password-based key
 /// derivation.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub struct Salt([u8; SALT_BYTES]);
+pub struct Salt(compat::Salt);
 
 impl Default for Salt {
     fn default() -> Self {
-        let mut salt = Salt([0; SALT_BYTES]);
-        randombytes_into(&mut salt.0);
-        salt
+        let mut s = Salt(compat::Salt::default());
+        randombytes_into(&mut s.0 .0);
+        s
     }
 }
 
@@ -153,7 +154,7 @@ pub fn derive_key(
             out.len() as c_ulonglong,
             password.slice_ptr() as *const c_char,
             password.len() as c_ulonglong,
-            salt.0.as_ptr(),
+            salt.0 .0.as_ptr(),
             ops_limit as c_ulonglong,
             mem_limit as c_ulonglong,
         )
