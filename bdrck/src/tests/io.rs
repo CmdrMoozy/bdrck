@@ -18,6 +18,8 @@ use std::fs;
 
 #[test]
 fn test_read_at_most() {
+    crate::init().unwrap();
+
     let testdata = b"Hello, world!";
     for buffer_size in &[testdata.len() - 1, testdata.len(), testdata.len() + 1] {
         let tf = temp::File::new_file().unwrap();

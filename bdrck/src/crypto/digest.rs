@@ -106,6 +106,7 @@ impl Digest {
     /// Construct a new Digest object by hashing the given raw bytes.
     pub fn from_bytes(data: &[u8]) -> Self {
         let mut digest = Digest([0; DIGEST_BYTES]);
+        debug_assert!(crate::init_done());
         unsafe {
             halite_sys::crypto_hash_sha512(digest.0.as_mut_ptr(), data.as_ptr(), data.len() as u64);
         }
@@ -148,6 +149,7 @@ pub fn derive_key(
     ops_limit: usize,
     mem_limit: usize,
 ) -> Result<()> {
+    debug_assert!(crate::init_done());
     if unsafe {
         halite_sys::crypto_pwhash_scryptsalsa208sha256(
             out.slice_ptr(),

@@ -16,6 +16,8 @@ use crate::crypto::secret::*;
 
 #[test]
 fn test_empty() {
+    crate::init().unwrap();
+
     let mut sa = Secret::new();
     assert_eq!(0, sa.len());
     assert!(unsafe { sa.as_slice().is_empty() });
@@ -29,6 +31,8 @@ fn test_empty() {
 
 #[test]
 fn test_roundtrip() {
+    crate::init().unwrap();
+
     let data = "foo bar baz this is a test";
     let bytes = data.as_bytes();
 
@@ -44,6 +48,8 @@ fn test_roundtrip() {
 
 #[test]
 fn test_resize() {
+    crate::init().unwrap();
+
     let mut data = "foobar foobar foobar".as_bytes().to_vec();
     let orig_len = data.len();
 

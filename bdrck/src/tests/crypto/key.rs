@@ -15,14 +15,8 @@
 use crate::crypto::digest::*;
 use crate::crypto::key::*;
 use crate::crypto::secret::Secret;
-use libc::{c_ulonglong, c_void};
+use crate::crypto::util::randombytes_into;
 use rmp_serde;
-
-fn randombytes_into(buf: &mut [u8]) {
-    unsafe {
-        halite_sys::randombytes_buf(buf.as_mut_ptr() as *mut c_void, buf.len() as c_ulonglong);
-    }
-}
 
 fn clone_key(key: &Key) -> Key {
     Key::deserialize(key.serialize().unwrap()).unwrap()
@@ -43,6 +37,8 @@ fn random_secret(len: usize) -> Secret {
 
 #[test]
 fn test_nonce_increment() {
+    crate::init().unwrap();
+
     let nonce = Nonce::new();
     let next = Nonce::new();
     assert_eq!(nonce, next);
@@ -51,6 +47,8 @@ fn test_nonce_increment() {
 
 #[test]
 fn test_digest_serde_round_trip() {
+    crate::init().unwrap();
+
     let key = Key::new_random().unwrap();
     let digest = key.get_digest();
     let serialized = rmp_serde::to_vec(&digest).unwrap();
@@ -60,6 +58,8 @@ fn test_digest_serde_round_trip() {
 
 #[test]
 fn test_password_key_derivation() {
+    crate::init().unwrap();
+
     let salt = Salt::default();
     let _key = Key::new_password(
         &new_password("foobar"),
@@ -72,6 +72,8 @@ fn test_password_key_derivation() {
 
 #[test]
 fn test_basic_key_digest_comparison() {
+    crate::init().unwrap();
+
     let a = Key::new_random().unwrap();
     let b = Key::new_random().unwrap();
     let c = clone_key(&a);
@@ -82,6 +84,8 @@ fn test_basic_key_digest_comparison() {
 
 #[test]
 fn test_encryption_roundtrip() {
+    crate::init().unwrap();
+
     let key = Key::new_random().unwrap();
     let plaintext = random_secret(1024);
     let (nonce, ciphertext) = key.encrypt(&plaintext, None).unwrap();
@@ -94,6 +98,8 @@ fn test_encryption_roundtrip() {
 
 #[test]
 fn test_decrypting_with_wrong_key_fails() {
+    crate::init().unwrap();
+
     let key = Key::new_random().unwrap();
     let plaintext = random_secret(1024);
     let (nonce, ciphertext) = key.encrypt(&plaintext, None).unwrap();

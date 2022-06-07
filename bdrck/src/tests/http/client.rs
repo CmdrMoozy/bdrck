@@ -75,6 +75,8 @@ impl AbstractClient for RetriesTestClient {
 
 #[test]
 fn test_execute_with_retries_too_many() {
+    crate::init().unwrap();
+
     let client = RetriesTestClient::new();
     assert!(client
         .execute_with_retries(
@@ -92,6 +94,8 @@ fn test_execute_with_retries_too_many() {
 
 #[test]
 fn test_execute_with_retries_single() {
+    crate::init().unwrap();
+
     let client = RetriesTestClient::new();
     assert!(client
         .execute_with_retries(
@@ -109,6 +113,8 @@ fn test_execute_with_retries_single() {
 
 #[test]
 fn test_execute_with_retries_many() {
+    crate::init().unwrap();
+
     let client = RetriesTestClient::new();
     assert!(client
         .execute_with_retries(
@@ -136,6 +142,8 @@ fn test_execute_with_retries_many() {
 
 #[test]
 fn test_trait_object_works() {
+    crate::init().unwrap();
+
     let client: Box<dyn AbstractClient> = Box::new(RetriesTestClient::new());
     assert!(client
         .execute_with_retries(

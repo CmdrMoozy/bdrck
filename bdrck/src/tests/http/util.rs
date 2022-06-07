@@ -19,12 +19,16 @@ use std::collections::HashMap;
 
 #[test]
 fn test_get_links_no_header() {
+    crate::init().unwrap();
+
     let headers = HeaderMap::new();
     assert_eq!(HashMap::new(), get_links(&headers).unwrap());
 }
 
 #[test]
 fn test_get_links_no_values() {
+    crate::init().unwrap();
+
     let mut headers = HeaderMap::new();
     headers.insert(header::LINK.as_str().to_owned(), Vec::new());
     assert_eq!(HashMap::new(), get_links(&headers).unwrap());
@@ -32,6 +36,8 @@ fn test_get_links_no_values() {
 
 #[test]
 fn test_get_links_multiple_values_single_urls() {
+    crate::init().unwrap();
+
     let mut headers = HeaderMap::new();
     headers.insert(
         header::LINK.as_str().to_owned(),
@@ -55,6 +61,8 @@ fn test_get_links_multiple_values_single_urls() {
 
 #[test]
 fn test_get_links_multiple_values_multiple_urls() {
+    crate::init().unwrap();
+
     let mut headers = HeaderMap::new();
     headers.insert(
         header::LINK.as_str().to_owned(),
@@ -92,6 +100,8 @@ fn test_get_links_multiple_values_multiple_urls() {
 
 #[test]
 fn test_get_links_multiple_values_empty() {
+    crate::init().unwrap();
+
     let mut headers = HeaderMap::new();
     headers.insert(
         header::LINK.as_str().to_owned(),
@@ -102,6 +112,8 @@ fn test_get_links_multiple_values_empty() {
 
 #[test]
 fn test_get_links_single_value_multiple_urls() {
+    crate::init().unwrap();
+
     let mut headers = HeaderMap::new();
     headers.insert(
         header::LINK.as_str().to_owned(),
@@ -125,6 +137,8 @@ fn test_get_links_single_value_multiple_urls() {
 
 #[test]
 fn test_get_links_single_value_single_url() {
+    crate::init().unwrap();
+
     let mut headers = HeaderMap::new();
     headers.insert(
         header::LINK.as_str().to_owned(),
@@ -143,6 +157,8 @@ fn test_get_links_single_value_single_url() {
 
 #[test]
 fn test_get_links_single_value_empty() {
+    crate::init().unwrap();
+
     let mut headers = HeaderMap::new();
     headers.insert(
         header::LINK.as_str().to_owned(),

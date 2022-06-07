@@ -282,6 +282,8 @@ const TEST_CONTINUE_DESCRIPTION: &'static str = "Some test thing is about to hap
 
 #[test]
 fn test_real_terminal_attributes() {
+    crate::init().unwrap();
+
     let mut attrs = TerminalAttributes::new_empty();
 
     // Empty, so nothing should be enabled.
@@ -307,6 +309,8 @@ fn test_real_terminal_attributes() {
 
 #[test]
 fn test_input_stream_must_be_a_tty() {
+    crate::init().unwrap();
+
     let mut ctx = TestContext::new("");
     let is = ctx.as_stream(
         /*isatty=*/ false, /*support_read=*/ true, /*support_write=*/ false,
@@ -319,6 +323,8 @@ fn test_input_stream_must_be_a_tty() {
 
 #[test]
 fn test_output_stream_must_be_a_tty() {
+    crate::init().unwrap();
+
     let mut ctx = TestContext::new("");
     let is = ctx.as_stream(
         /*isatty=*/ true, /*support_read=*/ true, /*support_write=*/ false,
@@ -331,6 +337,8 @@ fn test_output_stream_must_be_a_tty() {
 
 #[test]
 fn test_input_stream_must_support_read() {
+    crate::init().unwrap();
+
     let mut ctx = TestContext::new("");
     let is = ctx.as_stream(
         /*isatty=*/ true, /*support_read=*/ false, /*support_write=*/ false,
@@ -343,6 +351,8 @@ fn test_input_stream_must_support_read() {
 
 #[test]
 fn test_output_stream_must_support_write() {
+    crate::init().unwrap();
+
     let mut ctx = TestContext::new("");
     let is = ctx.as_stream(
         /*isatty=*/ true, /*support_read=*/ true, /*support_write=*/ false,
@@ -355,6 +365,8 @@ fn test_output_stream_must_support_write() {
 
 #[test]
 fn test_prompt_for_string() {
+    crate::init().unwrap();
+
     let (ctx, is, os) = create_normal_test_context("foobar\n");
     let result = prompt_for_string(is, os, TEST_PROMPT, /*is_sensitive=*/ false).unwrap();
 
@@ -365,6 +377,8 @@ fn test_prompt_for_string() {
 
 #[test]
 fn test_prompt_for_string_sensitive() {
+    crate::init().unwrap();
+
     let (ctx, is, os) = create_normal_test_context("foobar\n");
     let result = prompt_for_string(is, os, TEST_PROMPT, /*is_sensitive=*/ true).unwrap();
 
@@ -390,6 +404,8 @@ fn test_prompt_for_string_sensitive() {
 
 #[test]
 fn test_prompt_for_string_confirm() {
+    crate::init().unwrap();
+
     let (ctx, is, os) = create_normal_test_context("foobar\nfoobar\n");
     let result = prompt_for_string_confirm(is, os, TEST_PROMPT, /*is_sensitive=*/ false).unwrap();
 
@@ -403,6 +419,8 @@ fn test_prompt_for_string_confirm() {
 
 #[test]
 fn test_prompt_for_string_confirm_mismatch() {
+    crate::init().unwrap();
+
     let (ctx, is, os) = create_normal_test_context("foo\nbar\nfoo\nfoo\n");
     let result = prompt_for_string_confirm(is, os, TEST_PROMPT, /*is_sensitive=*/ false).unwrap();
 
@@ -416,6 +434,8 @@ fn test_prompt_for_string_confirm_mismatch() {
 
 #[test]
 fn test_prompt_for_string_confirm_sensitive() {
+    crate::init().unwrap();
+
     let (ctx, is, os) = create_normal_test_context("foobar\nfoobar\n");
     let result = prompt_for_string_confirm(is, os, TEST_PROMPT, /*is_sensitive=*/ true).unwrap();
 
@@ -449,6 +469,8 @@ fn test_prompt_for_string_confirm_sensitive() {
 
 #[test]
 fn test_maybe_prompted_string() {
+    crate::init().unwrap();
+
     let (ctx, is, os) = create_normal_test_context("foobar\n");
     let mps = MaybePromptedString::new(
         /*provided=*/ None,
@@ -468,6 +490,8 @@ fn test_maybe_prompted_string() {
 
 #[test]
 fn test_maybe_prompted_string_provided() {
+    crate::init().unwrap();
+
     let (ctx, is, os) = create_normal_test_context("");
     let mps = MaybePromptedString::new(
         /*provided=*/ Some("foobar"),
@@ -487,6 +511,8 @@ fn test_maybe_prompted_string_provided() {
 
 #[test]
 fn test_maybe_prompted_string_sensitive() {
+    crate::init().unwrap();
+
     let (ctx, is, os) = create_normal_test_context("foobar\n");
     let mps = MaybePromptedString::new(
         /*provided=*/ None,
@@ -521,6 +547,8 @@ fn test_maybe_prompted_string_sensitive() {
 
 #[test]
 fn test_maybe_prompted_string_confirm() {
+    crate::init().unwrap();
+
     let (ctx, is, os) = create_normal_test_context("foobar\nfoobar\n");
     let mps = MaybePromptedString::new(
         /*provided=*/ None,
@@ -543,6 +571,8 @@ fn test_maybe_prompted_string_confirm() {
 
 #[test]
 fn test_maybe_prompted_string_confirm_mismatch() {
+    crate::init().unwrap();
+
     let (ctx, is, os) = create_normal_test_context("foo\nbar\nfoo\nfoo\n");
     let mps = MaybePromptedString::new(
         /*provided=*/ None,
@@ -565,6 +595,8 @@ fn test_maybe_prompted_string_confirm_mismatch() {
 
 #[test]
 fn test_continue_confirmation_y() {
+    crate::init().unwrap();
+
     let (ctx, is, os) = create_normal_test_context("y\n");
     let result = continue_confirmation(is, os, TEST_CONTINUE_DESCRIPTION).unwrap();
 
@@ -578,6 +610,8 @@ fn test_continue_confirmation_y() {
 
 #[test]
 fn test_continue_confirmation_yes() {
+    crate::init().unwrap();
+
     let (ctx, is, os) = create_normal_test_context("yes\n");
     let result = continue_confirmation(is, os, TEST_CONTINUE_DESCRIPTION).unwrap();
 
@@ -591,6 +625,8 @@ fn test_continue_confirmation_yes() {
 
 #[test]
 fn test_continue_confirmation_yes_any_case() {
+    crate::init().unwrap();
+
     let (ctx, is, os) = create_normal_test_context("YeS\n");
     let result = continue_confirmation(is, os, TEST_CONTINUE_DESCRIPTION).unwrap();
 
@@ -604,6 +640,8 @@ fn test_continue_confirmation_yes_any_case() {
 
 #[test]
 fn test_continue_confirmation_n() {
+    crate::init().unwrap();
+
     let (ctx, is, os) = create_normal_test_context("n\n");
     let result = continue_confirmation(is, os, TEST_CONTINUE_DESCRIPTION).unwrap();
 
@@ -617,6 +655,8 @@ fn test_continue_confirmation_n() {
 
 #[test]
 fn test_continue_confirmation_no() {
+    crate::init().unwrap();
+
     let (ctx, is, os) = create_normal_test_context("no\n");
     let result = continue_confirmation(is, os, TEST_CONTINUE_DESCRIPTION).unwrap();
 
@@ -630,6 +670,8 @@ fn test_continue_confirmation_no() {
 
 #[test]
 fn test_continue_confirmation_no_any_case() {
+    crate::init().unwrap();
+
     let (ctx, is, os) = create_normal_test_context("nO\n");
     let result = continue_confirmation(is, os, TEST_CONTINUE_DESCRIPTION).unwrap();
 
@@ -643,6 +685,8 @@ fn test_continue_confirmation_no_any_case() {
 
 #[test]
 fn test_continue_confirmation_bad_input() {
+    crate::init().unwrap();
+
     let (ctx, is, os) = create_normal_test_context("foo\nYes\n");
     let result = continue_confirmation(is, os, TEST_CONTINUE_DESCRIPTION).unwrap();
 

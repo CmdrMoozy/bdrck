@@ -67,6 +67,7 @@ impl Nonce {
     /// Increment this nonce's bytes by 1. This is useful for counter-style
     /// nonces.
     pub fn increment(mut self) -> Self {
+        debug_assert!(crate::init_done());
         unsafe {
             halite_sys::sodium_increment(self.nonce.0.as_mut_ptr(), NONCE_BYTES as u64);
         }
@@ -156,6 +157,7 @@ impl AbstractKey for Key {
 
         let buf = plaintext.try_clone()?;
         let mut tag = [0; TAG_BYTES];
+        debug_assert!(crate::init_done());
         unsafe {
             halite_sys::crypto_secretbox_detached(
                 buf.slice_ptr(),
@@ -201,6 +203,7 @@ impl AbstractKey for Key {
         let mut plaintext = Secret::with_len(ciphertext.len())?;
         unsafe { plaintext.as_mut_slice() }.copy_from_slice(ciphertext);
 
+        debug_assert!(crate::init_done());
         if unsafe {
             halite_sys::crypto_secretbox_open_detached(
                 plaintext.slice_ptr(),

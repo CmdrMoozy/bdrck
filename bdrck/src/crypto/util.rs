@@ -20,6 +20,7 @@ use libc::{c_ulonglong, c_void};
 /// cryptographically secure. In other words, it's fine to use this for generating passwords, key
 /// material, etc.
 pub fn randombytes_into(buf: &mut [u8]) {
+    debug_assert!(crate::init_done());
     unsafe {
         halite_sys::randombytes_buf(buf.as_mut_ptr() as *mut c_void, buf.len() as c_ulonglong);
     }

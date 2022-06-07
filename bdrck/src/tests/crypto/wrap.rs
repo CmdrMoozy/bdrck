@@ -17,6 +17,8 @@ use crate::crypto::wrap::*;
 
 #[test]
 fn test_wrapping_roundtrip() {
+    crate::init().unwrap();
+
     let a = Key::new_random().unwrap();
     let b = Key::new_random().unwrap();
 
@@ -30,6 +32,8 @@ fn test_wrapping_roundtrip() {
 
 #[test]
 fn test_unwrapping_with_wrong_key_fails() {
+    crate::init().unwrap();
+
     let a = Key::new_random().unwrap();
     let b = Key::new_random().unwrap();
     let wrong_key = Key::new_random().unwrap();

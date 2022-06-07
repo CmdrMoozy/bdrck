@@ -87,18 +87,19 @@ lazy_static! {
     static ref INIT_STATUS: ::std::sync::Mutex<bool> = ::std::sync::Mutex::new(false);
 }
 
-#[cfg(feature = "sodiumoxide")]
-fn init_sodiumoxide() -> self::error::Result<()> {
-    if !::sodiumoxide::init().is_ok() {
-        return Err(self::error::Error::Internal(format!(
+#[cfg(feature = "halite-sys")]
+fn init_nacl() -> self::error::Result<()> {
+    if unsafe { halite_sys::sodium_init() } >= 0 {
+        Ok(())
+    } else {
+        Err(error::Error::Internal(format!(
             "initializing cryptographic dependencies failed"
-        )));
+        )))
     }
-    Ok(())
 }
 
-#[cfg(not(feature = "sodiumoxide"))]
-fn init_sodiumoxide() -> self::error::Result<()> {
+#[cfg(not(feature = "halite-sys"))]
+fn init_nacl() -> self::error::Result<()> {
     Ok(())
 }
 
@@ -111,8 +112,13 @@ pub fn init() -> self::error::Result<()> {
         return Ok(());
     }
 
-    init_sodiumoxide()?;
+    init_nacl()?;
 
     *lock = true;
     Ok(())
+}
+
+/// Returns whether or not init() has been called.
+pub fn init_done() -> bool {
+    *INIT_STATUS.lock().unwrap()
 }

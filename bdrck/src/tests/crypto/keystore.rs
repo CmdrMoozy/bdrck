@@ -38,6 +38,8 @@ fn new_password_key(password: &str, salt: &Salt) -> Key {
 
 #[test]
 fn test_keystore_save_round_trip() {
+    crate::init().unwrap();
+
     let file = temp::File::new_file().unwrap();
 
     let wrap_key = Key::new_random().unwrap();
@@ -61,6 +63,8 @@ fn test_keystore_save_round_trip() {
 
 #[test]
 fn test_keystore_open_with_added_key() {
+    crate::init().unwrap();
+
     let file = temp::File::new_file().unwrap();
 
     let salt = Salt::default();
@@ -88,6 +92,8 @@ fn test_keystore_open_with_added_key() {
 
 #[test]
 fn test_add_duplicate_key() {
+    crate::init().unwrap();
+
     let file = temp::File::new_file().unwrap();
 
     let wrap_key = Key::new_random().unwrap();
@@ -100,6 +106,8 @@ fn test_add_duplicate_key() {
 
 #[test]
 fn test_remove_unused_key() {
+    crate::init().unwrap();
+
     let file = temp::File::new_file().unwrap();
 
     let salt = Salt::default();
@@ -116,6 +124,8 @@ fn test_remove_unused_key() {
 
 #[test]
 fn test_remove_only_key() {
+    crate::init().unwrap();
+
     let file = temp::File::new_file().unwrap();
 
     let key = Key::new_random().unwrap();
@@ -127,6 +137,8 @@ fn test_remove_only_key() {
 
 #[test]
 fn test_remove_first_key() {
+    crate::init().unwrap();
+
     let file = temp::File::new_file().unwrap();
 
     let key_a = Key::new_random().unwrap();
@@ -143,6 +155,8 @@ fn test_remove_first_key() {
 
 #[test]
 fn test_unpersistable() {
+    crate::init().unwrap();
+
     let file = temp::File::new_file().unwrap();
     // Explicitly make sure the file doesn't exist.
     fs::remove_file(file.path()).unwrap();
