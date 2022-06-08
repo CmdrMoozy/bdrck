@@ -125,6 +125,26 @@ pub struct Key {
     key_data: Secret,
 }
 
+// For compatibility, we want to use the same serialization format as we did in older
+// versions of bdrck. There, we used MessagePack and had a more complex structure. This
+// means, the serialized data (KEY_BYTES in length) had the following bytes prepended to
+// it:
+//
+// 0x81 -> fixmap, 1 element
+//   (fixmap key) 0xa3 -> fixstr, 3 elements
+//                0x4b 0x65 0x79 -> "Key"
+//
+//   (fixmap value) 0x91 -> fixarray, 1 element
+//
+//     (fixarray value) 0xc4 -> bin8, byte array up to (2^8)-1 bytes in length
+//                      0x20 -> 32 (KEY_BYTES) bytes long
+//
+//                      (32 bytes of actual key data)
+//
+// So, to preserve compatibility, we'll prepend this prefix when serializing, and strip
+// it when deserializing.
+const KEY_SERDE_COMPAT_PREFIX: &'static [u8] = &[0x81, 0xa3, 0x4b, 0x65, 0x79, 0x91, 0xc4, 0x20];
+
 impl AbstractKey for Key {
     type Error = Error;
 
@@ -133,17 +153,44 @@ impl AbstractKey for Key {
     }
 
     fn serialize(&self) -> std::result::Result<Secret, Self::Error> {
-        self.key_data.try_clone()
+        let mut ser = Secret::with_len(self.key_data.len() + KEY_SERDE_COMPAT_PREFIX.len())?;
+
+        unsafe {
+            ser.as_mut_slice()[0..KEY_SERDE_COMPAT_PREFIX.len()]
+                .copy_from_slice(KEY_SERDE_COMPAT_PREFIX);
+            ser.as_mut_slice()[KEY_SERDE_COMPAT_PREFIX.len()..]
+                .copy_from_slice(self.key_data.as_slice());
+        }
+
+        Ok(ser)
     }
 
-    fn deserialize(data: Secret) -> std::result::Result<Self, Self::Error> {
-        if data.len() != KEY_BYTES {
+    fn deserialize(mut data: Secret) -> std::result::Result<Self, Self::Error> {
+        let expected_bytes = KEY_BYTES + KEY_SERDE_COMPAT_PREFIX.len();
+        if data.len() != expected_bytes {
             return Err(Error::InvalidArgument(format!(
                 "invalid Key data; expected {} bytes, found {}",
-                KEY_BYTES,
+                expected_bytes,
                 data.len()
             )));
         }
+
+        if !unsafe { data.as_slice() }.starts_with(KEY_SERDE_COMPAT_PREFIX) {
+            return Err(Error::InvalidArgument(format!(
+                "invalid Key data; expected prefix bytes {:?}",
+                KEY_SERDE_COMPAT_PREFIX
+            )));
+        }
+
+        unsafe {
+            std::ptr::copy(
+                data.slice_ptr()
+                    .offset(KEY_SERDE_COMPAT_PREFIX.len() as isize),
+                data.slice_ptr(),
+                KEY_BYTES,
+            );
+        }
+        data.resize(KEY_BYTES)?;
 
         Ok(Key { key_data: data })
     }
@@ -227,7 +274,9 @@ impl Key {
     pub fn new_random() -> Result<Self> {
         let mut key_buffer = Secret::with_len(KEY_BYTES)?;
         randombytes_into_secret(&mut key_buffer);
-        Self::deserialize(key_buffer)
+        Ok(Key {
+            key_data: key_buffer,
+        })
     }
 
     /// Derive a new key from the given password. Note that the derived key will
@@ -242,6 +291,8 @@ impl Key {
     ) -> Result<Self> {
         let mut key_buffer = Secret::with_len(KEY_BYTES)?;
         derive_key(&mut key_buffer, password, salt, ops_limit, mem_limit)?;
-        Self::deserialize(key_buffer)
+        Ok(Key {
+            key_data: key_buffer,
+        })
     }
 }
