@@ -145,6 +145,14 @@ pub struct Key {
 // it when deserializing.
 const KEY_SERDE_COMPAT_PREFIX: &'static [u8] = &[0x81, 0xa3, 0x4b, 0x65, 0x79, 0x91, 0xc4, 0x20];
 
+// Some previous versions serialized key data such that we generated MessagePack maps with integer
+// keys, not string keys (as seen in KEY_SERDE_COMPAT_PREFIX above). To maintain compatibility with
+// these, detect this case, and strip that prefix instead.
+//
+// When we serialize, we'll always use KEY_SERDE_COMPAT_PREFIX. Older versions should be able to
+// deserialize both, as both are valid / "equivalent" representations of the same Rust structures.
+const KEY_SERDE_COMPAT_PREFIX_ALT: &'static [u8] = &[0x81, 0x00, 0x91, 0xc4, 0x20];
+
 impl AbstractKey for Key {
     type Error = Error;
 
@@ -166,26 +174,19 @@ impl AbstractKey for Key {
     }
 
     fn deserialize(mut data: Secret) -> std::result::Result<Self, Self::Error> {
-        let expected_bytes = KEY_BYTES + KEY_SERDE_COMPAT_PREFIX.len();
-        if data.len() != expected_bytes {
+        let to_skip = if unsafe { data.as_slice() }.starts_with(KEY_SERDE_COMPAT_PREFIX) {
+            KEY_SERDE_COMPAT_PREFIX.len()
+        } else if unsafe { data.as_slice() }.starts_with(KEY_SERDE_COMPAT_PREFIX_ALT) {
+            KEY_SERDE_COMPAT_PREFIX_ALT.len()
+        } else {
             return Err(Error::InvalidArgument(format!(
-                "invalid Key data; expected {} bytes, found {}",
-                expected_bytes,
-                data.len()
+                "invalid Key data; missing expected prefix bytes"
             )));
-        }
-
-        if !unsafe { data.as_slice() }.starts_with(KEY_SERDE_COMPAT_PREFIX) {
-            return Err(Error::InvalidArgument(format!(
-                "invalid Key data; expected prefix bytes {:?}",
-                KEY_SERDE_COMPAT_PREFIX
-            )));
-        }
+        };
 
         unsafe {
             std::ptr::copy(
-                data.slice_ptr()
-                    .offset(KEY_SERDE_COMPAT_PREFIX.len() as isize),
+                data.slice_ptr().offset(to_skip as isize),
                 data.slice_ptr(),
                 KEY_BYTES,
             );

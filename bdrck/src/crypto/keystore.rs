@@ -18,7 +18,7 @@ use crate::crypto::wrap::WrappedKey;
 use crate::error::*;
 use data_encoding;
 use lazy_static::lazy_static;
-use log::error;
+use log::{debug, error};
 use rmp_serde;
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -143,11 +143,20 @@ impl KeyStore {
 
         let mut master_key: Option<Key> = None;
         for wrapped_key in self.wrapped_keys.iter() {
-            if let Ok(k) = wrapped_key.unwrap(key) {
-                if is_master_key(&k, self.token_nonce.as_ref(), self.token.as_slice()) {
-                    master_key = Some(k);
-                    break;
+            match wrapped_key.unwrap(key) {
+                Ok(k) => {
+                    if is_master_key(&k, self.token_nonce.as_ref(), self.token.as_slice()) {
+                        master_key = Some(k);
+                        break;
+                    } else {
+                        debug!("unwrapped key {:?}, but unwrapped key doesn't match our expected master key", wrapped_key.get_digest());
+                    }
                 }
+                Err(e) => debug!(
+                    "failed to unwrap key {:?}: {:?}",
+                    wrapped_key.get_digest(),
+                    e
+                ),
             }
         }
 

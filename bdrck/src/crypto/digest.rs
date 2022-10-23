@@ -51,7 +51,7 @@ pub struct Digest([u8; DIGEST_BYTES]);
 // Implement by hand instead of derive for slightly nicer output (no struct name).
 impl fmt::Debug for Digest {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?}", self.0.as_ref())
+        write!(f, "{:x?}", self.0.as_ref())
     }
 }
 

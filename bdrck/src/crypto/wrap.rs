@@ -15,6 +15,7 @@
 use crate::crypto::digest::Digest;
 use crate::crypto::key::{AbstractKey, Nonce};
 use crate::error::*;
+use log::debug;
 use serde::{Deserialize, Serialize};
 
 /// A wrapped key is an `AbstractKey` which has been wrapped (encrypted) with another `AbstractKey`.
@@ -55,6 +56,12 @@ impl WrappedKey {
     /// Unwrap the previously wrapped key this structure represents. This basically decrypts and
     /// then deserializes the underlying key data, returning the newly constructed key.
     pub fn unwrap<KA: AbstractKey, KB: AbstractKey>(&self, wrapped_with: &KB) -> Result<KA> {
+        debug!(
+            "trying to unwrap key {:?} with wrapping key {:?}, expected wrapping digest {:?}",
+            self.get_digest(),
+            wrapped_with.get_digest(),
+            self.wrapping_digest
+        );
         if wrapped_with.get_digest() != self.wrapping_digest {
             return Err(Error::InvalidArgument(format!(
                 "the specified key is not the correct wrapping key"
