@@ -1,6 +1,6 @@
 [package]
 name = "bdrck"
-version = "0.19.2"
+version = "0.19.3"
 authors = ["Axel Rasmussen <axel.rasmussen1@gmail.com>"]
 description = "Generic common foundational utilities."
 homepage = "https://github.com/CmdrMoozy/bdrck"
@@ -18,7 +18,7 @@ lazy_static = "1.4"
 libc = { version = "0.2", optional = true }
 log = { version = "0.4", features = ["std"], optional = true }
 rand = { version = "0.8", optional = true }
-regex = { version = "1.6", optional = true }
+regex = { version = "1.7", optional = true }
 reqwest = { version = "0.11", optional = true }
 rmp-serde = { version = "1.1", optional = true }
 serde = { version = "1.0", features = ["derive"], optional = true}
