@@ -1,6 +1,6 @@
 [package]
 name = "flaggy"
-version = "0.2.1"
+version = "0.2.2"
 authors = ["Axel Rasmussen <axel.rasmussen1@gmail.com>"]
 description = "A library for parsing command-line flags."
 homepage = "https://github.com/CmdrMoozy/bdrck"

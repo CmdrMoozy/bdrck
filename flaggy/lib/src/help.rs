@@ -30,7 +30,7 @@ pub(crate) fn print_program_help<'cbl, W: Write, E>(
 
     f.write_fmt(format_args!("{}\n\n", err))?;
 
-    f.write_fmt(format_args!("Usage: {} command [flags ...]\n", program))?;
+    f.write_fmt(format_args!("Usage: {} command [flags ...]\n\n", program))?;
     f.write_fmt(format_args!("Available commands:\n"))?;
     for command in commands.iter() {
         f.write_fmt(format_args!("\t{} - {}\n", command.name, command.help))?;
