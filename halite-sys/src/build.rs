@@ -4,7 +4,7 @@ use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use tempdir::TempDir;
+use tempfile::tempdir;
 
 fn runtime_env(key: &str) -> Result<String> {
     Ok(std::env::var(key)?)
@@ -94,7 +94,7 @@ fn main_impl() -> Result<()> {
     // In that case, use a temporary directory instead.
     let (_maybe_tmp, out_dir) = {
         if cargo_out_dir_str.contains(' ') {
-            let t = TempDir::new(env!("CARGO_CRATE_NAME"))?;
+            let t = tempdir()?;
             let d = t.path().to_path_buf();
             (Some(t), d)
         } else {
