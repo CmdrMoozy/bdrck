@@ -1,6 +1,3 @@
-[submodule "template"]
-	path = template
-	url = https://github.com/CmdrMoozy/rust-template.git
 [submodule "halite-sys/libsodium"]
 	path = halite-sys/libsodium
 	url = https://github.com/jedisct1/libsodium.git
