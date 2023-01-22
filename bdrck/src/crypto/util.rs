@@ -14,7 +14,7 @@
 
 use crate::crypto::secret::Secret;
 use halite_sys;
-use libc::{c_ulonglong, c_void};
+use libc::c_void;
 
 /// Fill the given buffer with random bytes. This function is guaranteed to be thread safe and
 /// cryptographically secure. In other words, it's fine to use this for generating passwords, key
@@ -22,7 +22,7 @@ use libc::{c_ulonglong, c_void};
 pub fn randombytes_into(buf: &mut [u8]) {
     debug_assert!(crate::init_done());
     unsafe {
-        halite_sys::randombytes_buf(buf.as_mut_ptr() as *mut c_void, buf.len() as c_ulonglong);
+        halite_sys::randombytes_buf(buf.as_mut_ptr() as *mut c_void, buf.len());
     }
 }
 

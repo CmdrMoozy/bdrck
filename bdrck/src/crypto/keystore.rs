@@ -17,8 +17,8 @@ use crate::crypto::secret::Secret;
 use crate::crypto::wrap::WrappedKey;
 use crate::error::*;
 use data_encoding;
-use lazy_static::lazy_static;
 use log::{debug, error};
+use once_cell::sync::Lazy;
 use rmp_serde;
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -26,17 +26,17 @@ use std::io::{Read, Write};
 use std::ops::{Deref, DerefMut};
 use std::path::{Path, PathBuf};
 
-lazy_static! {
-    /// This token is used to verify that authentication was successful. We encrypt it with a master
-    /// key which we then wrap with user key(s), so we can verify that the user presented a valid
-    /// key by trying to decrypt this token.
-    static ref AUTH_TOKEN_CONTENTS: Secret = {
-        let data: Vec<u8> = "3c017f717b39247c351154a41d2850e4187284da4b928f13c723d54440ba2dfe".bytes().collect();
-        let mut secret = Secret::with_len(data.len()).unwrap();
-        unsafe { secret.as_mut_slice() }.copy_from_slice(data.as_slice());
-        secret
-    };
-}
+/// This token is used to verify that authentication was successful. We encrypt it with a master
+/// key which we then wrap with user key(s), so we can verify that the user presented a valid
+/// key by trying to decrypt this token.
+static AUTH_TOKEN_CONTENTS: Lazy<Secret> = Lazy::new(|| {
+    let data: Vec<u8> = "3c017f717b39247c351154a41d2850e4187284da4b928f13c723d54440ba2dfe"
+        .bytes()
+        .collect();
+    let mut secret = Secret::with_len(data.len()).unwrap();
+    unsafe { secret.as_mut_slice() }.copy_from_slice(data.as_slice());
+    secret
+});
 
 /// Returns true if the given key is this structure's "master key" which was
 /// used to encrypt the `token` upon construction.

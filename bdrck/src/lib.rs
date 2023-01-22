@@ -81,11 +81,9 @@ pub mod testing;
 #[cfg(test)]
 mod tests;
 
-use lazy_static::lazy_static;
+use once_cell::sync::Lazy;
 
-lazy_static! {
-    static ref INIT_STATUS: ::std::sync::Mutex<bool> = ::std::sync::Mutex::new(false);
-}
+static INIT_STATUS: Lazy<::std::sync::Mutex<bool>> = Lazy::new(|| ::std::sync::Mutex::new(false));
 
 #[cfg(feature = "halite-sys")]
 fn init_nacl() -> self::error::Result<()> {

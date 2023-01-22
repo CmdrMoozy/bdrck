@@ -158,7 +158,7 @@ pub fn derive_key(
             password.len() as c_ulonglong,
             salt.0 .0.as_ptr(),
             ops_limit as c_ulonglong,
-            mem_limit as c_ulonglong,
+            mem_limit,
         )
     } == 0
     {

@@ -19,8 +19,8 @@ pub mod write;
 use crate::error::*;
 use crate::logging::write::*;
 use chrono;
-use lazy_static::lazy_static;
 use log::{self, LevelFilter, Log, Metadata, Record};
+use once_cell::sync::Lazy;
 use regex::Regex;
 use std::collections::HashMap;
 use std::io::Write;
@@ -32,36 +32,34 @@ const RUST_LOG_ENV_VAR: &'static str = "RUST_LOG";
 /// from a string. Upstream doesn't impl FromStr for this type, so this extra
 /// utility is necessary.
 pub fn parse_log_level_filter(s: &str) -> Result<LevelFilter> {
-    lazy_static! {
-        static ref STRING_MAPPING: HashMap<String, LevelFilter> = {
-            let mut m = HashMap::new();
-            m.insert(
-                LevelFilter::Off.to_string().to_lowercase(),
-                LevelFilter::Off,
-            );
-            m.insert(
-                LevelFilter::Error.to_string().to_lowercase(),
-                LevelFilter::Error,
-            );
-            m.insert(
-                LevelFilter::Warn.to_string().to_lowercase(),
-                LevelFilter::Warn,
-            );
-            m.insert(
-                LevelFilter::Info.to_string().to_lowercase(),
-                LevelFilter::Info,
-            );
-            m.insert(
-                LevelFilter::Debug.to_string().to_lowercase(),
-                LevelFilter::Debug,
-            );
-            m.insert(
-                LevelFilter::Trace.to_string().to_lowercase(),
-                LevelFilter::Trace,
-            );
-            m
-        };
-    }
+    static STRING_MAPPING: Lazy<HashMap<String, LevelFilter>> = Lazy::new(|| {
+        let mut m = HashMap::new();
+        m.insert(
+            LevelFilter::Off.to_string().to_lowercase(),
+            LevelFilter::Off,
+        );
+        m.insert(
+            LevelFilter::Error.to_string().to_lowercase(),
+            LevelFilter::Error,
+        );
+        m.insert(
+            LevelFilter::Warn.to_string().to_lowercase(),
+            LevelFilter::Warn,
+        );
+        m.insert(
+            LevelFilter::Info.to_string().to_lowercase(),
+            LevelFilter::Info,
+        );
+        m.insert(
+            LevelFilter::Debug.to_string().to_lowercase(),
+            LevelFilter::Debug,
+        );
+        m.insert(
+            LevelFilter::Trace.to_string().to_lowercase(),
+            LevelFilter::Trace,
+        );
+        m
+    });
 
     let normalized = s.trim().to_lowercase();
     match STRING_MAPPING.get(&normalized) {

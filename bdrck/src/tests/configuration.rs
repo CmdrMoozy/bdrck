@@ -14,7 +14,7 @@
 
 use crate::configuration;
 use crate::testing::temp;
-use lazy_static::lazy_static;
+use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path;
@@ -24,12 +24,10 @@ struct TestConfiguration {
     foo: String,
 }
 
-lazy_static! {
-    static ref TEST_IDENTIFIER: configuration::Identifier = configuration::Identifier {
-        application: "bdrck_config".to_owned(),
-        name: "test".to_owned(),
-    };
-}
+static TEST_IDENTIFIER: Lazy<configuration::Identifier> = Lazy::new(|| configuration::Identifier {
+    application: "bdrck_config".to_owned(),
+    name: "test".to_owned(),
+});
 
 #[test]
 fn test_persistence() {

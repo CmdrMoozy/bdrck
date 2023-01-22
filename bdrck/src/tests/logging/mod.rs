@@ -14,8 +14,8 @@
 
 use crate::logging::write::*;
 use crate::logging::*;
-use lazy_static::lazy_static;
 use log::{Level, LevelFilter, Log, Metadata, Record};
+use once_cell::sync::Lazy;
 use regex::Regex;
 use std::fmt::Arguments;
 
@@ -90,10 +90,9 @@ fn test_record<'a>(args: Arguments<'a>, level: Level) -> Record<'a> {
 // This function normalizes the output from the Logging implementation,
 // replacing things which are unpredictable in unit tests like timestamps.
 fn normalize_log_output(output: &str) -> String {
-    lazy_static! {
-        static ref DATE_REGEX: Regex =
-            Regex::new(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} UTC").unwrap();
-    }
+    static DATE_REGEX: Lazy<Regex> =
+        Lazy::new(|| Regex::new(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} UTC").unwrap());
+
     DATE_REGEX
         .replace_all(output, "2018-01-01 12:34:56 UTC")
         .into_owned()

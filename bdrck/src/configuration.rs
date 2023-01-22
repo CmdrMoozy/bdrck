@@ -13,7 +13,7 @@
 // limitations under the License.
 
 use crate::error::{Error, Result};
-use lazy_static::lazy_static;
+use once_cell::sync::Lazy;
 use rmp_serde::{Deserializer, Serializer};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
@@ -172,10 +172,8 @@ impl<T: Clone + Serialize + DeserializeOwned> Configuration<T> {
     }
 }
 
-lazy_static! {
-    static ref SINGLETONS: Mutex<HashMap<Identifier, Box<dyn Any + Send>>> =
-        Mutex::new(HashMap::new());
-}
+static SINGLETONS: Lazy<Mutex<HashMap<Identifier, Box<dyn Any + Send>>>> =
+    Lazy::new(|| Mutex::new(HashMap::new()));
 
 fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<T> {
     match mutex.lock() {

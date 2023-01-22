@@ -69,7 +69,7 @@ impl Nonce {
     pub fn increment(mut self) -> Self {
         debug_assert!(crate::init_done());
         unsafe {
-            halite_sys::sodium_increment(self.nonce.0.as_mut_ptr(), NONCE_BYTES as u64);
+            halite_sys::sodium_increment(self.nonce.0.as_mut_ptr(), NONCE_BYTES);
         }
         self
     }
