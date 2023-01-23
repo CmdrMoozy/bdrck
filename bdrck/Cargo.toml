@@ -1,6 +1,6 @@
 [package]
 name = "bdrck"
-version = "0.19.4"
+version = "0.20.0"
 authors = ["Axel Rasmussen <axel.rasmussen1@gmail.com>"]
 description = "Generic common foundational utilities."
 homepage = "https://github.com/CmdrMoozy/bdrck"
@@ -9,7 +9,6 @@ license = "Apache-2.0"
 edition = "2021"
 
 [dependencies]
-chrono = { version = "0.4", optional = true }
 data-encoding = { version = "2.3", optional = true }
 errno = { version = "0.2", optional = true }
 futures = { version = "0.3", optional = true }
@@ -18,7 +17,6 @@ libc = { version = "0.2", optional = true }
 log = { version = "0.4", features = ["std"], optional = true }
 once_cell = "1.17"
 rand = { version = "0.8", optional = true }
-regex = { version = "1.7", optional = true }
 reqwest = { version = "0.11", optional = true }
 rmp-serde = { version = "1.1", optional = true }
 serde = { version = "1.0", features = ["derive"], optional = true}
@@ -27,13 +25,12 @@ thiserror = "1.0"
 url = { version = "2.3", optional = true }
 
 [features]
-default = ["cli", "configuration", "crypto", "fs", "http", "io", "logging", "net", "testing"]
+default = ["cli", "configuration", "crypto", "fs", "http", "io", "net", "testing"]
 cli = ["errno", "libc", "log"]
 configuration = ["rmp-serde", "serde"]
 crypto = ["data-encoding", "libc", "log", "rmp-serde", "serde", "halite-sys"]
 fs = ["errno", "libc", "log"]
 http = ["futures", "log", "rand", "reqwest", "serde", "serde_json", "url"]
 io = []
-logging = ["chrono", "log", "regex"]
 net = ["data-encoding", "serde"]
-testing = ["fs", "futures", "http", "log", "logging", "rand", "reqwest", "serde_json", "url"]
+testing = ["fs", "futures", "http", "log", "rand", "reqwest", "serde_json", "url"]

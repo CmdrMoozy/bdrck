@@ -53,10 +53,6 @@ pub mod http;
 /// io provides additional small utilities on top of std::io.
 #[cfg(feature = "io")]
 pub mod io;
-/// logging provides Logger implementations suitable for either command-line
-/// applications or serving daemons.
-#[cfg(feature = "logging")]
-pub mod logging;
 /// net provides additional network-related utilities, on top of what is
 /// available in std.
 #[cfg(feature = "net")]
@@ -74,7 +70,6 @@ pub mod testing;
     feature = "crypto",
     feature = "fs",
     feature = "http",
-    feature = "logging",
     feature = "net",
     feature = "testing"
 ))]

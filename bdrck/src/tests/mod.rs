@@ -25,8 +25,6 @@ mod http;
 #[cfg(test)]
 mod io;
 #[cfg(test)]
-mod logging;
-#[cfg(test)]
 mod net;
 #[cfg(test)]
 mod testing;
