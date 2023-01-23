@@ -10,13 +10,8 @@ Bdrck is a crate containing generic common utilities. In particular, it has seve
 | fs            | Filesystem utilities.                         |
 | http          | HTTP client utilities based on reqwest.       |
 | io            | Utilities which extend std::io.               |
-| logging       | Log message formatting utilities.             |
 | net           | Networking utilities / types.                 |
 | testing       | Unit testing utilities.                       |
-
-# flaggy
-
-Flaggy is a separate but related crate which provides command-line flag parsing.
 
 # halite-sys
 
