@@ -18,7 +18,6 @@ use crate::error::*;
 use crate::http::recording::{RecordedRequest, RecordedResponse, Recording, RecordingEntry};
 use crate::http::types::ResponseMetadata;
 use futures::executor::block_on;
-use log::{debug, info};
 use rand::Rng;
 use reqwest::header::HeaderMap;
 use reqwest::Client as InnerClient;
@@ -30,6 +29,7 @@ use std::path::{Path, PathBuf};
 #[cfg(debug_assertions)]
 use std::sync::Mutex;
 use std::time::Duration;
+use tracing::{debug, info};
 
 /// AbstractClient defines the generic interface for an HTTP client.
 pub trait AbstractClient {

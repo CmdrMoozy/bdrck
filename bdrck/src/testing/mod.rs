@@ -18,8 +18,6 @@ pub mod fn_instrumentation;
 /// http provides testing support for the http submodule.
 #[cfg(debug_assertions)]
 pub mod http;
-/// logging provides a Logger implementation which is suitable for unit tests.
-pub mod logging;
 /// temp provides utilities for creating temporary files or directories in unit
 /// tests.
 pub mod temp;

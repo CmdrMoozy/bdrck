@@ -15,10 +15,10 @@
 use crate::error::*;
 use errno;
 use libc::{self, c_int};
-use log::debug;
 use std::fmt;
 use std::io::{self, Read, Write};
 use std::mem::MaybeUninit;
+use tracing::debug;
 
 /// An alias for std::io::Result.
 pub type IoResult<T> = io::Result<T>;

@@ -14,7 +14,7 @@
 
 use crate::error::Result;
 use libc::{c_int, c_long, c_void};
-use log::error;
+use tracing::error;
 
 // Not included in the libc crate yet, so hardcode it here.
 #[allow(non_upper_case_globals)]

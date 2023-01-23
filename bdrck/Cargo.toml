@@ -14,7 +14,6 @@ errno = { version = "0.2", optional = true }
 futures = { version = "0.3", optional = true }
 halite-sys = { version = "0.1", optional = true }
 libc = { version = "0.2", optional = true }
-log = { version = "0.4", features = ["std"], optional = true }
 once_cell = "1.17"
 rand = { version = "0.8", optional = true }
 reqwest = { version = "0.11", optional = true }
@@ -22,15 +21,16 @@ rmp-serde = { version = "1.1", optional = true }
 serde = { version = "1.0", features = ["derive"], optional = true}
 serde_json = { version = "1.0", optional = true }
 thiserror = "1.0"
+tracing = { version = "0.1", optional = true }
 url = { version = "2.3", optional = true }
 
 [features]
 default = ["cli", "configuration", "crypto", "fs", "http", "io", "net", "testing"]
-cli = ["errno", "libc", "log"]
+cli = ["errno", "libc", "tracing"]
 configuration = ["rmp-serde", "serde"]
-crypto = ["data-encoding", "libc", "log", "rmp-serde", "serde", "halite-sys"]
-fs = ["errno", "libc", "log"]
-http = ["futures", "log", "rand", "reqwest", "serde", "serde_json", "url"]
+crypto = ["data-encoding", "libc", "tracing", "rmp-serde", "serde", "halite-sys"]
+fs = ["errno", "libc", "tracing"]
+http = ["futures", "tracing", "rand", "reqwest", "serde", "serde_json", "url"]
 io = []
 net = ["data-encoding", "serde"]
-testing = ["fs", "futures", "http", "log", "rand", "reqwest", "serde_json", "url"]
+testing = ["fs", "futures", "http", "rand", "reqwest", "serde_json", "url"]

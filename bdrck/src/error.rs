@@ -93,11 +93,6 @@ pub enum Error {
     #[cfg(feature = "regex")]
     #[error("{0}")]
     Regex(#[from] regex::Error),
-    /// An error encountered when attempting to set the global Logger
-    /// implementation.
-    #[cfg(feature = "log")]
-    #[error("{0}")]
-    SetLogger(#[from] log::SetLoggerError),
     /// An awkward hack; this error exists to use String's FromStr impl, but
     /// this operation won't actually ever fail.
     #[error("{0}")]

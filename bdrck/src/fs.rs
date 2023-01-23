@@ -15,12 +15,12 @@
 use crate::error::*;
 use errno;
 use libc;
-use log::{debug, warn};
 use std::ffi::{CString, OsString};
 use std::fs::{self, Permissions};
 use std::mem;
 use std::path::{Path, PathBuf};
 use std::ptr;
+use tracing::{debug, warn};
 
 /// Returns the given Path as a byte vector. This function may be useful for
 /// some kinds of serialization, or for calling C functions.

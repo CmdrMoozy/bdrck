@@ -15,8 +15,8 @@
 use crate::crypto::digest::Digest;
 use crate::crypto::key::{AbstractKey, Nonce};
 use crate::error::*;
-use log::debug;
 use serde::{Deserialize, Serialize};
+use tracing::debug;
 
 /// A wrapped key is an `AbstractKey` which has been wrapped (encrypted) with another `AbstractKey`.
 /// This is useful because it lets us have e.g. a single "master key" which is wrapped by several

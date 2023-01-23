@@ -17,7 +17,6 @@ use crate::crypto::secret::Secret;
 use crate::crypto::wrap::WrappedKey;
 use crate::error::*;
 use data_encoding;
-use log::{debug, error};
 use once_cell::sync::Lazy;
 use rmp_serde;
 use serde::{Deserialize, Serialize};
@@ -25,6 +24,7 @@ use std::fs;
 use std::io::{Read, Write};
 use std::ops::{Deref, DerefMut};
 use std::path::{Path, PathBuf};
+use tracing::{debug, error};
 
 /// This token is used to verify that authentication was successful. We encrypt it with a master
 /// key which we then wrap with user key(s), so we can verify that the user presented a valid
