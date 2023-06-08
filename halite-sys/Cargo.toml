@@ -1,6 +1,6 @@
 [package]
 name = "halite-sys"
-version = "0.1.4"
+version = "0.1.5"
 authors = ["Axel Rasmussen <axel.rasmussen1@gmail.com>"]
 description = "Unsafe Rust bindings for libsodium stable."
 homepage = "https://github.com/CmdrMoozy/bdrck"
@@ -12,5 +12,5 @@ build = "src/build.rs"
 [build-dependencies]
 anyhow = { version = "1.0", features = ["backtrace"] }
 bindgen = "0.65"
-tempfile = "3.5"
+tempfile = "3.6"
 walkdir = "2.3"
