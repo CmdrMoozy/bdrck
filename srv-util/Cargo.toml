@@ -1,0 +1,25 @@
+[package]
+name = "srv-util"
+version = "0.1.0"
+authors = ["Axel Rasmussen <axel.rasmussen1@gmail.com>"]
+description = "Generic common foundational utilities for HTTP servers."
+homepage = "https://github.com/CmdrMoozy/bdrck"
+repository = "https://github.com/CmdrMoozy/bdrck"
+license = "Apache-2.0"
+edition = "2021"
+
+[dependencies]
+axum = "0.6"
+console-subscriber = { version = "0.1", optional = true }
+hyper = "0.14"
+libc = "0.2"
+rusqlite = { version = "0.29", features = ["bundled"] }
+thiserror = "1.0"
+tokio = { version = "1.32", features = ["full"] }
+tokio-stream = { version = "0.1", features = ["signal"] }
+tower-http = { version = "0.4", features = ["trace"] }
+tower-layer = "0.3"
+tracing = "0.1"
+tracing-appender = "0.2"
+tracing-journald = "0.3"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
