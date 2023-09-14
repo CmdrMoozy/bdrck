@@ -1,13 +1,5 @@
-use axum::extract::ConnectInfo;
-use axum::http::Request;
-use axum::response::Response;
-use std::net::SocketAddr;
 use std::path::Path;
 use std::sync::{Arc, OnceLock, Weak};
-use std::time::Duration;
-use tower_http::trace::TraceLayer;
-use tower_layer::Layer;
-use tracing::{debug, info_span, Span};
 use tracing_subscriber::prelude::*;
 use tracing_subscriber::{fmt, EnvFilter};
 
@@ -114,50 +106,4 @@ pub fn init_logging(default_filter: &str, logfile: Option<&Path>) -> Option<Arc<
     // try to upgrade our weak reference to the previously-created guard. If all previous caller(s)
     // already dropped their references, too bad.
     new_guard.or(maybe_guard.map(|weak| weak.upgrade()).flatten())
-}
-
-/// Constructs a new Layer which can be added to an axum Router to add request logging.
-pub fn new_logging_layer<S, Req, Res>() -> impl Layer<S> {
-    TraceLayer::new_for_http()
-        .make_span_with(|request: &Request<Req>| {
-            let remote_addr: Option<SocketAddr> = request
-                .extensions()
-                .get::<ConnectInfo<SocketAddr>>()
-                .map(|ci| ci.0);
-            let real_remote_addr = request
-                .headers()
-                .get("x-forwarded-for")
-                .or_else(|| request.headers().get("x-real-ip"))
-                .map(|v| v.to_str())
-                .transpose();
-            let referer = request
-                .headers()
-                .get(axum::http::header::REFERER)
-                .map(|v| v.to_str())
-                .transpose();
-            let user_agent = request
-                .headers()
-                .get(axum::http::header::USER_AGENT)
-                .map(|v| v.to_str())
-                .transpose();
-
-            info_span!(
-                "http-request",
-                remote_addr = ?remote_addr,
-                real_remote_addr = ?real_remote_addr,
-                method = ?request.method(),
-                uri = ?request.uri(),
-                version = ?request.version(),
-                referer = ?referer,
-                user_agent = ?user_agent)
-        })
-        .on_response(
-            |response: &Response<Res>, latency: Duration, _span: &Span| {
-                debug!(
-                    "response '{}' generated in {:?}",
-                    response.status(),
-                    latency
-                )
-            },
-        )
 }
