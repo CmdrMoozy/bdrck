@@ -27,6 +27,10 @@ impl Database {
         .await?
     }
 
+    pub fn get_inner(&self) -> &Mutex<Connection> {
+        &self.0
+    }
+
     pub async fn do_transaction<
         E: From<Error> + Send + 'static,
         R: Send + 'static,
