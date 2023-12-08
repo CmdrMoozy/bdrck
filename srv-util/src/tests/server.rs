@@ -56,7 +56,7 @@ async fn do_test<Fut: Future<Output = Result<()>>, F: FnOnce(Url) -> Fut>(f: F) 
     res
 }
 
-#[tokio::test(flavor = "multi_thread", worker_threads = 8)]
+#[tokio::test]
 async fn test_hello_world() -> Result<()> {
     async fn test_impl(server_url: Url) -> Result<()> {
         let client = Client::new();
