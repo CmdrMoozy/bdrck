@@ -12,11 +12,11 @@ use std::net::{SocketAddr, TcpListener, ToSocketAddrs};
 use std::pin::Pin;
 use std::time::Duration;
 use tokio::sync::watch;
-use tokio_stream::wrappers::SignalStream;
+use tokio_stream::wrappers::{SignalStream, WatchStream};
 use tokio_stream::{StreamExt, StreamMap};
 use tower::Service;
 use tower_http::trace::TraceLayer;
-use tracing::{debug, info_span, Span};
+use tracing::{debug, info_span, trace, Span};
 
 async fn handle_signals(
     mut streams: StreamMap<SignalKind, Pin<Box<SignalStream>>>,
@@ -119,21 +119,9 @@ impl GracefulShutdownKind {
     }
 }
 
-async fn rx_graceful_shutdown(rx: Option<watch::Receiver<c_int>>) {
-    if let Some(mut rx) = rx {
-        if let Err(e) = rx.changed().await {
-            if cfg!(debug_assertions) {
-                println!("graceful shutdown: signal sender dropped: {:?}", e);
-            }
-        }
-
-        let signal: c_int = *rx.borrow_and_update();
-        if cfg!(debug_assertions) {
-            println!("graceful shutdown: signal receiver got value {}", signal);
-        }
-    } else {
-        let () = std::future::pending().await;
-        unreachable!();
+fn rx_graceful_shutdown(value: c_int) {
+    if cfg!(debug_assertions) {
+        println!("graceful shutdown: signal receiver got value {}", value);
     }
 }
 
@@ -145,11 +133,14 @@ pub async fn serve_with(
 ) -> Result<()> {
     let listener = tokio::net::TcpListener::from_std(listener)?;
 
-    let shutdown_rx =
-        handle_graceful_shutdown(shutdown_kind.get_signals())?.or(match shutdown_kind {
+    let (_noop_shutdown_tx, noop_shutdown_rx) = watch::channel(0);
+    let shutdown_rx = handle_graceful_shutdown(shutdown_kind.get_signals())?
+        .or(match shutdown_kind {
             GracefulShutdownKind::Custom(rx) => Some(rx),
             _ => None,
-        });
+        })
+        .unwrap_or(noop_shutdown_rx);
+    let mut shutdown_stream = WatchStream::from_changes(shutdown_rx.clone());
 
     let app = if should_add_logging_layer {
         add_logging_layer(app)
@@ -169,7 +160,8 @@ pub async fn serve_with(
                 result.unwrap()
             }
             // ...or stop looping if we got a graceful shutdown signal.
-            _ = rx_graceful_shutdown(shutdown_rx.clone()) => {
+            Some(value) = shutdown_stream.next() => {
+                rx_graceful_shutdown(value);
                 break;
             }
         };
@@ -181,6 +173,10 @@ pub async fn serve_with(
         let close_rx = close_rx.clone();
         let shutdown_rx = shutdown_rx.clone();
         tokio::spawn(async move {
+            trace!("starting worker to serve {}", remote_addr);
+
+            let mut shutdown_stream = WatchStream::from_changes(shutdown_rx);
+
             // Boilerplate to fit our round peg in hyper's square hole.
             let socket = hyper_util::rt::TokioIo::new(socket);
             let hyper_service = hyper::service::service_fn(move |request: Request<Incoming>| {
@@ -197,6 +193,8 @@ pub async fn serve_with(
             // `graceful_shutdown` requires a pinned connection.
             let mut conn = std::pin::pin!(conn);
 
+            trace!("worker ready to serve {}", remote_addr);
+
             loop {
                 tokio::select! {
                     result = conn.as_mut() => {
@@ -205,8 +203,9 @@ pub async fn serve_with(
                         }
                         break;
                     }
-                    _ = rx_graceful_shutdown(shutdown_rx.clone()) => {
-                        conn.as_mut().graceful_shutdown();
+                    Some(value) = shutdown_stream.next() => {
+                        rx_graceful_shutdown(value);
+                        break;
                     }
                 }
             }
@@ -214,7 +213,11 @@ pub async fn serve_with(
             // Drop our side of the channel to notify the caller that our task is done.
             drop(close_rx);
         });
+
+        trace!("waiting for another connection...");
     }
+
+    trace!("cleaning up server...");
 
     // We only care about watch receivers moved into connection tasks so close this residual one.
     drop(close_rx);

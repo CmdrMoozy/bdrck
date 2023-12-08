@@ -17,7 +17,7 @@ libc = "0.2"
 rusqlite = { version = "0.30", features = ["bundled-full"] }
 thiserror = "1.0"
 tokio = { version = "1.34", features = ["full"] }
-tokio-stream = { version = "0.1", features = ["signal"] }
+tokio-stream = { version = "0.1", features = ["signal", "sync"] }
 tower = "0.4"
 tower-http = { version = "0.5", features = ["trace"] }
 tracing = "0.1"
