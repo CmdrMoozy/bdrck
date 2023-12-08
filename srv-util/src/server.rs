@@ -131,6 +131,7 @@ pub async fn serve_with(
     should_add_logging_layer: bool,
     app: Router<()>,
 ) -> Result<()> {
+    listener.set_nonblocking(true)?;
     let listener = tokio::net::TcpListener::from_std(listener)?;
 
     let (_noop_shutdown_tx, noop_shutdown_rx) = watch::channel(0);
