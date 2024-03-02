@@ -1,6 +1,6 @@
 [package]
 name = "srv-util"
-version = "0.2.2"
+version = "0.2.3"
 authors = ["Axel Rasmussen <axel.rasmussen1@gmail.com>"]
 description = "Generic common foundational utilities for HTTP servers."
 homepage = "https://github.com/CmdrMoozy/bdrck"
@@ -11,12 +11,12 @@ edition = "2021"
 [dependencies]
 axum = "0.7"
 console-subscriber = { version = "0.2", optional = true }
-hyper = "1.0"
+hyper = "1.2"
 hyper-util = "0.1"
 libc = "0.2"
-rusqlite = { version = "0.30", features = ["bundled-full"] }
+rusqlite = { version = "0.31", features = ["bundled-full"] }
 thiserror = "1.0"
-tokio = { version = "1.35", features = ["full"] }
+tokio = { version = "1.36", features = ["full"] }
 tokio-stream = { version = "0.1", features = ["signal", "sync"] }
 tower = "0.4"
 tower-http = { version = "0.5", features = ["trace"] }
