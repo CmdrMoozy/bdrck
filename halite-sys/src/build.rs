@@ -117,7 +117,7 @@ fn main_impl() -> Result<()> {
 
     let bindings = bindgen::Builder::default()
         .header(include_dir.join("sodium.h").display().to_string())
-        .parse_callbacks(Box::new(bindgen::CargoCallbacks))
+        .parse_callbacks(Box::new(bindgen::CargoCallbacks::new()))
         .generate()
         .expect("unable to generate bindings");
 
